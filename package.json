@@ -1,0 +1,17 @@
+{
+  "name": "ventline",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Job-site communication for trades companies — monorepo root",
+  "scripts": {
+    "db:validate": "bash scripts/db-validate.sh",
+    "db:types": "bash scripts/gen-types.sh",
+    "web:dev": "npm --prefix web run dev",
+    "web:build": "npm --prefix web run build",
+    "web:lint": "npm --prefix web run lint"
+  },
+  "devDependencies": {
+    "@supabase/postgres-meta": "^0.93.0",
+    "supabase": "2.109.1"
+  }
+}

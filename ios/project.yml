@@ -1,0 +1,52 @@
+# XcodeGen project definition. On a Mac:
+#   brew install xcodegen
+#   cd ios && xcodegen generate
+#   open Ventline.xcodeproj
+#
+# Fill in Config/Secrets.xcconfig first (copy from Secrets.example.xcconfig).
+name: Ventline
+options:
+  bundleIdPrefix: com.ventline
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+
+packages:
+  Supabase:
+    url: https://github.com/supabase/supabase-swift
+    exactVersion: 2.50.0
+
+configFiles:
+  Debug: Ventline/Config/Base.xcconfig
+  Release: Ventline/Config/Base.xcconfig
+
+targets:
+  Ventline:
+    type: application
+    platform: iOS
+    sources:
+      - path: Ventline
+    dependencies:
+      - package: Supabase
+        product: Supabase
+    info:
+      path: Ventline/Info.plist
+      properties:
+        CFBundleDisplayName: Ventline
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        NSCameraUsageDescription: Take photos of job-site work to share with your team.
+        NSMicrophoneUsageDescription: Record voice messages for your team.
+        NSPhotoLibraryUsageDescription: Attach photos from your library to job updates.
+        # Filled from Config/Secrets.xcconfig at build time:
+        SupabaseURL: $(SUPABASE_URL)
+        SupabaseAnonKey: $(SUPABASE_ANON_KEY)
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ventline.app
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        # Language mode 5 keeps concurrency checking pragmatic for now;
+        # the toolchain itself must be Swift 6.1+ (supabase-swift requirement).
+        SWIFT_VERSION: "5.0"

@@ -1,0 +1,2 @@
+// Shared build settings. Secrets live in Secrets.xcconfig (gitignored).
+#include? "Secrets.xcconfig"
