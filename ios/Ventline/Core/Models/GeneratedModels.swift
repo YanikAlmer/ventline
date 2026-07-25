@@ -29,6 +29,22 @@ public enum PublicSchema {
     case task = "task"
     case attachment = "attachment"
   }
+  public enum NotificationKind: String, Codable, Hashable, Sendable {
+    case chatMessage = "chat_message"
+    case mention = "mention"
+    case taskAssigned = "task_assigned"
+    case taskStatus = "task_status"
+    case taskDueSoon = "task_due_soon"
+    case taskOverdue = "task_overdue"
+  }
+  public enum NotificationStatus: String, Codable, Hashable, Sendable {
+    case pending = "pending"
+    case sending = "sending"
+    case sent = "sent"
+    case failed = "failed"
+    case skipped = "skipped"
+    case expired = "expired"
+  }
   public enum ProjectStatus: String, Codable, Hashable, Sendable {
     case planning = "planning"
     case active = "active"
@@ -45,19 +61,23 @@ public enum PublicSchema {
   }
   public struct AttachmentsSelect: Codable, Hashable, Sendable {
     public let byteSize: Int64?
+    public let caption: String?
     public let createdAt: String
     public let durationSeconds: Double?
     public let height: Int32?
     public let id: UUID
     public let kind: AttachmentKind
-    public let messageId: UUID
+    public let messageId: UUID?
     public let mimeType: String
     public let storageBucket: String
     public let storagePath: String
+    public let taskId: UUID?
+    public let uploadedBy: UUID?
     public let waveform: AnyJSON?
     public let width: Int32?
     public enum CodingKeys: String, CodingKey {
       case byteSize = "byte_size"
+      case caption = "caption"
       case createdAt = "created_at"
       case durationSeconds = "duration_seconds"
       case height = "height"
@@ -67,25 +87,31 @@ public enum PublicSchema {
       case mimeType = "mime_type"
       case storageBucket = "storage_bucket"
       case storagePath = "storage_path"
+      case taskId = "task_id"
+      case uploadedBy = "uploaded_by"
       case waveform = "waveform"
       case width = "width"
     }
   }
   public struct AttachmentsInsert: Codable, Hashable, Sendable {
     public let byteSize: Int64?
+    public let caption: String?
     public let createdAt: String?
     public let durationSeconds: Double?
     public let height: Int32?
     public let id: UUID?
     public let kind: AttachmentKind
-    public let messageId: UUID
+    public let messageId: UUID?
     public let mimeType: String
     public let storageBucket: String
     public let storagePath: String
+    public let taskId: UUID?
+    public let uploadedBy: UUID?
     public let waveform: AnyJSON?
     public let width: Int32?
     public enum CodingKeys: String, CodingKey {
       case byteSize = "byte_size"
+      case caption = "caption"
       case createdAt = "created_at"
       case durationSeconds = "duration_seconds"
       case height = "height"
@@ -95,12 +121,15 @@ public enum PublicSchema {
       case mimeType = "mime_type"
       case storageBucket = "storage_bucket"
       case storagePath = "storage_path"
+      case taskId = "task_id"
+      case uploadedBy = "uploaded_by"
       case waveform = "waveform"
       case width = "width"
     }
   }
   public struct AttachmentsUpdate: Codable, Hashable, Sendable {
     public let byteSize: Int64?
+    public let caption: String?
     public let createdAt: String?
     public let durationSeconds: Double?
     public let height: Int32?
@@ -110,10 +139,13 @@ public enum PublicSchema {
     public let mimeType: String?
     public let storageBucket: String?
     public let storagePath: String?
+    public let taskId: UUID?
+    public let uploadedBy: UUID?
     public let waveform: AnyJSON?
     public let width: Int32?
     public enum CodingKeys: String, CodingKey {
       case byteSize = "byte_size"
+      case caption = "caption"
       case createdAt = "created_at"
       case durationSeconds = "duration_seconds"
       case height = "height"
@@ -123,6 +155,8 @@ public enum PublicSchema {
       case mimeType = "mime_type"
       case storageBucket = "storage_bucket"
       case storagePath = "storage_path"
+      case taskId = "task_id"
+      case uploadedBy = "uploaded_by"
       case waveform = "waveform"
       case width = "width"
     }
@@ -158,44 +192,80 @@ public enum PublicSchema {
     }
   }
   public struct DevicesSelect: Codable, Hashable, Sendable {
-    public let apnsToken: String
+    public let apnsEnvironment: String
+    public let appVersion: String?
+    public let createdAt: String
     public let id: UUID
+    public let installId: UUID
+    public let lastSeenAt: String
+    public let locale: String
     public let platform: DevicePlatform
     public let profileId: UUID
+    public let pushToken: String
     public let updatedAt: String
     public enum CodingKeys: String, CodingKey {
-      case apnsToken = "apns_token"
+      case apnsEnvironment = "apns_environment"
+      case appVersion = "app_version"
+      case createdAt = "created_at"
       case id = "id"
+      case installId = "install_id"
+      case lastSeenAt = "last_seen_at"
+      case locale = "locale"
       case platform = "platform"
       case profileId = "profile_id"
+      case pushToken = "push_token"
       case updatedAt = "updated_at"
     }
   }
   public struct DevicesInsert: Codable, Hashable, Sendable {
-    public let apnsToken: String
+    public let apnsEnvironment: String?
+    public let appVersion: String?
+    public let createdAt: String?
     public let id: UUID?
+    public let installId: UUID
+    public let lastSeenAt: String?
+    public let locale: String?
     public let platform: DevicePlatform
     public let profileId: UUID
+    public let pushToken: String
     public let updatedAt: String?
     public enum CodingKeys: String, CodingKey {
-      case apnsToken = "apns_token"
+      case apnsEnvironment = "apns_environment"
+      case appVersion = "app_version"
+      case createdAt = "created_at"
       case id = "id"
+      case installId = "install_id"
+      case lastSeenAt = "last_seen_at"
+      case locale = "locale"
       case platform = "platform"
       case profileId = "profile_id"
+      case pushToken = "push_token"
       case updatedAt = "updated_at"
     }
   }
   public struct DevicesUpdate: Codable, Hashable, Sendable {
-    public let apnsToken: String?
+    public let apnsEnvironment: String?
+    public let appVersion: String?
+    public let createdAt: String?
     public let id: UUID?
+    public let installId: UUID?
+    public let lastSeenAt: String?
+    public let locale: String?
     public let platform: DevicePlatform?
     public let profileId: UUID?
+    public let pushToken: String?
     public let updatedAt: String?
     public enum CodingKeys: String, CodingKey {
-      case apnsToken = "apns_token"
+      case apnsEnvironment = "apns_environment"
+      case appVersion = "app_version"
+      case createdAt = "created_at"
       case id = "id"
+      case installId = "install_id"
+      case lastSeenAt = "last_seen_at"
+      case locale = "locale"
       case platform = "platform"
       case profileId = "profile_id"
+      case pushToken = "push_token"
       case updatedAt = "updated_at"
     }
   }
@@ -595,6 +665,240 @@ public enum PublicSchema {
       case threadId = "thread_id"
     }
   }
+  public struct NotificationDeliveriesSelect: Codable, Hashable, Sendable {
+    public let deliveredAt: String
+    public let deviceId: UUID
+    public let outboxId: UUID
+    public enum CodingKeys: String, CodingKey {
+      case deliveredAt = "delivered_at"
+      case deviceId = "device_id"
+      case outboxId = "outbox_id"
+    }
+  }
+  public struct NotificationDeliveriesInsert: Codable, Hashable, Sendable {
+    public let deliveredAt: String?
+    public let deviceId: UUID
+    public let outboxId: UUID
+    public enum CodingKeys: String, CodingKey {
+      case deliveredAt = "delivered_at"
+      case deviceId = "device_id"
+      case outboxId = "outbox_id"
+    }
+  }
+  public struct NotificationDeliveriesUpdate: Codable, Hashable, Sendable {
+    public let deliveredAt: String?
+    public let deviceId: UUID?
+    public let outboxId: UUID?
+    public enum CodingKeys: String, CodingKey {
+      case deliveredAt = "delivered_at"
+      case deviceId = "device_id"
+      case outboxId = "outbox_id"
+    }
+  }
+  public struct NotificationOutboxSelect: Codable, Hashable, Sendable {
+    public let actorId: UUID?
+    public let attempts: Int32
+    public let companyId: UUID
+    public let createdAt: String
+    public let dedupeKey: String
+    public let id: UUID
+    public let kind: NotificationKind
+    public let lastError: String?
+    public let messageId: UUID?
+    public let nextAttemptAt: String
+    public let payload: AnyJSON
+    public let processedAt: String?
+    public let projectId: UUID
+    public let status: NotificationStatus
+    public let targetId: UUID?
+    public let taskId: UUID?
+    public enum CodingKeys: String, CodingKey {
+      case actorId = "actor_id"
+      case attempts = "attempts"
+      case companyId = "company_id"
+      case createdAt = "created_at"
+      case dedupeKey = "dedupe_key"
+      case id = "id"
+      case kind = "kind"
+      case lastError = "last_error"
+      case messageId = "message_id"
+      case nextAttemptAt = "next_attempt_at"
+      case payload = "payload"
+      case processedAt = "processed_at"
+      case projectId = "project_id"
+      case status = "status"
+      case targetId = "target_id"
+      case taskId = "task_id"
+    }
+  }
+  public struct NotificationOutboxInsert: Codable, Hashable, Sendable {
+    public let actorId: UUID?
+    public let attempts: Int32?
+    public let companyId: UUID
+    public let createdAt: String?
+    public let dedupeKey: String
+    public let id: UUID?
+    public let kind: NotificationKind
+    public let lastError: String?
+    public let messageId: UUID?
+    public let nextAttemptAt: String?
+    public let payload: AnyJSON?
+    public let processedAt: String?
+    public let projectId: UUID
+    public let status: NotificationStatus?
+    public let targetId: UUID?
+    public let taskId: UUID?
+    public enum CodingKeys: String, CodingKey {
+      case actorId = "actor_id"
+      case attempts = "attempts"
+      case companyId = "company_id"
+      case createdAt = "created_at"
+      case dedupeKey = "dedupe_key"
+      case id = "id"
+      case kind = "kind"
+      case lastError = "last_error"
+      case messageId = "message_id"
+      case nextAttemptAt = "next_attempt_at"
+      case payload = "payload"
+      case processedAt = "processed_at"
+      case projectId = "project_id"
+      case status = "status"
+      case targetId = "target_id"
+      case taskId = "task_id"
+    }
+  }
+  public struct NotificationOutboxUpdate: Codable, Hashable, Sendable {
+    public let actorId: UUID?
+    public let attempts: Int32?
+    public let companyId: UUID?
+    public let createdAt: String?
+    public let dedupeKey: String?
+    public let id: UUID?
+    public let kind: NotificationKind?
+    public let lastError: String?
+    public let messageId: UUID?
+    public let nextAttemptAt: String?
+    public let payload: AnyJSON?
+    public let processedAt: String?
+    public let projectId: UUID?
+    public let status: NotificationStatus?
+    public let targetId: UUID?
+    public let taskId: UUID?
+    public enum CodingKeys: String, CodingKey {
+      case actorId = "actor_id"
+      case attempts = "attempts"
+      case companyId = "company_id"
+      case createdAt = "created_at"
+      case dedupeKey = "dedupe_key"
+      case id = "id"
+      case kind = "kind"
+      case lastError = "last_error"
+      case messageId = "message_id"
+      case nextAttemptAt = "next_attempt_at"
+      case payload = "payload"
+      case processedAt = "processed_at"
+      case projectId = "project_id"
+      case status = "status"
+      case targetId = "target_id"
+      case taskId = "task_id"
+    }
+  }
+  public struct NotificationPrefsSelect: Codable, Hashable, Sendable {
+    public let chatEnabled: Bool
+    public let createdAt: String
+    public let deadlinesEnabled: Bool
+    public let mentionsEnabled: Bool
+    public let profileId: UUID
+    public let pushEnabled: Bool
+    public let quietHoursEnabled: Bool
+    public let quietHoursEnd: String
+    public let quietHoursStart: String
+    public let taskAssignedEnabled: Bool
+    public let taskStatusEnabled: Bool
+    public let timeZone: String
+    public let updatedAt: String
+    public let watchAllProjects: Bool
+    public enum CodingKeys: String, CodingKey {
+      case chatEnabled = "chat_enabled"
+      case createdAt = "created_at"
+      case deadlinesEnabled = "deadlines_enabled"
+      case mentionsEnabled = "mentions_enabled"
+      case profileId = "profile_id"
+      case pushEnabled = "push_enabled"
+      case quietHoursEnabled = "quiet_hours_enabled"
+      case quietHoursEnd = "quiet_hours_end"
+      case quietHoursStart = "quiet_hours_start"
+      case taskAssignedEnabled = "task_assigned_enabled"
+      case taskStatusEnabled = "task_status_enabled"
+      case timeZone = "time_zone"
+      case updatedAt = "updated_at"
+      case watchAllProjects = "watch_all_projects"
+    }
+  }
+  public struct NotificationPrefsInsert: Codable, Hashable, Sendable {
+    public let chatEnabled: Bool?
+    public let createdAt: String?
+    public let deadlinesEnabled: Bool?
+    public let mentionsEnabled: Bool?
+    public let profileId: UUID
+    public let pushEnabled: Bool?
+    public let quietHoursEnabled: Bool?
+    public let quietHoursEnd: String?
+    public let quietHoursStart: String?
+    public let taskAssignedEnabled: Bool?
+    public let taskStatusEnabled: Bool?
+    public let timeZone: String?
+    public let updatedAt: String?
+    public let watchAllProjects: Bool?
+    public enum CodingKeys: String, CodingKey {
+      case chatEnabled = "chat_enabled"
+      case createdAt = "created_at"
+      case deadlinesEnabled = "deadlines_enabled"
+      case mentionsEnabled = "mentions_enabled"
+      case profileId = "profile_id"
+      case pushEnabled = "push_enabled"
+      case quietHoursEnabled = "quiet_hours_enabled"
+      case quietHoursEnd = "quiet_hours_end"
+      case quietHoursStart = "quiet_hours_start"
+      case taskAssignedEnabled = "task_assigned_enabled"
+      case taskStatusEnabled = "task_status_enabled"
+      case timeZone = "time_zone"
+      case updatedAt = "updated_at"
+      case watchAllProjects = "watch_all_projects"
+    }
+  }
+  public struct NotificationPrefsUpdate: Codable, Hashable, Sendable {
+    public let chatEnabled: Bool?
+    public let createdAt: String?
+    public let deadlinesEnabled: Bool?
+    public let mentionsEnabled: Bool?
+    public let profileId: UUID?
+    public let pushEnabled: Bool?
+    public let quietHoursEnabled: Bool?
+    public let quietHoursEnd: String?
+    public let quietHoursStart: String?
+    public let taskAssignedEnabled: Bool?
+    public let taskStatusEnabled: Bool?
+    public let timeZone: String?
+    public let updatedAt: String?
+    public let watchAllProjects: Bool?
+    public enum CodingKeys: String, CodingKey {
+      case chatEnabled = "chat_enabled"
+      case createdAt = "created_at"
+      case deadlinesEnabled = "deadlines_enabled"
+      case mentionsEnabled = "mentions_enabled"
+      case profileId = "profile_id"
+      case pushEnabled = "push_enabled"
+      case quietHoursEnabled = "quiet_hours_enabled"
+      case quietHoursEnd = "quiet_hours_end"
+      case quietHoursStart = "quiet_hours_start"
+      case taskAssignedEnabled = "task_assigned_enabled"
+      case taskStatusEnabled = "task_status_enabled"
+      case timeZone = "time_zone"
+      case updatedAt = "updated_at"
+      case watchAllProjects = "watch_all_projects"
+    }
+  }
   public struct PhotoAnnotationsSelect: Codable, Hashable, Sendable {
     public let attachmentId: UUID
     public let authorId: UUID
@@ -739,6 +1043,42 @@ public enum PublicSchema {
       case projectId = "project_id"
     }
   }
+  public struct ProjectNotificationMutesSelect: Codable, Hashable, Sendable {
+    public let createdAt: String
+    public let mutedUntil: String?
+    public let profileId: UUID
+    public let projectId: UUID
+    public enum CodingKeys: String, CodingKey {
+      case createdAt = "created_at"
+      case mutedUntil = "muted_until"
+      case profileId = "profile_id"
+      case projectId = "project_id"
+    }
+  }
+  public struct ProjectNotificationMutesInsert: Codable, Hashable, Sendable {
+    public let createdAt: String?
+    public let mutedUntil: String?
+    public let profileId: UUID
+    public let projectId: UUID
+    public enum CodingKeys: String, CodingKey {
+      case createdAt = "created_at"
+      case mutedUntil = "muted_until"
+      case profileId = "profile_id"
+      case projectId = "project_id"
+    }
+  }
+  public struct ProjectNotificationMutesUpdate: Codable, Hashable, Sendable {
+    public let createdAt: String?
+    public let mutedUntil: String?
+    public let profileId: UUID?
+    public let projectId: UUID?
+    public enum CodingKeys: String, CodingKey {
+      case createdAt = "created_at"
+      case mutedUntil = "muted_until"
+      case profileId = "profile_id"
+      case projectId = "project_id"
+    }
+  }
   public struct ProjectsSelect: Codable, Hashable, Sendable {
     public let address: String?
     public let companyId: UUID
@@ -863,7 +1203,9 @@ public enum PublicSchema {
     public let createdBy: UUID?
     public let description: String?
     public let dueDate: String?
+    public let dueTime: String?
     public let id: UUID
+    public let parentId: UUID?
     public let projectId: UUID
     public let sortOrder: Double
     public let status: TaskStatus
@@ -880,7 +1222,9 @@ public enum PublicSchema {
       case createdBy = "created_by"
       case description = "description"
       case dueDate = "due_date"
+      case dueTime = "due_time"
       case id = "id"
+      case parentId = "parent_id"
       case projectId = "project_id"
       case sortOrder = "sort_order"
       case status = "status"
@@ -899,7 +1243,9 @@ public enum PublicSchema {
     public let createdBy: UUID?
     public let description: String?
     public let dueDate: String?
+    public let dueTime: String?
     public let id: UUID?
+    public let parentId: UUID?
     public let projectId: UUID
     public let sortOrder: Double?
     public let status: TaskStatus?
@@ -916,7 +1262,9 @@ public enum PublicSchema {
       case createdBy = "created_by"
       case description = "description"
       case dueDate = "due_date"
+      case dueTime = "due_time"
       case id = "id"
+      case parentId = "parent_id"
       case projectId = "project_id"
       case sortOrder = "sort_order"
       case status = "status"
@@ -935,7 +1283,9 @@ public enum PublicSchema {
     public let createdBy: UUID?
     public let description: String?
     public let dueDate: String?
+    public let dueTime: String?
     public let id: UUID?
+    public let parentId: UUID?
     public let projectId: UUID?
     public let sortOrder: Double?
     public let status: TaskStatus?
@@ -952,7 +1302,9 @@ public enum PublicSchema {
       case createdBy = "created_by"
       case description = "description"
       case dueDate = "due_date"
+      case dueTime = "due_time"
       case id = "id"
+      case parentId = "parent_id"
       case projectId = "project_id"
       case sortOrder = "sort_order"
       case status = "status"

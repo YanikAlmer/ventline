@@ -115,9 +115,32 @@ enum TaskRepo {
             .value
     }
 
+    static func tasks(ids: [UUID]) async throws -> [JobTask] {
+        if ids.isEmpty { return [] }
+        return try await Supa.client
+            .from("tasks")
+            .select()
+            .in("id", values: ids.map { $0 as any PostgrestFilterValue })
+            .execute()
+            .value
+    }
+
+    /// Steps of a work package, in board order.
+    static func steps(parentId: UUID) async throws -> [JobTask] {
+        try await Supa.client
+            .from("tasks")
+            .select()
+            .eq("parent_id", value: parentId)
+            .order("sort_order")
+            .order("created_at")
+            .execute()
+            .value
+    }
+
+    /// Creates an Arbeitspaket, or an Arbeitsschritt when `parentId` is set.
     static func create(
         projectId: UUID, companyId: UUID, title: String, description: String?,
-        dueDate: String?, visibleToCustomer: Bool
+        dueDate: String?, dueTime: String?, parentId: UUID?, visibleToCustomer: Bool
     ) async throws -> JobTask {
         let row = PublicSchema.TasksInsert(
             approvedAt: nil, approvedBy: nil,
@@ -126,7 +149,10 @@ enum TaskRepo {
             createdAt: nil, createdBy: nil,
             description: description,
             dueDate: dueDate,
+            // The database rejects a time without a date; never send one.
+            dueTime: dueDate == nil ? nil : dueTime,
             id: nil,
+            parentId: parentId,
             projectId: projectId,
             sortOrder: nil,
             status: nil,
@@ -182,6 +208,60 @@ enum TaskRepo {
             .eq("task_id", value: taskId)
             .eq("profile_id", value: profileId)
             .execute()
+    }
+
+    // MARK: - Files attached to the work itself
+
+    static func attachments(taskId: UUID) async throws -> [Attachment] {
+        try await Supa.client
+            .from("attachments")
+            .select()
+            .eq("task_id", value: taskId)
+            .order("created_at")
+            .execute()
+            .value
+    }
+
+    static func addAttachment(taskId: UUID, media: MediaUploader.Uploaded) async throws -> Attachment {
+        let row = PublicSchema.AttachmentsInsert(
+            byteSize: Int64(media.byteSize),
+            caption: nil,
+            createdAt: nil,
+            durationSeconds: media.durationSeconds,
+            height: media.height.map(Int32.init),
+            id: nil,
+            kind: media.attachmentKind,
+            messageId: nil,
+            mimeType: media.mimeType,
+            storageBucket: media.bucket,
+            storagePath: media.path,
+            taskId: taskId,
+            // Server-stamped from the session; anything sent here is ignored.
+            uploadedBy: nil,
+            waveform: nil,
+            width: media.width.map(Int32.init)
+        )
+        return try await Supa.client
+            .from("attachments")
+            .insert(row)
+            .select()
+            .single()
+            .execute()
+            .value
+    }
+
+    /// Returns false when RLS refused the delete. A forbidden delete is not an
+    /// error over PostgREST — it simply matches no rows — so the caller must
+    /// not assume success and drop the file from the list.
+    static func deleteAttachment(id: UUID) async throws -> Bool {
+        let deleted: [Attachment] = try await Supa.client
+            .from("attachments")
+            .delete()
+            .eq("id", value: id)
+            .select()
+            .execute()
+            .value
+        return !deleted.isEmpty
     }
 }
 

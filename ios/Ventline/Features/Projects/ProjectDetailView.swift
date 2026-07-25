@@ -10,10 +10,15 @@ struct ProjectDetailView: View {
     @State private var profilesById: [UUID: Profile] = [:]
     @State private var showNewTask = false
     @State private var showMembers = false
+    @State private var newStepParent: JobTask?
+    @State private var expandedPackages: Set<UUID> = []
 
-    private var grouped: [(status: TaskStatus, tasks: [JobTask])] {
-        [TaskStatus.inProgress, .blocked, .todo, .done, .approved].compactMap { status in
-            let matching = tasks.filter { $0.status == status }
+    /// Work packages, grouped by status. Steps never appear here as peers of
+    /// their package — they are reached through `WorkPackage.steps`.
+    private var grouped: [(status: TaskStatus, packages: [WorkPackage])] {
+        let all = WorkPackage.build(from: tasks)
+        return [TaskStatus.inProgress, .blocked, .todo, .done, .approved].compactMap { status in
+            let matching = all.filter { $0.task.status == status }
             return matching.isEmpty ? nil : (status, matching)
         }
     }
@@ -59,20 +64,36 @@ struct ProjectDetailView: View {
                 }
 
                 ForEach(grouped, id: \.status) { group in
-                    Section("\(group.status.label) · \(group.tasks.count)") {
-                        ForEach(group.tasks, id: \.id) { task in
+                    Section("\(group.status.label) · \(group.packages.count)") {
+                        // The rows are emitted here rather than from a child
+                        // view: a child returning several rows is folded into
+                        // ONE List row, and its NavigationLink then swallows
+                        // every tap meant for the buttons beside it.
+                        ForEach(group.packages, id: \.id) { pkg in
                             NavigationLink {
-                                TaskDetailView(taskId: task.id, profile: profile)
+                                TaskDetailView(taskId: pkg.task.id, profile: profile)
                             } label: {
-                                TaskRow(task: task)
+                                TaskRow(task: pkg.task, stepProgress: pkg.progressLabel)
                             }
+
+                            if expandedPackages.contains(pkg.id) {
+                                ForEach(pkg.steps, id: \.id) { step in
+                                    NavigationLink {
+                                        TaskDetailView(taskId: step.id, profile: profile)
+                                    } label: {
+                                        StepRow(step: step)
+                                    }
+                                }
+                            }
+
+                            packageActionRow(pkg)
                         }
                     }
                 }
 
                 if tasks.isEmpty {
                     Section {
-                        Text("No tasks yet.")
+                        Text("No work packages yet.")
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -96,6 +117,14 @@ struct ProjectDetailView: View {
                 await reload()
             }
         }
+        .sheet(item: $newStepParent) { parent in
+            NewTaskSheet(
+                projectId: projectId, profile: profile, members: memberProfiles,
+                parent: parent
+            ) {
+                await reload()
+            }
+        }
         .sheet(isPresented: $showMembers) {
             MembersSheet(projectId: projectId, profile: profile, members: $members, profilesById: $profilesById)
         }
@@ -105,6 +134,45 @@ struct ProjectDetailView: View {
 
     private var memberProfiles: [Profile] {
         members.compactMap { profilesById[$0.profileId] }
+    }
+
+    /// One row under each package: expand/collapse when it has steps, and
+    /// "Add step" — which opens the sheet directly rather than making the
+    /// crew tap a control labelled "Add step" to reveal another one.
+    @ViewBuilder
+    private func packageActionRow(_ pkg: WorkPackage) -> some View {
+        let isExpanded = expandedPackages.contains(pkg.id)
+        HStack(spacing: 16) {
+            if !pkg.steps.isEmpty {
+                Button {
+                    withAnimation {
+                        if isExpanded {
+                            expandedPackages.remove(pkg.id)
+                        } else {
+                            expandedPackages.insert(pkg.id)
+                        }
+                    }
+                } label: {
+                    Label(
+                        isExpanded
+                            ? String(localized: "Hide steps")
+                            : String(localized: "Show steps"),
+                        systemImage: isExpanded ? "chevron.up" : "chevron.down"
+                    )
+                }
+            }
+            if profile.role.canManageTasks {
+                Button {
+                    newStepParent = pkg.task
+                } label: {
+                    Label("Add step", systemImage: "plus.circle")
+                }
+            }
+            Spacer()
+        }
+        .font(.caption.weight(.semibold))
+        .buttonStyle(.borderless)
+        .listRowInsets(EdgeInsets(top: 4, leading: 44, bottom: 8, trailing: 16))
     }
 
     private func statusMenu(_ project: Project) -> some View {
@@ -142,6 +210,7 @@ struct ProjectDetailView: View {
 
 struct TaskRow: View {
     let task: JobTask
+    var stepProgress: String?
 
     var body: some View {
         HStack(spacing: 10) {
@@ -150,10 +219,17 @@ struct TaskRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(task.title)
                     .lineLimit(2)
-                if let due = task.dueDate {
-                    Text("Due \(due)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                HStack(spacing: 8) {
+                    if let stepProgress {
+                        Text(stepProgress)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                    if let due = task.dueMomentLabel {
+                        Text("Due \(due)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
             Spacer()
@@ -164,6 +240,27 @@ struct TaskRow: View {
             }
         }
         .padding(.vertical, 2)
+    }
+}
+
+struct StepRow: View {
+    let step: JobTask
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: step.status.systemImage)
+                .font(.caption)
+                .foregroundStyle(step.status.color)
+            Text(step.title)
+                .font(.subheadline)
+                .lineLimit(1)
+            Spacer()
+            if let due = step.dueMomentLabel {
+                Text(due)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
     }
 }
 

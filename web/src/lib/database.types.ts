@@ -12,43 +12,52 @@ export type Database = {
       attachments: {
         Row: {
           byte_size: number | null
+          caption: string | null
           created_at: string
           duration_seconds: number | null
           height: number | null
           id: string
           kind: Database["public"]["Enums"]["attachment_kind"]
-          message_id: string
+          message_id: string | null
           mime_type: string
           storage_bucket: string
           storage_path: string
+          task_id: string | null
+          uploaded_by: string | null
           waveform: Json | null
           width: number | null
         }
         Insert: {
           byte_size?: number | null
+          caption?: string | null
           created_at?: string
           duration_seconds?: number | null
           height?: number | null
           id?: string
           kind: Database["public"]["Enums"]["attachment_kind"]
-          message_id: string
+          message_id?: string | null
           mime_type: string
           storage_bucket: string
           storage_path: string
+          task_id?: string | null
+          uploaded_by?: string | null
           waveform?: Json | null
           width?: number | null
         }
         Update: {
           byte_size?: number | null
+          caption?: string | null
           created_at?: string
           duration_seconds?: number | null
           height?: number | null
           id?: string
           kind?: Database["public"]["Enums"]["attachment_kind"]
-          message_id?: string
+          message_id?: string | null
           mime_type?: string
           storage_bucket?: string
           storage_path?: string
+          task_id?: string | null
+          uploaded_by?: string | null
           waveform?: Json | null
           width?: number | null
         }
@@ -58,6 +67,20 @@ export type Database = {
             columns: ["message_id"]
             isOneToOne: false
             referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attachments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attachments_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -82,24 +105,42 @@ export type Database = {
       }
       devices: {
         Row: {
-          apns_token: string
+          apns_environment: string
+          app_version: string | null
+          created_at: string
           id: string
+          install_id: string
+          last_seen_at: string
+          locale: string
           platform: Database["public"]["Enums"]["device_platform"]
           profile_id: string
+          push_token: string
           updated_at: string
         }
         Insert: {
-          apns_token: string
+          apns_environment?: string
+          app_version?: string | null
+          created_at?: string
           id?: string
+          install_id: string
+          last_seen_at?: string
+          locale?: string
           platform: Database["public"]["Enums"]["device_platform"]
           profile_id: string
+          push_token: string
           updated_at?: string
         }
         Update: {
-          apns_token?: string
+          apns_environment?: string
+          app_version?: string | null
+          created_at?: string
           id?: string
+          install_id?: string
+          last_seen_at?: string
+          locale?: string
           platform?: Database["public"]["Enums"]["device_platform"]
           profile_id?: string
+          push_token?: string
           updated_at?: string
         }
         Relationships: [
@@ -487,6 +528,198 @@ export type Database = {
           },
         ]
       }
+      notification_deliveries: {
+        Row: {
+          delivered_at: string
+          device_id: string
+          outbox_id: string
+        }
+        Insert: {
+          delivered_at?: string
+          device_id: string
+          outbox_id: string
+        }
+        Update: {
+          delivered_at?: string
+          device_id?: string
+          outbox_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_deliveries_outbox_id_fkey"
+            columns: ["outbox_id"]
+            isOneToOne: false
+            referencedRelation: "notification_outbox"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_outbox: {
+        Row: {
+          actor_id: string | null
+          attempts: number
+          company_id: string
+          created_at: string
+          dedupe_key: string
+          id: string
+          kind: Database["public"]["Enums"]["notification_kind"]
+          last_error: string | null
+          message_id: string | null
+          next_attempt_at: string
+          payload: Json
+          processed_at: string | null
+          project_id: string
+          status: Database["public"]["Enums"]["notification_status"]
+          target_id: string | null
+          task_id: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          attempts?: number
+          company_id: string
+          created_at?: string
+          dedupe_key: string
+          id?: string
+          kind: Database["public"]["Enums"]["notification_kind"]
+          last_error?: string | null
+          message_id?: string | null
+          next_attempt_at?: string
+          payload?: Json
+          processed_at?: string | null
+          project_id: string
+          status?: Database["public"]["Enums"]["notification_status"]
+          target_id?: string | null
+          task_id?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          attempts?: number
+          company_id?: string
+          created_at?: string
+          dedupe_key?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["notification_kind"]
+          last_error?: string | null
+          message_id?: string | null
+          next_attempt_at?: string
+          payload?: Json
+          processed_at?: string | null
+          project_id?: string
+          status?: Database["public"]["Enums"]["notification_status"]
+          target_id?: string | null
+          task_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_outbox_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_outbox_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_outbox_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_outbox_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_outbox_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_outbox_target_id_fkey"
+            columns: ["target_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_outbox_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_prefs: {
+        Row: {
+          chat_enabled: boolean
+          created_at: string
+          deadlines_enabled: boolean
+          mentions_enabled: boolean
+          profile_id: string
+          push_enabled: boolean
+          quiet_hours_enabled: boolean
+          quiet_hours_end: string
+          quiet_hours_start: string
+          task_assigned_enabled: boolean
+          task_status_enabled: boolean
+          time_zone: string
+          updated_at: string
+          watch_all_projects: boolean
+        }
+        Insert: {
+          chat_enabled?: boolean
+          created_at?: string
+          deadlines_enabled?: boolean
+          mentions_enabled?: boolean
+          profile_id: string
+          push_enabled?: boolean
+          quiet_hours_enabled?: boolean
+          quiet_hours_end?: string
+          quiet_hours_start?: string
+          task_assigned_enabled?: boolean
+          task_status_enabled?: boolean
+          time_zone?: string
+          updated_at?: string
+          watch_all_projects?: boolean
+        }
+        Update: {
+          chat_enabled?: boolean
+          created_at?: string
+          deadlines_enabled?: boolean
+          mentions_enabled?: boolean
+          profile_id?: string
+          push_enabled?: boolean
+          quiet_hours_enabled?: boolean
+          quiet_hours_end?: string
+          quiet_hours_start?: string
+          task_assigned_enabled?: boolean
+          task_status_enabled?: boolean
+          time_zone?: string
+          updated_at?: string
+          watch_all_projects?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_prefs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       photo_annotations: {
         Row: {
           attachment_id: string
@@ -620,6 +853,49 @@ export type Database = {
           },
         ]
       }
+      project_notification_mutes: {
+        Row: {
+          created_at: string
+          muted_until: string | null
+          profile_id: string
+          project_id: string
+        }
+        Insert: {
+          created_at?: string
+          muted_until?: string | null
+          profile_id: string
+          project_id: string
+        }
+        Update: {
+          created_at?: string
+          muted_until?: string | null
+          profile_id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_notification_mutes_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_notification_mutes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_notification_mutes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           address: string | null
@@ -731,7 +1007,9 @@ export type Database = {
           created_by: string | null
           description: string | null
           due_date: string | null
+          due_time: string | null
           id: string
+          parent_id: string | null
           project_id: string
           sort_order: number
           status: Database["public"]["Enums"]["task_status"]
@@ -749,7 +1027,9 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           due_date?: string | null
+          due_time?: string | null
           id?: string
+          parent_id?: string | null
           project_id: string
           sort_order?: number
           status?: Database["public"]["Enums"]["task_status"]
@@ -767,7 +1047,9 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           due_date?: string | null
+          due_time?: string | null
           id?: string
+          parent_id?: string | null
           project_id?: string
           sort_order?: number
           status?: Database["public"]["Enums"]["task_status"]
@@ -802,6 +1084,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
           {
@@ -1073,6 +1362,7 @@ export type Database = {
       }
     }
     Functions: {
+      claim_notification_batch: { Args: { p_limit?: number }; Returns: Json }
       create_company: {
         Args: { p_full_name: string; p_name: string }
         Returns: string
@@ -1089,6 +1379,8 @@ export type Database = {
         }[]
       }
       delete_message: { Args: { p_message_id: string }; Returns: undefined }
+      drain_notification_outbox: { Args: never; Returns: undefined }
+      enqueue_due_reminders: { Args: never; Returns: number }
       inbox_attention: {
         Args: { p_limit?: number }
         Returns: {
@@ -1186,6 +1478,17 @@ export type Database = {
         Args: { p_code: string; p_full_name?: string }
         Returns: boolean
       }
+      register_device: {
+        Args: {
+          p_apns_environment?: string
+          p_app_version?: string
+          p_install_id: string
+          p_locale?: string
+          p_platform: Database["public"]["Enums"]["device_platform"]
+          p_push_token: string
+        }
+        Returns: string
+      }
       search_messages: {
         Args: {
           p_before_created_at?: string
@@ -1229,6 +1532,10 @@ export type Database = {
         }
         Returns: string
       }
+      settle_notification_batch: {
+        Args: { p_results: Json }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "owner" | "manager" | "foreman" | "worker" | "customer"
@@ -1236,6 +1543,15 @@ export type Database = {
       device_platform: "ios" | "web"
       message_kind: "text" | "photo" | "voice" | "video" | "system"
       message_ref_kind: "task" | "attachment"
+      notification_kind:
+        | "chat_message"
+        | "mention"
+        | "task_assigned"
+        | "task_status"
+        | "task_due_soon"
+        | "task_overdue"
+      notification_status:
+        "pending" | "sending" | "sent" | "failed" | "skipped" | "expired"
       project_status:
         "planning" | "active" | "on_hold" | "completed" | "archived"
       task_status: "todo" | "in_progress" | "blocked" | "done" | "approved"
@@ -1368,6 +1684,22 @@ export const Constants = {
       device_platform: ["ios", "web"],
       message_kind: ["text", "photo", "voice", "video", "system"],
       message_ref_kind: ["task", "attachment"],
+      notification_kind: [
+        "chat_message",
+        "mention",
+        "task_assigned",
+        "task_status",
+        "task_due_soon",
+        "task_overdue",
+      ],
+      notification_status: [
+        "pending",
+        "sending",
+        "sent",
+        "failed",
+        "skipped",
+        "expired",
+      ],
       project_status: [
         "planning",
         "active",

@@ -5,17 +5,16 @@ import { notFound } from "next/navigation";
 import { MembersPanel } from "@/components/project/members-panel";
 import { NewTaskButton } from "@/components/project/new-task-button";
 import { ProjectStatusSelect } from "@/components/project/project-status-select";
-import { TaskStatusPill } from "@/components/status-pill";
-import { Avatar } from "@/components/avatar";
+import { TaskBoard } from "@/components/project/task-board";
 import { getLocale, getTranslator } from "@/i18n/server";
-import { formatDate } from "@/lib/format";
 import {
   getCompanyMembers,
   getCurrentUser,
   getProjectMembers,
   getProjectTasks,
+  groupIntoPackages,
 } from "@/lib/queries";
-import { TASK_STATUSES, isOffice } from "@/lib/status";
+import { isOffice } from "@/lib/status";
 import { createClient } from "@/lib/supabase/server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -48,10 +47,7 @@ export default async function ProjectPage(props: {
     canManageProject ? getCompanyMembers(supabase) : Promise.resolve([]),
   ]);
 
-  const grouped = TASK_STATUSES.map((status) => ({
-    status,
-    tasks: tasks.filter((task) => task.status === status),
-  }));
+  const packages = groupIntoPackages(tasks);
 
   const assignableMembers = members
     .map((m) => m.profiles)
@@ -101,7 +97,7 @@ export default async function ProjectPage(props: {
             <h2 className="text-lg font-bold text-slate-900">
               {t("projects.detail.tasks")}{" "}
               <span className="text-sm font-semibold text-slate-400">
-                {tasks.length}
+                {packages.length}
               </span>
             </h2>
             <NewTaskButton
@@ -111,67 +107,14 @@ export default async function ProjectPage(props: {
             />
           </div>
 
-          {tasks.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
-              {t("projects.detail.noTasks")}
-            </div>
-          ) : (
-            <div className="space-y-5">
-              {grouped.map(({ status, tasks: group }) =>
-                group.length === 0 ? null : (
-                  <div key={status}>
-                    <h3 className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-500">
-                      {t(`status.task.${status}`)}
-                      <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-bold text-slate-600">
-                        {group.length}
-                      </span>
-                    </h3>
-                    <ul className="space-y-2">
-                      {group.map((task) => (
-                        <li key={task.id}>
-                          <Link
-                            href={`/projects/${project.id}/tasks/${task.id}`}
-                            className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition-shadow hover:shadow-md"
-                          >
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate font-semibold text-slate-900">
-                                {task.title}
-                              </p>
-                              <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-500">
-                                {task.due_date && (
-                                  <span>
-                                    {t("projects.detail.due", {
-                                      date: formatDate(task.due_date, locale),
-                                    })}
-                                  </span>
-                                )}
-                                {task.visible_to_customer && (
-                                  <span className="font-semibold text-rose-600">
-                                    {t("projects.detail.customerVisible")}
-                                  </span>
-                                )}
-                              </p>
-                            </div>
-                            <div className="flex items-center -space-x-1.5">
-                              {task.task_assignments.slice(0, 3).map((a) => (
-                                <Avatar
-                                  key={a.profile_id}
-                                  name={a.profiles.full_name}
-                                  seed={a.profiles.id}
-                                  size="sm"
-                                />
-                              ))}
-                            </div>
-                            <TaskStatusPill status={task.status} />
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )
-              )}
-            </div>
-          )}
+          <TaskBoard
+            projectId={project.id}
+            companyId={project.company_id}
+            packages={packages}
+            members={assignableMembers}
+            locale={locale}
+            canManage={canManageProject}
+          />
         </section>
 
         <MembersPanel

@@ -1434,4 +1434,335 @@ begin
 end;
 $$;
 
+-- ============================== task hierarchy (20260728090000 regression)
+-- Arbeitspaket / Arbeitsschritt: exactly two levels, one project per tree,
+-- and a step is only as visible to the customer as its package.
+do $$
+declare
+  olivia uuid := '00000000-0000-4000-8000-000000000001';
+  frank  uuid := '00000000-0000-4000-8000-000000000003';
+  wanda  uuid := '00000000-0000-4000-8000-000000000004';
+  carla  uuid := '00000000-0000-4000-8000-000000000006';
+  maple  uuid := '00000000-0000-4000-9000-000000000001';
+  depot  uuid := '00000000-0000-4000-9000-000000000002';
+  t_filter uuid := '00000000-0000-4000-a000-000000000001';  -- maple, customer-visible
+  t_duct   uuid := '00000000-0000-4000-a000-000000000002';  -- maple, hidden
+  t_therm  uuid := '00000000-0000-4000-a000-000000000003';  -- depot
+  v_alpine uuid;
+  v_step   uuid;
+  v_step2  uuid;
+  denied   boolean;
+  v_count  integer;
+begin
+  select company_id into strict v_alpine from public.profiles where id = olivia;
+
+  perform tests.impersonate(frank);
+
+  -- A step under a package is the normal case.
+  insert into public.tasks (project_id, company_id, title, parent_id)
+  values (maple, v_alpine, 'Kanal ausmessen', t_filter)
+  returning id into v_step;
+  assert v_step is not null, 'a foreman can add a step to a work package';
+
+  -- Three levels is the rule the whole design rests on.
+  denied := false;
+  begin
+    insert into public.tasks (project_id, company_id, title, parent_id)
+    values (maple, v_alpine, 'Unter-Unterschritt', v_step);
+  exception when others then denied := true;
+  end;
+  assert denied, 'steps must not have steps of their own';
+
+  -- Parent and child share a project.
+  denied := false;
+  begin
+    insert into public.tasks (project_id, company_id, title, parent_id)
+    values (maple, v_alpine, 'falsches Projekt', t_therm);
+  exception when others then denied := true;
+  end;
+  assert denied, 'a step must not hang off a package in another project';
+
+  -- A package that already has steps cannot be demoted into one, which would
+  -- create a third level from the other direction.
+  denied := false;
+  begin
+    update public.tasks set parent_id = t_duct where id = t_filter;
+  exception when others then denied := true;
+  end;
+  assert denied, 'a package with steps must not become a step';
+
+  -- Self-parenting.
+  denied := false;
+  begin
+    update public.tasks set parent_id = t_duct where id = t_duct;
+  exception when others then denied := true;
+  end;
+  assert denied, 'a task must not be its own package';
+
+  -- project_id is immutable: the task would leave its own chat thread behind.
+  denied := false;
+  begin
+    update public.tasks set project_id = depot where id = t_duct;
+  exception when others then denied := true;
+  end;
+  assert denied, 'a task must not move to another project';
+
+  -- ---------------------------------------- effective customer visibility
+  -- The package is visible; make the step visible too and Carla sees it.
+  update public.tasks set visible_to_customer = true where id = v_step;
+
+  perform tests.impersonate(carla);
+  assert (select count(*) from public.tasks where id = v_step) = 1,
+    'customer sees a visible step under a visible package';
+
+  -- Hide the package: the step must disappear even though its own flag is
+  -- still true. Otherwise hiding a package leaks exactly the work items it
+  -- was hidden to conceal.
+  perform tests.impersonate(frank);
+  update public.tasks set visible_to_customer = false where id = t_filter;
+
+  perform tests.impersonate(carla);
+  assert (select count(*) from public.tasks where id = v_step) = 0,
+    'a visible step under a hidden package is hidden';
+  assert (select count(*) from public.tasks where id = t_filter) = 0,
+    'the hidden package itself is hidden';
+
+  -- The push audience must agree with the policy, or a notification announces
+  -- a task the app will not show.
+  perform tests.reset();
+  assert app.can_profile_read_task(carla, v_step) = false,
+    'push visibility agrees: no task notification for a hidden package';
+  assert app.can_profile_read_task(wanda, v_step) = true,
+    'push visibility agrees: the crew still gets it';
+
+  -- Restore, and confirm it comes back.
+  perform tests.impersonate(frank);
+  update public.tasks set visible_to_customer = true where id = t_filter;
+  perform tests.impersonate(carla);
+  assert (select count(*) from public.tasks where id = v_step) = 1,
+    'un-hiding the package restores the step';
+
+  -- ------------------------------------------------- workers cannot reshape
+  perform tests.impersonate(wanda);
+  denied := false;
+  begin
+    update public.tasks set parent_id = t_duct where id = t_filter;
+  exception when others then denied := true;
+  end;
+  assert denied, 'a worker must not re-parent a task';
+
+  denied := false;
+  begin
+    update public.tasks set due_time = '08:00' where id = t_filter;
+  exception when others then denied := true;
+  end;
+  assert denied, 'a worker must not set a deadline time';
+
+  -- A worker may still do the one thing they are meant to.
+  update public.tasks set status = 'done' where id = t_filter;
+  assert (select status from public.tasks where id = t_filter) = 'done',
+    'a worker can still complete an assigned task';
+  update public.tasks set status = 'in_progress' where id = t_filter;
+
+  -- --------------------------------------------- the overview counts packages
+  perform tests.impersonate(frank);
+  insert into public.tasks (project_id, company_id, title, parent_id)
+  values (maple, v_alpine, 'Dichtung pruefen', t_filter) returning id into v_step2;
+
+  select task_count into v_count from public.project_overview where id = maple;
+  assert v_count = (select count(*) from public.tasks
+                     where project_id = maple and parent_id is null),
+    'project_overview counts work packages, not steps';
+
+  perform tests.reset();
+
+  -- due_time without a due_date is not a deadline.
+  denied := false;
+  begin
+    insert into public.tasks (project_id, company_id, title, due_time)
+    values (maple, v_alpine, 'zeit ohne datum', '08:00');
+  exception when others then denied := true;
+  end;
+  assert denied, 'a time of day without a date is rejected';
+
+  delete from public.tasks where id in (v_step, v_step2);
+  perform tests.reset();
+end;
+$$;
+
+-- ============================ task attachments (20260728090000 regression)
+do $$
+declare
+  olivia uuid := '00000000-0000-4000-8000-000000000001';
+  frank  uuid := '00000000-0000-4000-8000-000000000003';
+  wanda  uuid := '00000000-0000-4000-8000-000000000004';
+  miguel uuid := '00000000-0000-4000-8000-000000000005';
+  carla  uuid := '00000000-0000-4000-8000-000000000006';
+  maple  uuid := '00000000-0000-4000-9000-000000000001';
+  t_filter uuid := '00000000-0000-4000-a000-000000000001';  -- maple, customer-visible
+  t_duct   uuid := '00000000-0000-4000-a000-000000000002';  -- maple, hidden
+  m_shared uuid := '00000000-0000-4000-b000-000000000001';
+  v_alpine uuid;
+  v_path   text;
+  v_hidden_path text;
+  v_att    uuid;
+  v_hidden uuid;
+  denied   boolean;
+begin
+  select company_id into strict v_alpine from public.profiles where id = olivia;
+  v_path        := v_alpine::text || '/' || maple::text || '/aaaa/plan.jpg';
+  v_hidden_path := v_alpine::text || '/' || maple::text || '/bbbb/attic.jpg';
+
+  perform tests.impersonate(wanda);
+
+  -- A photo that belongs to the step, not to whichever chat it passed through.
+  insert into public.attachments
+    (task_id, kind, storage_bucket, storage_path, mime_type, uploaded_by)
+  values (t_filter, 'photo', 'photos', v_path, 'image/jpeg', miguel)
+  returning id into v_att;
+
+  -- uploaded_by is stamped from the session, so the forged value above loses.
+  assert (select uploaded_by from public.attachments where id = v_att) = wanda,
+    'uploaded_by is server-derived, not client-supplied';
+
+  insert into public.attachments
+    (task_id, kind, storage_bucket, storage_path, mime_type)
+  values (t_duct, 'photo', 'photos', v_hidden_path, 'image/jpeg')
+  returning id into v_hidden;
+
+  -- An attachment must belong to exactly one owner.
+  denied := false;
+  begin
+    insert into public.attachments
+      (task_id, message_id, kind, storage_bucket, storage_path, mime_type)
+    values (t_filter, m_shared, 'photo', 'photos', 'x/y/z/both.jpg', 'image/jpeg');
+  exception when others then denied := true;
+  end;
+  assert denied, 'an attachment cannot hang off both a task and a message';
+
+  denied := false;
+  begin
+    insert into public.attachments (kind, storage_bucket, storage_path, mime_type)
+    values ('photo', 'photos', 'x/y/z/orphan.jpg', 'image/jpeg');
+  exception when others then denied := true;
+  end;
+  assert denied, 'an attachment cannot be an orphan';
+
+  -- A worker on another project cannot attach to this one.
+  perform tests.impersonate(miguel);
+  denied := false;
+  begin
+    insert into public.attachments
+      (task_id, kind, storage_bucket, storage_path, mime_type)
+    values (t_filter, 'photo', 'photos', 'x/y/z/nope.jpg', 'image/jpeg');
+  exception when others then denied := true;
+  end;
+  assert denied, 'a non-member must not attach to a task';
+  assert (select count(*) from public.attachments where id = v_att) = 0,
+    'a non-member cannot even read the attachment';
+
+  -- The customer sees the attachment of a customer-visible task, and the
+  -- storage gate agrees — otherwise the portal shows a broken image.
+  perform tests.impersonate(carla);
+  assert (select count(*) from public.attachments where id = v_att) = 1,
+    'the customer reads an attachment on a customer-visible task';
+  assert (select count(*) from public.attachments where id = v_hidden) = 0,
+    'the customer cannot read an attachment on a hidden task';
+  assert app.customer_can_read_object('photos', v_path),
+    'the storage gate reaches attachments through tasks';
+  assert app.customer_can_read_object('photos', v_hidden_path) = false,
+    'the storage gate still refuses a hidden task';
+
+  -- Hiding the package hides its steps' media too.
+  perform tests.impersonate(frank);
+  update public.tasks set visible_to_customer = false where id = t_filter;
+  perform tests.impersonate(carla);
+  assert app.customer_can_read_object('photos', v_path) = false,
+    'hiding the task closes the storage gate with it';
+  perform tests.impersonate(frank);
+  update public.tasks set visible_to_customer = true where id = t_filter;
+
+  -- Deletion: the uploader and the office, nobody else. Frank is the probe
+  -- because he is on the project and can read the row — a role that cannot
+  -- see it would pass this assertion for the wrong reason.
+  perform tests.impersonate(frank);
+  assert (select count(*) from public.attachments where id = v_att) = 1,
+    'the foreman can read the attachment';
+  delete from public.attachments where id = v_att;
+  assert (select count(*) from public.attachments where id = v_att) = 1,
+    'a foreman cannot delete someone else''s task attachment';
+
+  -- Chat attachments stay tied to their message: the message is the unit.
+  perform tests.impersonate(wanda);
+  delete from public.attachments
+   where message_id = m_shared;
+  assert (select count(*) from public.attachments where message_id = m_shared) > 0,
+    'a message attachment cannot be deleted on its own';
+
+  delete from public.attachments where id = v_att;
+  assert (select count(*) from public.attachments where id = v_att) = 0,
+    'the uploader can delete their own task attachment';
+
+  perform tests.impersonate(olivia);
+  delete from public.attachments where id = v_hidden;
+  assert (select count(*) from public.attachments where id = v_hidden) = 0,
+    'the office can delete a task attachment';
+
+  perform tests.reset();
+end;
+$$;
+
+-- ================= appointment reminders (20260728093000 regression)
+-- The window is relative to "now", so the in-window / out-of-window
+-- assertions hold at any wall-clock time.
+--
+-- The midnight crossing -- which the first version silently skipped, by
+-- pinning due_date to today while looking 90 minutes ahead -- is only
+-- exercised when the suite happens to run in the 90 minutes before midnight,
+-- because the function reads now() itself and cannot be given a fake clock.
+-- Outside that window these assertions still pass against the buggy version.
+do $$
+declare
+  olivia uuid := '00000000-0000-4000-8000-000000000001';
+  maple  uuid := '00000000-0000-4000-9000-000000000001';
+  v_alpine uuid;
+  v_task uuid;
+  v_target timestamp := (now() at time zone 'Europe/Zurich') + interval '45 minutes';
+  v_far    timestamp := (now() at time zone 'Europe/Zurich') + interval '5 hours';
+  v_soon uuid;
+  v_late uuid;
+  v_count integer;
+begin
+  select company_id into strict v_alpine from public.profiles where id = olivia;
+
+  insert into public.tasks (project_id, company_id, title, due_date, due_time, status)
+  values (maple, v_alpine, 'Kundentermin bald', v_target::date, v_target::time, 'todo')
+  returning id into v_soon;
+
+  insert into public.tasks (project_id, company_id, title, due_date, due_time, status)
+  values (maple, v_alpine, 'Kundentermin spaeter', v_far::date, v_far::time, 'todo')
+  returning id into v_late;
+
+  perform public.enqueue_due_reminders();
+
+  select count(*) into v_count from public.notification_outbox
+   where task_id = v_soon and dedupe_key like 'appt:%';
+  assert v_count = 1,
+    'an appointment inside the 90-minute window is announced, even across midnight';
+
+  select count(*) into v_count from public.notification_outbox
+   where task_id = v_late and dedupe_key like 'appt:%';
+  assert v_count = 0, 'an appointment five hours out is not announced yet';
+
+  -- The cron runs every 15 minutes; a second pass must not re-announce.
+  perform public.enqueue_due_reminders();
+  select count(*) into v_count from public.notification_outbox
+   where task_id = v_soon and dedupe_key like 'appt:%';
+  assert v_count = 1, 'the quarter-hourly cron does not re-announce the same appointment';
+
+  delete from public.tasks where id in (v_soon, v_late);
+  perform tests.reset();
+end;
+$$;
+
 select 'RLS TESTS PASSED' as result;

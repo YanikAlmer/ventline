@@ -17,9 +17,9 @@ Status legend: **DONE** · **PARTIAL** · **TODO**
 | Customer portal (read-only, curated) | DONE |
 | de/en localization, German default, Swiss conventions | DONE |
 | Chat overview **schema** (threads, read cursor, mentions, refs, search) | DONE (`20260726090000`) |
-| Chat overview **read model + UI** | TODO |
-| Push notifications | TODO — nothing exists |
-| Task hierarchy, task attachments | TODO |
+| Chat overview **read model + UI** | DONE (`20260726100000`) |
+| Push notifications | DONE — needs an Apple p8 key to actually deliver |
+| Task hierarchy, task attachments | DONE (`20260728090000`) |
 | Time capture, materials, Rapport, signature, PDF | TODO |
 | Magic links, QR-Rechnung | TODO |
 
@@ -117,28 +117,52 @@ and iOS-PWA support is disproportionate work.
 
 ---
 
-## Slice 3 — Task hierarchy and task attachments
+## Slice 3 — Task hierarchy and task attachments — **DONE**
 
 Goal: bigger work units with steps underneath, and media attached to the work
 rather than only to a chat message.
 
-- `tasks.parent_id` self-reference. **Additive**: existing rows become
-  Arbeitspakete with `parent_id = null`. No data migration.
-- Structural trigger: a step may not have children (two levels only), a step
-  cannot move project, parent and child must share a project.
-- Customer visibility becomes *effective* visibility — a step is visible to the
-  customer only if its parent is.
-- `project_overview` must count **work packages only**, otherwise every existing
-  "x/y Aufgaben erledigt" figure silently changes meaning.
-- Attachments may hang off a task directly, not only a message. The customer
-  storage read gate must then reach attachments through tasks as well as through
-  shared messages — otherwise a customer-visible task shows a broken image.
-- `due_date` gains a time-of-day so deadline reminders can be meaningful.
-- Video upload: the enum, bucket and policies already exist; no client uses them.
+Shipped in `supabase/migrations/20260728090000_task_hierarchy.sql` (plus
+`20260728093000` for the appointment-window fix below):
 
-**UI**: the project board groups **work packages only** — steps must never appear
-as peers of their parent. Each Paket row gets a progress chip (`4/7 Schritte`)
-and expands inline.
+- `tasks.parent_id` self-reference. **Additive**: existing rows became
+  Arbeitspakete with `parent_id = null`. No data migration.
+- `app.enforce_task_hierarchy()`: two levels only (checked from both
+  directions), parent and child share a project, no self-parenting. It also
+  makes `project_id` immutable for everyone — moving a task left its own chat
+  thread behind, so the task and its history answered to two different
+  projects' visibility rules.
+- Effective customer visibility: a step is visible to a customer only if its
+  package is. `app.package_visible_to_customer()` is used by the `tasks` policy,
+  by `app.can_profile_read_task` (push), and by the storage gate, so all three
+  agree by construction.
+- `project_overview` counts **work packages only**; the progress chip
+  (`4/7 Schritte`) counts steps per package.
+- Attachments hang off a task or a message, never both
+  (`num_nonnulls(message_id, task_id) = 1`), with `uploaded_by` stamped
+  server-side. The customer storage gate now reaches objects through tasks, so
+  a customer-visible task no longer shows a broken image.
+- `due_time` + an appointment reminder 60–90 minutes ahead, on a quarter-hourly
+  cron. **A bug found in testing**: the window pinned `due_date` to today while
+  looking 90 minutes ahead, so every appointment in the first 90 minutes after
+  midnight was silently skipped.
+- Brought forward from slice 4's must-fix list: the own-object storage policies
+  are now bucket-scoped.
+- Video upload is wired for task attachments on both clients (200 MB, MP4/MOV,
+  limits mirrored client-side).
+
+**UI**: the project board groups work packages only; steps appear inside their
+package behind a disclosure, never as peers. Both customer portals nest the
+same way — a flat list would read as twice as much outstanding work. On iOS,
+"My Tasks" labels each step with its package, so someone on five sites cannot
+mix them up.
+
+**Still open from this slice**
+
+- Video in the **chat** composer. The bucket, enum and policies are used now,
+  but only from the task-files path; the chat composer is still photo-only.
+- The `+ Schritt` / `Add step` flow does not let you reorder steps; they are
+  ordered by `sort_order` then `created_at` and nothing writes `sort_order`.
 
 ---
 

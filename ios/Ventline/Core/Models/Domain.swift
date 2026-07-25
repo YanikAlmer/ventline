@@ -133,3 +133,77 @@ extension Profile {
         return parts.map { String($0.prefix(1)) }.joined().uppercased()
     }
 }
+
+extension JobTask: @retroactive Identifiable {}
+extension Attachment: @retroactive Identifiable {}
+
+extension JobTask {
+    /// Arbeitspaket (no parent) vs Arbeitsschritt (has one).
+    var isWorkPackage: Bool { parentId == nil }
+
+    /// "3. Sep" or "3. Sep, 08:00". The time is stored separately from the
+    /// date and is optional, so it is appended rather than folded in.
+    var dueMomentLabel: String? {
+        guard let dueDate else { return nil }
+        let day = Self.dueDayFormatter.string(from: dueDate)
+        // Postgres renders `time` as "08:00:00"; the seconds are noise here.
+        guard let dueTime, dueTime.count >= 5 else { return day }
+        return "\(day), \(dueTime.prefix(5))"
+    }
+
+    private static let dueDayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: Bundle.main.preferredLocalizations.first ?? "de")
+        f.setLocalizedDateFormatFromTemplate("d MMM")
+        return f
+    }()
+}
+
+private extension DateFormatter {
+    func string(from dateOnly: String) -> String {
+        // due_date arrives as "2026-09-03"; parse it as a plain calendar day.
+        let parser = DateFormatter()
+        parser.locale = Locale(identifier: "en_US_POSIX")
+        parser.dateFormat = "yyyy-MM-dd"
+        guard let date = parser.date(from: dateOnly) else { return dateOnly }
+        return string(from: date)
+    }
+}
+
+/// A work package with its steps attached — the shape the board renders.
+struct WorkPackage: Identifiable {
+    let task: JobTask
+    let steps: [JobTask]
+
+    var id: UUID { task.id }
+
+    var doneStepCount: Int {
+        steps.filter { $0.status == .done || $0.status == .approved }.count
+    }
+
+    /// "4/7 Schritte", or nil when the package has no steps yet.
+    var progressLabel: String? {
+        guard !steps.isEmpty else { return nil }
+        return String(
+            format: String(localized: "%lld/%lld steps"),
+            doneStepCount, steps.count
+        )
+    }
+
+    /// Splits a flat task list into the two-level tree.
+    ///
+    /// A step whose package is absent is promoted to the top level rather than
+    /// dropped. The visibility rule makes that unreachable — a step is only
+    /// readable when its package is — but a task silently vanishing from a
+    /// board is a far worse failure than one shown at the wrong indent.
+    static func build(from tasks: [JobTask]) -> [WorkPackage] {
+        let ids = Set(tasks.map(\.id))
+        let roots = tasks.filter { $0.parentId == nil || !ids.contains($0.parentId!) }
+        var stepsByParent: [UUID: [JobTask]] = [:]
+        for task in tasks {
+            guard let parentId = task.parentId, ids.contains(parentId) else { continue }
+            stepsByParent[parentId, default: []].append(task)
+        }
+        return roots.map { WorkPackage(task: $0, steps: stepsByParent[$0.id] ?? []) }
+    }
+}

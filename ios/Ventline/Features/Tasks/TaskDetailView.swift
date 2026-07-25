@@ -5,14 +5,22 @@ struct TaskDetailView: View {
     let profile: Profile
 
     @State private var task: JobTask?
+    @State private var parent: JobTask?
+    @State private var steps: [JobTask] = []
     @State private var assignments: [TaskAssignment] = []
     @State private var profilesById: [UUID: Profile] = [:]
     @State private var chatModel: ChatViewModel?
+    /// The context strip is collapsed by default: on a phone the chat is what
+    /// people came for, and steps plus files would push it off screen.
+    @State private var showContext = false
 
     var body: some View {
         VStack(spacing: 0) {
             if let task {
                 header(task)
+                if !steps.isEmpty || task.parentId != nil || showContext {
+                    contextStrip(task)
+                }
                 Divider()
                 if let chatModel {
                     ChatViewBody(model: chatModel)
@@ -29,6 +37,13 @@ struct TaskDetailView: View {
 
     private func header(_ task: JobTask) -> some View {
         VStack(alignment: .leading, spacing: 10) {
+            if let parent {
+                Label(parent.title, systemImage: "shippingbox")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
             HStack {
                 StatusPill(text: task.status.label, color: task.status.color)
                 if task.visibleToCustomer {
@@ -40,6 +55,17 @@ struct TaskDetailView: View {
                 statusActions(task)
             }
 
+            // A step flagged customer-visible inside a hidden package is not
+            // actually visible; say so rather than letting the flag imply it.
+            if task.visibleToCustomer, let parent, !parent.visibleToCustomer {
+                Label(
+                    "The customer cannot see this step, because its work package is hidden from them.",
+                    systemImage: "exclamationmark.triangle"
+                )
+                .font(.caption)
+                .foregroundStyle(.orange)
+            }
+
             if let description = task.description, !description.isEmpty {
                 Text(description)
                     .font(.subheadline)
@@ -48,7 +74,7 @@ struct TaskDetailView: View {
             }
 
             HStack(spacing: 12) {
-                if let due = task.dueDate {
+                if let due = task.dueMomentLabel {
                     Label("Due \(due)", systemImage: "calendar")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -59,12 +85,59 @@ struct TaskDetailView: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
+                Spacer()
+                Button {
+                    withAnimation { showContext.toggle() }
+                } label: {
+                    Label(
+                        contextSummary,
+                        systemImage: showContext ? "chevron.up" : "chevron.down"
+                    )
+                    .font(.caption.weight(.semibold))
+                }
             }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(.systemGroupedBackground))
+    }
+
+    private var contextSummary: String {
+        steps.isEmpty
+            ? String(localized: "Files")
+            : String(format: String(localized: "%lld/%lld steps"),
+                     steps.filter { $0.status == .done || $0.status == .approved }.count,
+                     steps.count)
+    }
+
+    /// Steps and files, folded away by default so the chat keeps the screen.
+    @ViewBuilder
+    private func contextStrip(_ task: JobTask) -> some View {
+        if showContext {
+            VStack(alignment: .leading, spacing: 12) {
+                if !steps.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Steps")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(.secondary)
+                        ForEach(steps, id: \.id) { step in
+                            NavigationLink {
+                                TaskDetailView(taskId: step.id, profile: profile)
+                            } label: {
+                                StepRow(step: step)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                TaskFilesView(task: task, profile: profile)
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color(.systemGroupedBackground))
+        }
     }
 
     private var assigneeNames: String {
@@ -161,6 +234,12 @@ struct TaskDetailView: View {
         do {
             let task = try await TaskRepo.task(id: taskId)
             self.task = task
+            steps = (try? await TaskRepo.steps(parentId: task.id)) ?? []
+            parent = if let parentId = task.parentId {
+                try? await TaskRepo.task(id: parentId)
+            } else {
+                nil
+            }
             assignments = (try? await TaskRepo.assignments(taskId: taskId)) ?? []
             let people = (try? await PeopleRepo.companyMembers()) ?? []
             profilesById = Dictionary(uniqueKeysWithValues: people.map { ($0.id, $0) })

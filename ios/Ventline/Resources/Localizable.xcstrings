@@ -113,6 +113,23 @@
         }
       }
     },
+    "%lld/%lld steps": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld/%lld Schritte"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld/%lld steps"
+          }
+        }
+      }
+    },
     "Account": {
       "extractionState": "manual",
       "localizations": {
@@ -177,6 +194,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Add from company"
+          }
+        }
+      }
+    },
+    "Add step": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schritt hinzufügen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add step"
           }
         }
       }
@@ -296,6 +330,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Assign to"
+          }
+        }
+      }
+    },
+    "At a set time": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zu einer festen Uhrzeit"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "At a set time"
           }
         }
       }
@@ -640,6 +691,23 @@
         }
       }
     },
+    "Delete file": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datei löschen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete file"
+          }
+        }
+      }
+    },
     "Delete message": {
       "extractionState": "manual",
       "localizations": {
@@ -810,6 +878,23 @@
         }
       }
     },
+    "Files": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dateien"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Files"
+          }
+        }
+      }
+    },
     "Finished": {
       "extractionState": "manual",
       "localizations": {
@@ -874,6 +959,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hide from customer"
+          }
+        }
+      }
+    },
+    "Hide steps": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schritte ausblenden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hide steps"
           }
         }
       }
@@ -1303,6 +1405,23 @@
         }
       }
     },
+    "New step": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neuer Arbeitsschritt"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New step"
+          }
+        }
+      }
+    },
     "New task": {
       "extractionState": "manual",
       "localizations": {
@@ -1316,6 +1435,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "New task"
+          }
+        }
+      }
+    },
+    "New work package": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neues Arbeitspaket"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New work package"
           }
         }
       }
@@ -1350,6 +1486,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "No messages yet"
+          }
+        }
+      }
+    },
+    "No photos or videos on this task yet.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noch keine Fotos oder Videos bei dieser Aufgabe."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No photos or videos on this task yet."
           }
         }
       }
@@ -1422,6 +1575,23 @@
         }
       }
     },
+    "No work packages yet.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noch keine Arbeitspakete."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No work packages yet."
+          }
+        }
+      }
+    },
     "Nothing assigned": {
       "extractionState": "manual",
       "localizations": {
@@ -1486,6 +1656,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "On this project"
+          }
+        }
+      }
+    },
+    "Only MP4 and MOV videos can be uploaded.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Es können nur MP4- und MOV-Videos hochgeladen werden."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only MP4 and MOV videos can be uploaded."
+          }
+        }
+      }
+    },
+    "Only the person who uploaded a file, or the office, can delete it.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nur wer die Datei hochgeladen hat oder das Büro kann sie löschen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only the person who uploaded a file, or the office, can delete it."
           }
         }
       }
@@ -1622,6 +1826,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Photo"
+          }
+        }
+      }
+    },
+    "Photo or video": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto oder Video"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Photo or video"
           }
         }
       }
@@ -2000,6 +2221,23 @@
         }
       }
     },
+    "Show steps": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schritte anzeigen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show steps"
+          }
+        }
+      }
+    },
     "Show to customer": {
       "extractionState": "manual",
       "localizations": {
@@ -2119,6 +2357,40 @@
         }
       }
     },
+    "Step of": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schritt von"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Step of"
+          }
+        }
+      }
+    },
+    "Steps": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arbeitsschritte"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Steps"
+          }
+        }
+      }
+    },
     "Task": {
       "extractionState": "manual",
       "localizations": {
@@ -2221,6 +2493,40 @@
         }
       }
     },
+    "The customer cannot see this step, because its work package is hidden from them.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Kunde sieht diesen Schritt nicht, weil das Arbeitspaket für ihn ausgeblendet ist."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The customer cannot see this step, because its work package is hidden from them."
+          }
+        }
+      }
+    },
+    "The customer only sees this step if the work package is visible to them too.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Kunde sieht diesen Schritt nur, wenn auch das Arbeitspaket für ihn sichtbar ist."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The customer only sees this step if the work package is visible to them too."
+          }
+        }
+      }
+    },
     "They enter it when signing up in the Ventline app. The code expires in 14 days.": {
       "extractionState": "manual",
       "localizations": {
@@ -2234,6 +2540,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "They enter it when signing up in the Ventline app. The code expires in 14 days."
+          }
+        }
+      }
+    },
+    "Time": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uhrzeit"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Time"
           }
         }
       }
@@ -2370,6 +2693,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Video message"
+          }
+        }
+      }
+    },
+    "Videos can be at most 200 MB.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Videos dürfen höchstens 200 MB gross sein."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Videos can be at most 200 MB."
           }
         }
       }

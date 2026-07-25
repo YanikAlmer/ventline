@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 import Supabase
 import UIKit
@@ -52,9 +53,19 @@ enum MediaUploader {
         var height: Int?
         var durationSeconds: Double?
 
+        /// The bucket is the single source of truth for the kind, so a message
+        /// attachment and a task attachment can never disagree about it.
+        var attachmentKind: AttachmentKind {
+            switch bucket {
+            case "voice": .voice
+            case "video": .video
+            default: .photo
+            }
+        }
+
         var attachmentPayload: [String: AnyJSON] {
             var payload: [String: AnyJSON] = [
-                "kind": .string(bucket == "voice" ? "voice" : (bucket == "video" ? "video" : "photo")),
+                "kind": .string(attachmentKind.rawValue),
                 "storage_bucket": .string(bucket),
                 "storage_path": .string(path),
                 "mime_type": .string(mimeType),
@@ -66,6 +77,11 @@ enum MediaUploader {
             return payload
         }
     }
+
+    /// The video bucket's limits, mirrored client-side so a 300 MB clip fails
+    /// before it is uploaded rather than after.
+    static let maxVideoBytes = 200 * 1024 * 1024
+    static let allowedVideoTypes = ["video/mp4", "video/quicktime"]
 
     static func uploadPhoto(_ image: UIImage, companyId: UUID, projectId: UUID) async throws -> Uploaded {
         guard let jpeg = ImageDownscaler.jpegData(from: image) else {
@@ -95,6 +111,57 @@ enum MediaUploader {
             bucket: "voice", path: path, mimeType: "audio/mp4",
             byteSize: data.count, durationSeconds: duration
         )
+    }
+
+    /// Uploads a video already on disk (PhotosPicker hands us a file URL).
+    /// The clip is sent as-is: transcoding on-device would cost minutes of
+    /// battery on a jobsite, and the 200 MB ceiling already bounds the upload.
+    static func uploadVideo(fileURL: URL, companyId: UUID, projectId: UUID) async throws -> Uploaded {
+        let mime = mimeType(for: fileURL)
+        guard allowedVideoTypes.contains(mime) else {
+            throw MediaError.unsupportedVideo
+        }
+        let data = try Data(contentsOf: fileURL)
+        guard data.count <= maxVideoBytes else {
+            throw MediaError.videoTooLarge
+        }
+        let path = makePath(
+            companyId: companyId, projectId: projectId,
+            ext: fileURL.pathExtension.isEmpty ? "mp4" : fileURL.pathExtension.lowercased()
+        )
+        try await Supa.client.storage.from("video").upload(
+            path,
+            data: data,
+            options: FileOptions(contentType: mime)
+        )
+        let duration = try? await AVURLAsset(url: fileURL).load(.duration).seconds
+        return Uploaded(
+            bucket: "video", path: path, mimeType: mime,
+            byteSize: data.count,
+            durationSeconds: duration.flatMap { $0.isFinite ? $0 : nil }
+        )
+    }
+
+    private static func mimeType(for url: URL) -> String {
+        switch url.pathExtension.lowercased() {
+        case "mov": "video/quicktime"
+        case "mp4", "m4v": "video/mp4"
+        default: "application/octet-stream"
+        }
+    }
+
+    enum MediaError: LocalizedError {
+        case unsupportedVideo
+        case videoTooLarge
+
+        var errorDescription: String? {
+            switch self {
+            case .unsupportedVideo:
+                String(localized: "Only MP4 and MOV videos can be uploaded.")
+            case .videoTooLarge:
+                String(localized: "Videos can be at most 200 MB.")
+            }
+        }
     }
 
     private static func makePath(companyId: UUID, projectId: UUID, ext: String) -> String {

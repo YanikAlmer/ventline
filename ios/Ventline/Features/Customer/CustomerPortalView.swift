@@ -60,6 +60,26 @@ struct CustomerPortalView: View {
     }
 }
 
+/// One checklist line in the customer's progress list.
+private struct CustomerTaskLine: View {
+    let task: JobTask
+    var indented = false
+
+    private var isFinished: Bool { task.status == .approved || task.status == .done }
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: isFinished ? "checkmark.circle.fill" : "circle")
+                .font(indented ? .caption : .body)
+                .foregroundStyle(isFinished ? .green : .secondary)
+            Text(task.title)
+                .font(indented ? .subheadline : .body)
+                .foregroundStyle(isFinished ? .secondary : .primary)
+        }
+        .padding(.leading, indented ? 22 : 0)
+    }
+}
+
 struct CustomerProjectView: View {
     let projectId: UUID
     let title: String
@@ -72,13 +92,12 @@ struct CustomerProjectView: View {
         List {
             if !tasks.isEmpty {
                 Section("Progress") {
-                    ForEach(tasks, id: \.id) { task in
-                        HStack(spacing: 10) {
-                            Image(systemName: task.status == .approved || task.status == .done
-                                ? "checkmark.circle.fill" : "circle")
-                                .foregroundStyle(task.status == .approved || task.status == .done
-                                    ? .green : .secondary)
-                            Text(task.title)
+                    // Steps sit under their work package, never beside it — a
+                    // flat list reads as twice as much outstanding work.
+                    ForEach(WorkPackage.build(from: tasks)) { pkg in
+                        CustomerTaskLine(task: pkg.task)
+                        ForEach(pkg.steps, id: \.id) { step in
+                            CustomerTaskLine(task: step, indented: true)
                         }
                     }
                 }
@@ -133,7 +152,13 @@ struct CustomerProjectView: View {
                 .value
             messages = newestFirst
             let attachments = try await MessageRepo.attachments(messageIds: newestFirst.map(\.id))
-            attachmentsByMessage = Dictionary(grouping: attachments, by: \.messageId)
+            // messageId is optional now that an attachment may hang off a task
+            // instead; these were fetched by message id, so the nil case is
+            // unreachable — drop rather than force-unwrap.
+            attachmentsByMessage = Dictionary(
+                grouping: attachments.compactMap { att in att.messageId.map { ($0, att) } },
+                by: \.0
+            ).mapValues { $0.map(\.1) }
         } catch {
             // Pull-to-refresh retries.
         }

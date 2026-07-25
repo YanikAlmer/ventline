@@ -8,6 +8,7 @@ import {
   inputClass,
   labelClass,
   primaryButtonClass,
+  secondaryButtonClass,
 } from "@/components/form";
 import { Modal } from "@/components/modal";
 import { useTranslator } from "@/i18n/client";
@@ -16,14 +17,21 @@ import { createClient } from "@/lib/supabase/client";
 
 type Member = Pick<Profile, "id" | "full_name" | "role">;
 
+/**
+ * Creates an Arbeitspaket, or — when `parent` is given — an Arbeitsschritt
+ * inside it. One component for both: the two differ in the parent_id they
+ * send and in their wording, not in what the form collects.
+ */
 export function NewTaskButton({
   projectId,
   companyId,
   members,
+  parent,
 }: {
   projectId: string;
   companyId: string;
   members: Member[];
+  parent?: { id: string; title: string };
 }) {
   const router = useRouter();
   const t = useTranslator();
@@ -31,10 +39,14 @@ export function NewTaskButton({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [dueTime, setDueTime] = useState("");
   const [assignees, setAssignees] = useState<string[]>([]);
   const [visibleToCustomer, setVisibleToCustomer] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const isStep = parent !== undefined;
+  const heading = isStep ? t("tasks.new.stepTitle") : t("tasks.new.title");
 
   function toggleAssignee(id: string) {
     setAssignees((prev) =>
@@ -53,9 +65,13 @@ export function NewTaskButton({
       .insert({
         project_id: projectId,
         company_id: companyId,
+        parent_id: parent?.id ?? null,
         title: title.trim(),
         description: description.trim() || null,
         due_date: dueDate || null,
+        // A time without a date is rejected by the database; drop it rather
+        // than surfacing a constraint error the user cannot act on.
+        due_time: dueDate && dueTime ? dueTime : null,
         visible_to_customer: visibleToCustomer,
       })
       .select("id")
@@ -91,6 +107,7 @@ export function NewTaskButton({
     setTitle("");
     setDescription("");
     setDueDate("");
+    setDueTime("");
     setAssignees([]);
     setVisibleToCustomer(false);
     router.refresh();
@@ -101,14 +118,23 @@ export function NewTaskButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={primaryButtonClass}
+        className={
+          isStep
+            ? `${secondaryButtonClass} min-h-9 px-3 py-1.5 text-xs`
+            : primaryButtonClass
+        }
       >
-        + {t("tasks.new.title")}
+        + {isStep ? t("tasks.steps.add") : t("tasks.new.title")}
       </button>
 
       {open && (
-        <Modal title={t("tasks.new.title")} onClose={() => setOpen(false)}>
+        <Modal title={heading} onClose={() => setOpen(false)}>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {parent && (
+              <p className="rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-600">
+                {t("tasks.new.stepOf", { package: parent.title })}
+              </p>
+            )}
             <div>
               <label htmlFor="nt-title" className={labelClass}>
                 {t("tasks.new.titleLabel")}
@@ -119,7 +145,11 @@ export function NewTaskButton({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
-                placeholder={t("tasks.new.titlePlaceholder")}
+                placeholder={
+                  isStep
+                    ? t("tasks.new.stepTitlePlaceholder")
+                    : t("tasks.new.titlePlaceholder")
+                }
               />
             </div>
             <div>
@@ -134,17 +164,32 @@ export function NewTaskButton({
                 rows={3}
               />
             </div>
-            <div>
-              <label htmlFor="nt-due" className={labelClass}>
-                {t("tasks.new.dueDateLabel")}
-              </label>
-              <input
-                id="nt-due"
-                type="date"
-                className={inputClass}
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-              />
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <label htmlFor="nt-due" className={labelClass}>
+                  {t("tasks.new.dueDateLabel")}
+                </label>
+                <input
+                  id="nt-due"
+                  type="date"
+                  className={inputClass}
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                />
+              </div>
+              <div className="w-32">
+                <label htmlFor="nt-due-time" className={labelClass}>
+                  {t("tasks.new.dueTimeLabel")}
+                </label>
+                <input
+                  id="nt-due-time"
+                  type="time"
+                  className={inputClass}
+                  value={dueTime}
+                  onChange={(e) => setDueTime(e.target.value)}
+                  disabled={!dueDate}
+                />
+              </div>
             </div>
 
             <fieldset>
@@ -188,6 +233,11 @@ export function NewTaskButton({
                 {t("tasks.new.visibleToCustomer")}
               </span>
             </label>
+            {isStep && visibleToCustomer && (
+              <p className="text-xs text-slate-500">
+                {t("tasks.new.stepVisibilityNote")}
+              </p>
+            )}
 
             <ErrorNote message={error} />
             <button
@@ -195,7 +245,11 @@ export function NewTaskButton({
               disabled={busy}
               className={`${primaryButtonClass} w-full`}
             >
-              {busy ? t("tasks.new.creating") : t("tasks.new.submit")}
+              {busy
+                ? t("tasks.new.creating")
+                : isStep
+                  ? t("tasks.new.stepSubmit")
+                  : t("tasks.new.submit")}
             </button>
           </form>
         </Modal>

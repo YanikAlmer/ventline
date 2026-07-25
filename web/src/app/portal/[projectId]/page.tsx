@@ -7,15 +7,65 @@ import {
   type TimelinePhoto,
 } from "@/components/portal/photo-timeline";
 import { ProjectStatusPill } from "@/components/status-pill";
+import type { Locale } from "@/i18n/config";
 import { getLocale, getTranslator } from "@/i18n/server";
+import type { Translator } from "@/i18n/translate";
 import type { Tables } from "@/lib/database.types";
 import { formatDate } from "@/lib/format";
+import { groupIntoPackages } from "@/lib/queries";
 import { signedUrlMap } from "@/lib/storage";
 import { createClient } from "@/lib/supabase/server";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslator();
   return { title: t("portal.project.title") };
+}
+
+/** One checklist line in the customer's progress list. */
+function PortalTaskLine({
+  task,
+  locale,
+  t,
+  small = false,
+}: {
+  task: Pick<Tables<"tasks">, "id" | "title" | "status" | "due_date">;
+  locale: Locale;
+  t: Translator;
+  small?: boolean;
+}) {
+  const checked = task.status === "done" || task.status === "approved";
+  return (
+    <div className="flex items-start gap-3">
+      <span
+        aria-hidden
+        className={`mt-0.5 flex shrink-0 items-center justify-center rounded-full font-black ${
+          small ? "size-4 text-[9px]" : "size-5 text-[11px]"
+        } ${
+          checked
+            ? "bg-emerald-500 text-white"
+            : "border-2 border-slate-300 bg-white"
+        }`}
+      >
+        {checked ? "✓" : ""}
+      </span>
+      <div className="min-w-0">
+        <p
+          className={`font-semibold ${small ? "text-xs" : "text-sm"} ${
+            checked ? "text-slate-400 line-through" : "text-slate-800"
+          }`}
+        >
+          {task.title}
+        </p>
+        {task.due_date && !checked && (
+          <p className="text-xs text-slate-400">
+            {t("portal.project.plannedFor", {
+              date: formatDate(task.due_date, locale),
+            })}
+          </p>
+        )}
+      </div>
+    </div>
+  );
 }
 
 type SharedPhotoMessage = Tables<"messages"> & {
@@ -61,6 +111,11 @@ export default async function PortalProjectPage(props: {
   ]);
 
   const tasks = tasksResult.data ?? [];
+  // RLS has already dropped anything the customer may not see, including
+  // steps whose package is hidden; this only arranges what survived.
+  const packages = groupIntoPackages(
+    tasks.map((task) => ({ ...task, task_assignments: [] }))
+  );
   const messages =
     (messagesResult.data as unknown as SharedPhotoMessage[] | null) ?? [];
 
@@ -120,43 +175,23 @@ export default async function PortalProjectPage(props: {
           <h2 className="mb-3 text-lg font-bold text-slate-900">
             {t("portal.project.progress")}
           </h2>
+          {/* Steps sit under their work package, never beside it — a flat
+              list would read as twice as much outstanding work as there is. */}
           <ul className="space-y-2.5">
-            {tasks.map((task) => {
-              const checked =
-                task.status === "done" || task.status === "approved";
-              return (
-                <li key={task.id} className="flex items-start gap-3">
-                  <span
-                    aria-hidden
-                    className={`mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full text-[11px] font-black ${
-                      checked
-                        ? "bg-emerald-500 text-white"
-                        : "border-2 border-slate-300 bg-white"
-                    }`}
-                  >
-                    {checked ? "✓" : ""}
-                  </span>
-                  <div className="min-w-0">
-                    <p
-                      className={`text-sm font-semibold ${
-                        checked
-                          ? "text-slate-400 line-through"
-                          : "text-slate-800"
-                      }`}
-                    >
-                      {task.title}
-                    </p>
-                    {task.due_date && !checked && (
-                      <p className="text-xs text-slate-400">
-                        {t("portal.project.plannedFor", {
-                          date: formatDate(task.due_date, locale),
-                        })}
-                      </p>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
+            {packages.map((pkg) => (
+              <li key={pkg.id}>
+                <PortalTaskLine task={pkg} locale={locale} t={t} />
+                {pkg.steps.length > 0 && (
+                  <ul className="mt-1.5 space-y-1.5 border-l border-slate-200 pl-4 sm:ml-2">
+                    {pkg.steps.map((step) => (
+                      <li key={step.id}>
+                        <PortalTaskLine task={step} locale={locale} t={t} small />
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            ))}
           </ul>
         </section>
       )}

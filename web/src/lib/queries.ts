@@ -84,6 +84,60 @@ export async function getProjectTasks(
   return (data as TaskWithAssignees[] | null) ?? [];
 }
 
+/**
+ * A work package (Arbeitspaket) with its steps (Arbeitsschritte) attached.
+ * The board renders packages only; steps live inside their parent.
+ */
+export type WorkPackage = TaskWithAssignees & { steps: TaskWithAssignees[] };
+
+/**
+ * Split a flat task list into the two-level tree.
+ *
+ * A step whose package is missing from the list is promoted to the top level
+ * rather than dropped. That should be impossible — the visibility rule makes a
+ * step readable only when its package is — but a task silently vanishing from
+ * a board is a far worse failure than one shown at the wrong indent.
+ */
+export function groupIntoPackages(tasks: TaskWithAssignees[]): WorkPackage[] {
+  const byId = new Map(tasks.map((task) => [task.id, task]));
+  const packages = new Map<string, WorkPackage>();
+
+  for (const task of tasks) {
+    if (task.parent_id === null || !byId.has(task.parent_id)) {
+      packages.set(task.id, { ...task, steps: [] });
+    }
+  }
+  for (const task of tasks) {
+    if (task.parent_id === null) continue;
+    packages.get(task.parent_id)?.steps.push(task);
+  }
+  return [...packages.values()];
+}
+
+/** Steps that count as finished, for the "4/7 Schritte" progress chip. */
+export function stepProgress(pkg: WorkPackage): { done: number; total: number } {
+  return {
+    done: pkg.steps.filter(
+      (step) => step.status === "done" || step.status === "approved"
+    ).length,
+    total: pkg.steps.length,
+  };
+}
+
+export type TaskAttachment = Tables<"attachments">;
+
+export async function getTaskAttachments(
+  supabase: ServerClient,
+  taskId: string
+): Promise<TaskAttachment[]> {
+  const { data } = await supabase
+    .from("attachments")
+    .select("*")
+    .eq("task_id", taskId)
+    .order("created_at", { ascending: true });
+  return data ?? [];
+}
+
 export type ProjectMemberWithProfile = {
   project_id: string;
   profile_id: string;
