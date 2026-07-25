@@ -52,6 +52,23 @@
         }
       }
     },
+    "%lld min break": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld Min Pause"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld min break"
+          }
+        }
+      }
+    },
     "%lld of %lld tasks finished": {
       "extractionState": "manual",
       "localizations": {
@@ -130,6 +147,40 @@
         }
       }
     },
+    "A clock is already running. Stop it before starting another.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Es läuft bereits eine Uhr. Beende sie, bevor du eine neue startest."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A clock is already running. Stop it before starting another."
+          }
+        }
+      }
+    },
+    "A reason is required to delete recorded time.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zum Löschen erfasster Zeit ist ein Grund nötig."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A reason is required to delete recorded time."
+          }
+        }
+      }
+    },
     "Account": {
       "extractionState": "manual",
       "localizations": {
@@ -198,6 +249,57 @@
         }
       }
     },
+    "Add hours or material before signing.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Füge Stunden oder Material hinzu, bevor du unterschreiben lässt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add hours or material before signing."
+          }
+        }
+      }
+    },
+    "Add material": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Material hinzufügen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add material"
+          }
+        }
+      }
+    },
+    "Add recorded hours": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erfasste Stunden hinzufügen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add recorded hours"
+          }
+        }
+      }
+    },
     "Add step": {
       "extractionState": "manual",
       "localizations": {
@@ -211,6 +313,57 @@
           "stringUnit": {
             "state": "translated",
             "value": "Add step"
+          }
+        }
+      }
+    },
+    "Add to Rapport": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zum Rapport hinzufügen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add to Rapport"
+          }
+        }
+      }
+    },
+    "Add what was used, so it lands on the Rapport.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erfasse, was verbraucht wurde, damit es auf den Rapport kommt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add what was used, so it lands on the Rapport."
+          }
+        }
+      }
+    },
+    "Add your company's IBAN in Settings before invoicing.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hinterlege zuerst die IBAN des Betriebs in den Einstellungen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add your company's IBAN in Settings before invoicing."
           }
         }
       }
@@ -368,6 +521,40 @@
         }
       }
     },
+    "Break: %lld min": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause: %lld Min"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Break: %lld min"
+          }
+        }
+      }
+    },
+    "By signing you confirm that the work listed above was carried out.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mit der Unterschrift bestätigst du, dass die oben aufgeführten Arbeiten ausgeführt wurden."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "By signing you confirm that the work listed above was carried out."
+          }
+        }
+      }
+    },
     "Cancel": {
       "extractionState": "manual",
       "localizations": {
@@ -381,6 +568,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cancel"
+          }
+        }
+      }
+    },
+    "Cancelled": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Storniert"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancelled"
           }
         }
       }
@@ -432,6 +636,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Check your connection and try again."
+          }
+        }
+      }
+    },
+    "Clear": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Löschen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear"
           }
         }
       }
@@ -572,6 +793,23 @@
         }
       }
     },
+    "Counts as %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zählt als %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Counts as %@"
+          }
+        }
+      }
+    },
     "Create": {
       "extractionState": "manual",
       "localizations": {
@@ -623,6 +861,23 @@
         }
       }
     },
+    "Create one from the hours and materials recorded on this job.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erstelle einen aus den erfassten Stunden und dem Material dieses Auftrags."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create one from the hours and materials recorded on this job."
+          }
+        }
+      }
+    },
     "Create your first project to get started.": {
       "extractionState": "manual",
       "localizations": {
@@ -636,6 +891,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Create your first project to get started."
+          }
+        }
+      }
+    },
+    "Creates a link that opens without a login.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erstellt einen Link, der sich ohne Login öffnen lässt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Creates a link that opens without a login."
           }
         }
       }
@@ -687,6 +959,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Customers only see tasks and photos you explicitly share, and only for the projects you pick below."
+          }
+        }
+      }
+    },
+    "Day": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tag"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Day"
           }
         }
       }
@@ -776,6 +1065,23 @@
         }
       }
     },
+    "Draft": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entwurf"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Draft"
+          }
+        }
+      }
+    },
     "Due": {
       "extractionState": "manual",
       "localizations": {
@@ -840,6 +1146,57 @@
           "stringUnit": {
             "state": "translated",
             "value": "Email"
+          }
+        }
+      }
+    },
+    "Enter hours": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stunden erfassen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter hours"
+          }
+        }
+      }
+    },
+    "Enter hours manually": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stunden manuell erfassen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter hours manually"
+          }
+        }
+      }
+    },
+    "Enter the full address, or leave it empty.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gib die vollständige Adresse ein oder lass sie leer."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter the full address, or leave it empty."
           }
         }
       }
@@ -929,6 +1286,40 @@
         }
       }
     },
+    "From": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Von"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "From"
+          }
+        }
+      }
+    },
+    "Get customer signature": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unterschrift des Kunden einholen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Get customer signature"
+          }
+        }
+      }
+    },
     "Give access to projects": {
       "extractionState": "manual",
       "localizations": {
@@ -976,6 +1367,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hide steps"
+          }
+        }
+      }
+    },
+    "Hours": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stunden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hours"
           }
         }
       }
@@ -1218,6 +1626,23 @@
         }
       }
     },
+    "Material": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Material"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Material"
+          }
+        }
+      }
+    },
     "Message": {
       "extractionState": "manual",
       "localizations": {
@@ -1337,6 +1762,23 @@
         }
       }
     },
+    "Name in block capitals": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name in Blockschrift"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name in block capitals"
+          }
+        }
+      }
+    },
     "Needs your attention": {
       "extractionState": "manual",
       "localizations": {
@@ -1350,6 +1792,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Needs your attention"
+          }
+        }
+      }
+    },
+    "New Rapport": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neuer Rapport"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New Rapport"
           }
         }
       }
@@ -1456,6 +1915,23 @@
         }
       }
     },
+    "No Rapporte yet": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noch keine Rapporte"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Rapporte yet"
+          }
+        }
+      }
+    },
     "No conversations yet": {
       "extractionState": "manual",
       "localizations": {
@@ -1469,6 +1945,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "No conversations yet"
+          }
+        }
+      }
+    },
+    "No material recorded": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kein Material erfasst"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No material recorded"
           }
         }
       }
@@ -1592,6 +2085,23 @@
         }
       }
     },
+    "Note (optional)": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notiz (optional)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note (optional)"
+          }
+        }
+      }
+    },
     "Nothing assigned": {
       "extractionState": "manual",
       "localizations": {
@@ -1673,6 +2183,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Only MP4 and MOV videos can be uploaded."
+          }
+        }
+      }
+    },
+    "Only a signed Rapport can be shared.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nur ein unterschriebener Rapport kann geteilt werden."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only a signed Rapport can be shared."
+          }
+        }
+      }
+    },
+    "Only a site manager or the office can change that.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das können nur Vorarbeiter oder das Büro ändern."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only a site manager or the office can change that."
           }
         }
       }
@@ -1881,6 +2425,23 @@
         }
       }
     },
+    "Please enter the name of the person signing.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bitte den Namen der unterzeichnenden Person eingeben."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Please enter the name of the person signing."
+          }
+        }
+      }
+    },
     "Profile": {
       "extractionState": "manual",
       "localizations": {
@@ -1983,6 +2544,57 @@
         }
       }
     },
+    "Quantity": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menge"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quantity"
+          }
+        }
+      }
+    },
+    "Rapport": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rapport"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rapport"
+          }
+        }
+      }
+    },
+    "Rapporte": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rapporte"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rapporte"
+          }
+        }
+      }
+    },
     "Record": {
       "extractionState": "manual",
       "localizations": {
@@ -1996,6 +2608,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Record"
+          }
+        }
+      }
+    },
+    "Recorded": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erfasst"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recorded"
           }
         }
       }
@@ -2064,6 +2693,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Role"
+          }
+        }
+      }
+    },
+    "Running since %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Läuft seit %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Running since %@"
           }
         }
       }
@@ -2153,6 +2799,23 @@
         }
       }
     },
+    "Sent": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Versendet"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sent"
+          }
+        }
+      }
+    },
     "Set up": {
       "extractionState": "manual",
       "localizations": {
@@ -2221,6 +2884,23 @@
         }
       }
     },
+    "Share with customer": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mit Kunde teilen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share with customer"
+          }
+        }
+      }
+    },
     "Show steps": {
       "extractionState": "manual",
       "localizations": {
@@ -2251,6 +2931,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Show to customer"
+          }
+        }
+      }
+    },
+    "Sign": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unterschreiben"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign"
+          }
+        }
+      }
+    },
+    "Sign here": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hier unterschreiben"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign here"
           }
         }
       }
@@ -2306,6 +3020,57 @@
         }
       }
     },
+    "Signature": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unterschrift"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Signature"
+          }
+        }
+      }
+    },
+    "Signed": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unterschrieben"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Signed"
+          }
+        }
+      }
+    },
+    "Signing assigns the Rapport number and locks the content.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mit der Unterschrift wird die Rapportnummer vergeben und der Inhalt gesperrt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Signing assigns the Rapport number and locks the content."
+          }
+        }
+      }
+    },
     "Site manager": {
       "extractionState": "manual",
       "localizations": {
@@ -2340,6 +3105,23 @@
         }
       }
     },
+    "Standby": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pikett"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Standby"
+          }
+        }
+      }
+    },
     "Start": {
       "extractionState": "manual",
       "localizations": {
@@ -2353,6 +3135,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Start"
+          }
+        }
+      }
+    },
+    "Start work": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arbeit starten"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start work"
           }
         }
       }
@@ -2387,6 +3186,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Steps"
+          }
+        }
+      }
+    },
+    "Stop": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stopp"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop"
+          }
+        }
+      }
+    },
+    "Stop work": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arbeit beenden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop work"
           }
         }
       }
@@ -2493,6 +3326,57 @@
         }
       }
     },
+    "That is more than 16 hours — check the times.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das sind mehr als 16 Stunden — bitte die Zeiten prüfen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "That is more than 16 hours — check the times."
+          }
+        }
+      }
+    },
+    "The break is longer than the time worked.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Pause ist länger als die gearbeitete Zeit."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The break is longer than the time worked."
+          }
+        }
+      }
+    },
+    "The clock keeps running when you close the app.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Uhr läuft weiter, auch wenn du die App schliesst."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The clock keeps running when you close the app."
+          }
+        }
+      }
+    },
     "The customer cannot see this step, because its work package is hidden from them.": {
       "extractionState": "manual",
       "localizations": {
@@ -2527,6 +3411,40 @@
         }
       }
     },
+    "The end time must be after the start time.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Ende muss nach dem Beginn liegen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The end time must be after the start time."
+          }
+        }
+      }
+    },
+    "The note appears on the Rapport.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Notiz erscheint auf dem Rapport."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The note appears on the Rapport."
+          }
+        }
+      }
+    },
     "They enter it when signing up in the Ventline app. The code expires in 14 days.": {
       "extractionState": "manual",
       "localizations": {
@@ -2540,6 +3458,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "They enter it when signing up in the Ventline app. The code expires in 14 days."
+          }
+        }
+      }
+    },
+    "This Rapport is signed and can no longer be changed.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieser Rapport ist unterschrieben und kann nicht mehr geändert werden."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This Rapport is signed and can no longer be changed."
           }
         }
       }
@@ -2561,6 +3496,23 @@
         }
       }
     },
+    "To": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bis"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "To"
+          }
+        }
+      }
+    },
     "To do": {
       "extractionState": "manual",
       "localizations": {
@@ -2574,6 +3526,57 @@
           "stringUnit": {
             "state": "translated",
             "value": "To do"
+          }
+        }
+      }
+    },
+    "Travel": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fahrt"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Travel"
+          }
+        }
+      }
+    },
+    "Type": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Art"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Type"
+          }
+        }
+      }
+    },
+    "Unit price (CHF, optional)": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einzelpreis (CHF, optional)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unit price (CHF, optional)"
           }
         }
       }
@@ -2748,6 +3751,23 @@
         }
       }
     },
+    "What did you do?": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Was wurde gemacht?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What did you do?"
+          }
+        }
+      }
+    },
     "What needs doing?": {
       "extractionState": "manual",
       "localizations": {
@@ -2761,6 +3781,57 @@
           "stringUnit": {
             "state": "translated",
             "value": "What needs doing?"
+          }
+        }
+      }
+    },
+    "What was done": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Was wurde gemacht"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What was done"
+          }
+        }
+      }
+    },
+    "What was used?": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Was wurde verbraucht?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What was used?"
+          }
+        }
+      }
+    },
+    "Work": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arbeit"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Work"
           }
         }
       }
@@ -2795,6 +3866,57 @@
           "stringUnit": {
             "state": "translated",
             "value": "You"
+          }
+        }
+      }
+    },
+    "You can only update tasks assigned to you.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du kannst nur Aufgaben ändern, die dir zugewiesen sind."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can only update tasks assigned to you."
+          }
+        }
+      }
+    },
+    "You do not have permission to do that.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dazu hast du keine Berechtigung."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You do not have permission to do that."
+          }
+        }
+      }
+    },
+    "You will pick the hours and materials in the next step.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Stunden und das Material wählst du im nächsten Schritt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You will pick the hours and materials in the next step."
           }
         }
       }
@@ -2965,6 +4087,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "mentioned you"
+          }
+        }
+      }
+    },
+    "no break": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "keine Pause"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "no break"
           }
         }
       }

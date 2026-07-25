@@ -63,6 +63,26 @@ struct ProjectDetailView: View {
                     }
                 }
 
+                if profile.role != .customer {
+                    Section {
+                        NavigationLink {
+                            TimeTrackerView(projectId: projectId, profile: profile, tasks: tasks)
+                        } label: {
+                            Label("Hours", systemImage: "clock")
+                        }
+                        NavigationLink {
+                            MaterialsView(projectId: projectId, profile: profile, tasks: tasks)
+                        } label: {
+                            Label("Material", systemImage: "shippingbox")
+                        }
+                        NavigationLink {
+                            RapportListView(projectId: projectId, profile: profile)
+                        } label: {
+                            Label("Rapporte", systemImage: "doc.text")
+                        }
+                    }
+                }
+
                 ForEach(grouped, id: \.status) { group in
                     Section("\(group.status.label) · \(group.packages.count)") {
                         // The rows are emitted here rather than from a child

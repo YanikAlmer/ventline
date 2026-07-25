@@ -15,6 +15,20 @@ enum Supa {
         }
         return SupabaseClient(supabaseURL: url, supabaseKey: key)
     }()
+
+    /// Where a customer-facing magic link points. This is the *web* app, not
+    /// the API — the customer opens it in a browser with no account.
+    ///
+    /// Falls back to localhost so the flow is exercisable before a domain
+    /// exists; set `VentlineSiteURL` in Secrets.xcconfig for anything shared.
+    static var publicSiteURL: String {
+        let configured = Bundle.main.object(forInfoDictionaryKey: "VentlineSiteURL") as? String
+        let trimmed = configured?.trimmingCharacters(in: .whitespaces) ?? ""
+        guard !trimmed.isEmpty, trimmed != "YOUR-SITE-URL" else {
+            return "http://localhost:3000"
+        }
+        return trimmed.hasSuffix("/") ? String(trimmed.dropLast()) : trimmed
+    }
 }
 
 // Convenient aliases for the generated models.
@@ -34,3 +48,14 @@ typealias TaskAssignment = PublicSchema.TaskAssignmentsSelect
 typealias Message = PublicSchema.MessagesSelect
 typealias Attachment = PublicSchema.AttachmentsSelect
 typealias PhotoAnnotation = PublicSchema.PhotoAnnotationsSelect
+
+// Rapport loop.
+typealias TimeEntry = PublicSchema.TimeEntriesSelect
+typealias TimeEntryKind = PublicSchema.TimeEntryKind
+typealias MaterialLine = PublicSchema.MaterialLinesSelect
+typealias Report = PublicSchema.ReportsSelect
+typealias ReportStatus = PublicSchema.ReportStatus
+typealias ReportTimeLine = PublicSchema.ReportTimeLinesSelect
+typealias ReportMaterialLine = PublicSchema.ReportMaterialLinesSelect
+typealias Customer = PublicSchema.CustomersSelect
+typealias CompanyBillingSettings = PublicSchema.CompanyBillingSettingsSelect
