@@ -515,4 +515,143 @@ begin
 end;
 $$;
 
+-- ============================ security hardening (20260722120000) regressions
+do $$
+declare
+  olivia uuid := '00000000-0000-4000-8000-000000000001';
+  marcus uuid := '00000000-0000-4000-8000-000000000002';
+  frank  uuid := '00000000-0000-4000-8000-000000000003';
+  wanda  uuid := '00000000-0000-4000-8000-000000000004';
+  miguel uuid := '00000000-0000-4000-8000-000000000005';
+  carla  uuid := '00000000-0000-4000-8000-000000000006';
+  boris  uuid := '00000000-0000-4000-8000-000000000007';
+  maple  uuid := '00000000-0000-4000-9000-000000000001';
+  depot  uuid := '00000000-0000-4000-9000-000000000002';
+  t_duct uuid := '00000000-0000-4000-a000-000000000002';
+  u_cust2 uuid := '00000000-0000-4000-c000-000000000010';
+  u_inv   uuid := '00000000-0000-4000-c000-000000000011';
+  foreign_proj uuid := '00000000-0000-4000-d000-000000000001';
+  v_alpine uuid;
+  v_baltic uuid;
+  v_newtask uuid;
+  v_t2 uuid;
+  denied boolean;
+begin
+  select company_id into strict v_alpine from public.profiles where id = wanda;
+  select company_id into strict v_baltic from public.profiles where id = boris;
+
+  -- Fixtures (service role): a second customer on a different project, and a
+  -- foreign-company project for the invite tests.
+  insert into auth.users (id, email) values (u_cust2, 'cust2@alpine.test');
+  insert into public.profiles (id, company_id, role, full_name)
+    values (u_cust2, v_alpine, 'customer', 'Second Customer');
+  insert into public.project_members (project_id, profile_id) values (depot, u_cust2);
+  insert into public.projects (id, company_id, name) values (foreign_proj, v_baltic, 'Baltic Job');
+
+  -- Fix 1: a customer sees themselves, office, and co-project staff — but NOT
+  -- other customers, and NOT staff on unrelated projects.
+  perform tests.impersonate(carla);
+  assert (select count(*) from public.profiles where id = carla) = 1,
+    'customer sees own profile';
+  assert (select count(*) from public.profiles where id = frank) = 1,
+    'customer sees co-project foreman';
+  assert (select count(*) from public.profiles where id = olivia) = 1,
+    'customer sees company owner (point of contact)';
+  assert (select count(*) from public.profiles where id = marcus) = 1,
+    'customer sees company manager';
+  assert (select count(*) from public.profiles where id = miguel) = 0,
+    'customer must NOT see a worker on a project they do not share';
+  assert (select count(*) from public.profiles where id = u_cust2) = 0,
+    'customer must NOT see another customer';
+
+  -- Fix 2: create_invite rejects project_ids outside the caller's company.
+  perform tests.impersonate(marcus);
+  denied := false;
+  begin
+    perform public.create_invite('worker', 'X', array[foreign_proj]);
+  exception when others then denied := true;
+  end;
+  assert denied, 'create_invite must reject a foreign-company project';
+
+  -- Fix 2: even a hand-crafted invite carrying a foreign project grants no
+  -- cross-company membership on redemption (apply_invite filters it out).
+  perform tests.reset();
+  insert into public.invites (company_id, code, role, project_ids)
+    values (v_alpine, 'ZZTESTONE', 'worker', array[foreign_proj]);
+  insert into auth.users (id, email) values (u_inv, 'inv@alpine.test');
+  perform tests.impersonate(u_inv);
+  assert public.redeem_invite('ZZTESTONE', 'Invited User'), 'crafted invite redeems';
+  perform tests.reset();
+  assert (select company_id from public.profiles where id = u_inv) = v_alpine,
+    'redeemer joins the invite company';
+  assert (select count(*) from public.project_members
+          where profile_id = u_inv and project_id = foreign_proj) = 0,
+    'cross-company project membership filtered out on redemption';
+
+  -- Fix 3: a worker cannot INSERT a task pre-set to approved or done.
+  perform tests.impersonate(wanda);
+  denied := false;
+  begin
+    insert into public.tasks (project_id, company_id, title, status)
+      values (maple, v_alpine, 'sneaky approved', 'approved');
+  exception when others then denied := true;
+  end;
+  assert denied, 'worker must not insert an approved task';
+
+  denied := false;
+  begin
+    insert into public.tasks (project_id, company_id, title, status)
+      values (maple, v_alpine, 'sneaky done', 'done');
+  exception when others then denied := true;
+  end;
+  assert denied, 'worker must not insert a done task';
+
+  -- ...but a normal task insert works and created_by is stamped to the actor.
+  insert into public.tasks (project_id, company_id, title)
+    values (maple, v_alpine, 'normal worker task') returning id into v_newtask;
+  assert (select created_by from public.tasks where id = v_newtask) = wanda,
+    'created_by stamped to the actor on insert';
+
+  -- Fix 3: office/foreman CAN insert an approved task, but the stamps are
+  -- derived from the actor — client-supplied approved_by/completed_by ignored.
+  perform tests.impersonate(frank);
+  insert into public.tasks (project_id, company_id, title, status, approved_by, completed_by)
+    values (maple, v_alpine, 'pre-approved', 'approved', wanda, miguel)
+    returning id into v_t2;
+  assert (select approved_by from public.tasks where id = v_t2) = frank,
+    'insert approved_by derived to actor, forged value ignored';
+  assert (select completed_by from public.tasks where id = v_t2) = frank,
+    'insert completed_by derived to actor, forged value ignored';
+
+  -- Fix 4: a worker cannot forge completion stamps on a no-op or ->blocked
+  -- update (previously the client value survived when status did not enter done).
+  perform tests.impersonate(wanda);
+  update public.tasks set status = 'in_progress' where id = t_duct;
+  update public.tasks set status = 'done' where id = t_duct;
+  assert (select completed_by from public.tasks where id = t_duct) = wanda,
+    'done stamps the worker';
+  update public.tasks set status = 'done', completed_by = miguel where id = t_duct;
+  assert (select completed_by from public.tasks where id = t_duct) = wanda,
+    'no-op done update cannot forge completed_by';
+  update public.tasks set status = 'blocked', completed_by = miguel where id = t_duct;
+  assert (select completed_by from public.tasks where id = t_duct) = wanda,
+    '->blocked update preserves the real completed_by, forged value ignored';
+  update public.tasks set status = 'todo' where id = t_duct;
+  assert (select completed_by from public.tasks where id = t_duct) is null,
+    'reopening to todo clears the completion stamp';
+
+  -- Fix 4: a foreman cannot forge approved_by on a stay-approved no-op update.
+  perform tests.impersonate(frank);
+  update public.tasks set status = 'approved' where id = t_duct;
+  assert (select approved_by from public.tasks where id = t_duct) = frank,
+    'approval stamps the foreman';
+  update public.tasks set status = 'approved', approved_by = wanda where id = t_duct;
+  assert (select approved_by from public.tasks where id = t_duct) = frank,
+    'no-op approved update cannot forge approved_by';
+  update public.tasks set status = 'todo' where id = t_duct;
+
+  perform tests.reset();
+end;
+$$;
+
 select 'RLS TESTS PASSED' as result;
