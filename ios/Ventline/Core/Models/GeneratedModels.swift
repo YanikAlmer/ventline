@@ -489,7 +489,7 @@ public enum PublicSchema {
     public let kind: MessageKind
     public let projectId: UUID
     public let replyToMessageId: UUID?
-    public let searchTsv: TsvectorSelect?
+    public let searchTsv: String?
     public let senderId: UUID
     public let sharedWithCustomer: Bool
     public let taskId: UUID?
@@ -529,7 +529,7 @@ public enum PublicSchema {
     public let kind: MessageKind?
     public let projectId: UUID
     public let replyToMessageId: UUID?
-    public let searchTsv: TsvectorSelect?
+    public let searchTsv: String?
     public let senderId: UUID
     public let sharedWithCustomer: Bool?
     public let taskId: UUID?
@@ -569,7 +569,7 @@ public enum PublicSchema {
     public let kind: MessageKind?
     public let projectId: UUID?
     public let replyToMessageId: UUID?
-    public let searchTsv: TsvectorSelect?
+    public let searchTsv: String?
     public let senderId: UUID?
     public let sharedWithCustomer: Bool?
     public let taskId: UUID?

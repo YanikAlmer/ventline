@@ -59,6 +59,15 @@ final class ChatViewModel {
         return senderCache[id]?.fullName ?? String(localized: "Teammate")
     }
 
+    /// The person's actual name, never "You". System rows read
+    /// "<name> hat die Aufgabe freigegeben", and substituting "Du" there would
+    /// produce "Du hat …" — the verb is conjugated for the third person, so the
+    /// row has to name the person even when that person is you.
+    func senderFullName(_ id: UUID) -> String {
+        if id == profile.id { return profile.fullName }
+        return senderCache[id]?.fullName ?? String(localized: "Teammate")
+    }
+
     // MARK: - Loading
 
     func loadInitial() async {

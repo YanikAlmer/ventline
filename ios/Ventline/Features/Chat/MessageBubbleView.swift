@@ -14,25 +14,10 @@ struct MessageBubbleView: View {
         }
     }
 
-    /// System events are stored in the database in English so the row means the
-    /// same thing to every reader regardless of who triggered it. Translate at
-    /// display time so each reader sees their own language; an unrecognised
-    /// body (e.g. written by a future client) falls back to the stored text.
-    private func localizedSystemBody(_ body: String) -> String {
-        switch body {
-        case "started work": String(localized: "started work")
-        case "marked the task as done": String(localized: "marked the task as done")
-        case "flagged the task as blocked": String(localized: "flagged the task as blocked")
-        case "approved the task": String(localized: "approved the task")
-        case "reopened the task": String(localized: "reopened the task")
-        default: body
-        }
-    }
-
     private var systemRow: some View {
         // Composed verbatim because both halves are already resolved strings:
         // the sender name is user data and the body is localized above.
-        Text(verbatim: "\(model.senderName(item.senderId)) \(localizedSystemBody(item.body ?? ""))")
+        Text(verbatim: "\(model.senderFullName(item.senderId)) \(localizedSystemBody(item.body ?? ""))")
             .font(.caption)
             .foregroundStyle(.secondary)
             .frame(maxWidth: .infinity, alignment: .center)

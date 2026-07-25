@@ -351,6 +351,23 @@
         }
       }
     },
+    "Chat": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chat"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chat"
+          }
+        }
+      }
+    },
     "Check your connection and try again.": {
       "extractionState": "manual",
       "localizations": {
@@ -364,6 +381,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Check your connection and try again."
+          }
+        }
+      }
+    },
+    "Communication": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kommunikation"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Communication"
           }
         }
       }
@@ -1099,6 +1133,23 @@
         }
       }
     },
+    "Messages from your projects show up here.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nachrichten aus deinen Projekten erscheinen hier."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Messages from your projects show up here."
+          }
+        }
+      }
+    },
     "Microphone access is off. Enable it in Settings › Ventline to record voice messages.": {
       "extractionState": "manual",
       "localizations": {
@@ -1184,6 +1235,23 @@
         }
       }
     },
+    "Needs your attention": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Braucht deine Aufmerksamkeit"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Needs your attention"
+          }
+        }
+      }
+    },
     "New company": {
       "extractionState": "manual",
       "localizations": {
@@ -1248,6 +1316,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "New task"
+          }
+        }
+      }
+    },
+    "No conversations yet": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noch keine Gespräche"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No conversations yet"
+          }
+        }
+      }
+    },
+    "No messages yet": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noch keine Nachrichten"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No messages yet"
           }
         }
       }
@@ -1503,6 +1605,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Phone"
+          }
+        }
+      }
+    },
+    "Photo": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Photo"
           }
         }
       }
@@ -2493,6 +2612,23 @@
         }
       }
     },
+    "mentioned you": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "hat dich erwähnt"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mentioned you"
+          }
+        }
+      }
+    },
     "now": {
       "extractionState": "manual",
       "localizations": {
@@ -2506,6 +2642,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "now"
+          }
+        }
+      }
+    },
+    "on your work package": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "in deinem Arbeitspaket"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "on your work package"
           }
         }
       }

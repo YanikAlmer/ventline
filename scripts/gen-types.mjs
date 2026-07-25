@@ -35,9 +35,25 @@ mkdirSync(dirname(tsOut), { recursive: true });
 writeFileSync(tsOut, await applyTypescript({ ...data, detectOneToOneRelationships: true }));
 console.log(`wrote ${tsOut}`);
 
+// postgres-meta's Swift template only knows the common Postgres types; for
+// anything else it emits a reference to "<TypeName>Select", which then does not
+// exist and breaks the build. Map those to the Swift type PostgREST actually
+// serialises them as. tsvector arrived with the message search column; it is an
+// index artefact no client reads, but the model still has to compile.
+const SWIFT_TYPE_FALLBACKS = {
+  TsvectorSelect: "String",
+};
+
+let swift = await applySwift({ ...data, accessControl: "public" });
+for (const [from, to] of Object.entries(SWIFT_TYPE_FALLBACKS)) {
+  const before = swift;
+  swift = swift.replaceAll(from, to);
+  if (before !== swift) console.log(`  mapped ${from} -> ${to}`);
+}
+
 const swiftOut = join(repo, "ios/Ventline/Core/Models/GeneratedModels.swift");
 mkdirSync(dirname(swiftOut), { recursive: true });
-writeFileSync(swiftOut, await applySwift({ ...data, accessControl: "public" }));
+writeFileSync(swiftOut, swift);
 console.log(`wrote ${swiftOut}`);
 
 await pgMeta.end();

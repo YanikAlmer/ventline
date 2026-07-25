@@ -65,6 +65,13 @@ struct MainTabView: View {
                 .tabItem { Label("Projects", systemImage: "building.2") }
 
                 NavigationStack {
+                    InboxView(profile: profile)
+                }
+                // Short label on purpose: five tabs already collide on a
+                // 402pt-wide phone, and "Kommunikation" is longer still.
+                .tabItem { Label("Chat", systemImage: "bubble.left.and.bubble.right") }
+
+                NavigationStack {
                     MyTasksView(profile: profile)
                 }
                 .tabItem { Label("My Tasks", systemImage: "checklist") }
