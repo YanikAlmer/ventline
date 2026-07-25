@@ -11,6 +11,7 @@ import {
   secondaryButtonClass,
 } from "@/components/form";
 import { RoleBadge } from "@/components/status-pill";
+import { useTranslator } from "@/i18n/client";
 import type { Company, Profile } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/client";
 
@@ -24,6 +25,7 @@ export function SettingsForms({
   email: string | null;
 }) {
   const router = useRouter();
+  const t = useTranslator();
   const [fullName, setFullName] = useState(profile.full_name);
   const [phone, setPhone] = useState(profile.phone ?? "");
   const [companyName, setCompanyName] = useState(company.name);
@@ -87,13 +89,15 @@ export function SettingsForms({
         className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-900">Profile</h2>
+          <h2 className="text-lg font-bold text-slate-900">
+            {t("settings.profile.title")}
+          </h2>
           <RoleBadge role={profile.role} />
         </div>
         <p className="text-sm text-slate-500">{email ?? ""}</p>
         <div>
           <label htmlFor="set-name" className={labelClass}>
-            Full name
+            {t("settings.profile.fullName")}
           </label>
           <input
             id="set-name"
@@ -105,7 +109,7 @@ export function SettingsForms({
         </div>
         <div>
           <label htmlFor="set-phone" className={labelClass}>
-            Phone
+            {t("settings.profile.phone")}
           </label>
           <input
             id="set-phone"
@@ -113,17 +117,17 @@ export function SettingsForms({
             className={inputClass}
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            placeholder="+1 555 0100"
+            placeholder={t("settings.profile.phonePlaceholder")}
           />
         </div>
         <ErrorNote message={profileError} />
         <div className="flex items-center gap-3">
           <button type="submit" disabled={busy} className={primaryButtonClass}>
-            Save profile
+            {t("settings.profile.save")}
           </button>
           {profileSaved && (
             <span className="text-sm font-semibold text-emerald-700">
-              Saved ✓
+              {t("settings.saved")}
             </span>
           )}
         </div>
@@ -133,10 +137,12 @@ export function SettingsForms({
         onSubmit={handleCompanySave}
         className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
       >
-        <h2 className="text-lg font-bold text-slate-900">Company</h2>
+        <h2 className="text-lg font-bold text-slate-900">
+          {t("settings.company.title")}
+        </h2>
         <div>
           <label htmlFor="set-company" className={labelClass}>
-            Company name
+            {t("settings.company.name")}
           </label>
           <input
             id="set-company"
@@ -148,7 +154,7 @@ export function SettingsForms({
           />
           {!isOwner && (
             <p className="mt-1 text-xs text-slate-500">
-              Only the owner can rename the company.
+              {t("settings.company.ownerOnly")}
             </p>
           )}
         </div>
@@ -156,11 +162,11 @@ export function SettingsForms({
         {isOwner && (
           <div className="flex items-center gap-3">
             <button type="submit" disabled={busy} className={primaryButtonClass}>
-              Save company
+              {t("settings.company.save")}
             </button>
             {companySaved && (
               <span className="text-sm font-semibold text-emerald-700">
-                Saved ✓
+                {t("settings.saved")}
               </span>
             )}
           </div>
@@ -168,13 +174,15 @@ export function SettingsForms({
       </form>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="mb-3 text-lg font-bold text-slate-900">Session</h2>
+        <h2 className="mb-3 text-lg font-bold text-slate-900">
+          {t("settings.session.title")}
+        </h2>
         <button
           type="button"
           onClick={handleSignOut}
           className={secondaryButtonClass}
         >
-          Sign out
+          {t("nav.signOut")}
         </button>
       </div>
     </div>

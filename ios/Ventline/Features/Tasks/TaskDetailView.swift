@@ -22,7 +22,7 @@ struct TaskDetailView: View {
                     .frame(maxHeight: .infinity)
             }
         }
-        .navigationTitle(task?.title ?? "Task")
+        .navigationTitle(task?.title ?? String(localized: "Task"))
         .navigationBarTitleDisplayMode(.inline)
         .task { await reload() }
     }

@@ -10,6 +10,7 @@ import {
   primaryButtonClass,
 } from "@/components/form";
 import { Modal } from "@/components/modal";
+import { useTranslator } from "@/i18n/client";
 import type { Profile } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/client";
 
@@ -25,6 +26,7 @@ export function NewTaskButton({
   members: Member[];
 }) {
   const router = useRouter();
+  const t = useTranslator();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -60,7 +62,7 @@ export function NewTaskButton({
       .single();
 
     if (insertError || !task) {
-      setError(insertError?.message ?? "Could not create the task.");
+      setError(insertError?.message ?? t("tasks.new.createFailed"));
       setBusy(false);
       return;
     }
@@ -75,7 +77,9 @@ export function NewTaskButton({
           }))
         );
       if (assignError) {
-        setError(`Task created, but assigning failed: ${assignError.message}`);
+        setError(
+          t("tasks.new.assignFailed", { message: assignError.message })
+        );
         setBusy(false);
         router.refresh();
         return;
@@ -99,15 +103,15 @@ export function NewTaskButton({
         onClick={() => setOpen(true)}
         className={primaryButtonClass}
       >
-        + New task
+        + {t("tasks.new.title")}
       </button>
 
       {open && (
-        <Modal title="New task" onClose={() => setOpen(false)}>
+        <Modal title={t("tasks.new.title")} onClose={() => setOpen(false)}>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="nt-title" className={labelClass}>
-                Title
+                {t("tasks.new.titleLabel")}
               </label>
               <input
                 id="nt-title"
@@ -115,12 +119,12 @@ export function NewTaskButton({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
-                placeholder="Seal duct joints in attic"
+                placeholder={t("tasks.new.titlePlaceholder")}
               />
             </div>
             <div>
               <label htmlFor="nt-description" className={labelClass}>
-                Description
+                {t("tasks.new.descriptionLabel")}
               </label>
               <textarea
                 id="nt-description"
@@ -132,7 +136,7 @@ export function NewTaskButton({
             </div>
             <div>
               <label htmlFor="nt-due" className={labelClass}>
-                Due date
+                {t("tasks.new.dueDateLabel")}
               </label>
               <input
                 id="nt-due"
@@ -144,10 +148,12 @@ export function NewTaskButton({
             </div>
 
             <fieldset>
-              <legend className={labelClass}>Assignees</legend>
+              <legend className={labelClass}>
+                {t("tasks.new.assigneesLabel")}
+              </legend>
               {members.length === 0 ? (
                 <p className="text-sm text-slate-500">
-                  Add members to the project first.
+                  {t("tasks.new.noMembers")}
                 </p>
               ) : (
                 <div className="max-h-44 space-y-1 overflow-y-auto rounded-lg border border-slate-200 p-2">
@@ -179,7 +185,7 @@ export function NewTaskButton({
                 className="size-4 accent-slate-900"
               />
               <span className="text-sm font-medium text-slate-800">
-                Visible to customer
+                {t("tasks.new.visibleToCustomer")}
               </span>
             </label>
 
@@ -189,7 +195,7 @@ export function NewTaskButton({
               disabled={busy}
               className={`${primaryButtonClass} w-full`}
             >
-              {busy ? "Creating…" : "Create task"}
+              {busy ? t("tasks.new.creating") : t("tasks.new.submit")}
             </button>
           </form>
         </Modal>

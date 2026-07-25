@@ -4,11 +4,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { ProjectStatusPill } from "@/components/status-pill";
-import {
-  PROJECT_STATUSES,
-  PROJECT_STATUS_LABELS,
-  type ProjectStatus,
-} from "@/lib/status";
+import { useTranslator } from "@/i18n/client";
+import { PROJECT_STATUSES, type ProjectStatus } from "@/lib/status";
 import { createClient } from "@/lib/supabase/client";
 
 export function ProjectStatusSelect({
@@ -21,6 +18,7 @@ export function ProjectStatusSelect({
   editable: boolean;
 }) {
   const router = useRouter();
+  const t = useTranslator();
   const [busy, setBusy] = useState(false);
 
   if (!editable) return <ProjectStatusPill status={status} />;
@@ -34,7 +32,7 @@ export function ProjectStatusSelect({
       .eq("id", projectId);
     setBusy(false);
     if (error) {
-      alert(`Could not update status: ${error.message}`);
+      alert(t("projects.status.updateFailed", { message: error.message }));
       return;
     }
     router.refresh();
@@ -44,7 +42,7 @@ export function ProjectStatusSelect({
     <label className="inline-flex items-center gap-2">
       <ProjectStatusPill status={status} />
       <select
-        aria-label="Project status"
+        aria-label={t("projects.status.label")}
         value={status}
         disabled={busy}
         onChange={(e) => handleChange(e.target.value as ProjectStatus)}
@@ -52,7 +50,7 @@ export function ProjectStatusSelect({
       >
         {PROJECT_STATUSES.map((s) => (
           <option key={s} value={s}>
-            {PROJECT_STATUS_LABELS[s]}
+            {t(`status.project.${s}`)}
           </option>
         ))}
       </select>

@@ -5,11 +5,25 @@ struct AuthView: View {
     private enum Mode: String, CaseIterable {
         case signIn = "Sign in"
         case signUp = "Sign up"
+
+        var title: String {
+            switch self {
+            case .signIn: String(localized: "Sign in")
+            case .signUp: String(localized: "Sign up")
+            }
+        }
     }
 
     private enum JoinKind: String, CaseIterable {
         case invite = "I have an invite code"
         case company = "New company"
+
+        var title: String {
+            switch self {
+            case .invite: String(localized: "I have an invite code")
+            case .company: String(localized: "New company")
+            }
+        }
     }
 
     @State private var mode: Mode = .signIn
@@ -42,7 +56,7 @@ struct AuthView: View {
 
                     Picker("Mode", selection: $mode) {
                         ForEach(Mode.allCases, id: \.self) { mode in
-                            Text(mode.rawValue).tag(mode)
+                            Text(mode.title).tag(mode)
                         }
                     }
                     .pickerStyle(.segmented)
@@ -59,7 +73,7 @@ struct AuthView: View {
                         if mode == .signUp {
                             Picker("Join", selection: $joinKind) {
                                 ForEach(JoinKind.allCases, id: \.self) { kind in
-                                    Text(kind.rawValue).tag(kind)
+                                    Text(kind.title).tag(kind)
                                 }
                             }
                             .pickerStyle(.segmented)
@@ -88,7 +102,7 @@ struct AuthView: View {
                             if isWorking {
                                 ProgressView()
                             } else {
-                                Text(mode.rawValue)
+                                Text(mode.title)
                                     .font(.headline)
                             }
                         }
@@ -104,7 +118,7 @@ struct AuthView: View {
     }
 
     private func field(
-        _ placeholder: String,
+        _ placeholder: LocalizedStringKey,
         text: Binding<String>,
         contentType: UITextContentType? = nil,
         keyboard: UIKeyboardType = .default

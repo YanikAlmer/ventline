@@ -10,15 +10,13 @@ import {
   primaryButtonClass,
 } from "@/components/form";
 import { Modal } from "@/components/modal";
-import {
-  PROJECT_STATUSES,
-  PROJECT_STATUS_LABELS,
-  type ProjectStatus,
-} from "@/lib/status";
+import { useTranslator } from "@/i18n/client";
+import { PROJECT_STATUSES, type ProjectStatus } from "@/lib/status";
 import { createClient } from "@/lib/supabase/client";
 
 export function NewProjectButton() {
   const router = useRouter();
+  const t = useTranslator();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
@@ -44,7 +42,7 @@ export function NewProjectButton() {
           .maybeSingle()
       : { data: null };
     if (!profile) {
-      setError("Could not load your profile.");
+      setError(t("projects.new.profileError"));
       setBusy(false);
       return;
     }
@@ -62,7 +60,7 @@ export function NewProjectButton() {
       .single();
 
     if (insertError || !created) {
-      setError(insertError?.message ?? "Could not create the project.");
+      setError(insertError?.message ?? t("projects.new.createError"));
       setBusy(false);
       return;
     }
@@ -84,15 +82,15 @@ export function NewProjectButton() {
         onClick={() => setOpen(true)}
         className={primaryButtonClass}
       >
-        + New project
+        + {t("projects.new.title")}
       </button>
 
       {open && (
-        <Modal title="New project" onClose={() => setOpen(false)}>
+        <Modal title={t("projects.new.title")} onClose={() => setOpen(false)}>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="np-name" className={labelClass}>
-                Name
+                {t("projects.new.name")}
               </label>
               <input
                 id="np-name"
@@ -100,24 +98,24 @@ export function NewProjectButton() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                placeholder="Maple Street Renovation"
+                placeholder={t("projects.new.namePlaceholder")}
               />
             </div>
             <div>
               <label htmlFor="np-address" className={labelClass}>
-                Address
+                {t("projects.new.address")}
               </label>
               <input
                 id="np-address"
                 className={inputClass}
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                placeholder="12 Maple St"
+                placeholder={t("projects.new.addressPlaceholder")}
               />
             </div>
             <div>
               <label htmlFor="np-description" className={labelClass}>
-                Description
+                {t("projects.new.description")}
               </label>
               <textarea
                 id="np-description"
@@ -129,7 +127,7 @@ export function NewProjectButton() {
             </div>
             <div>
               <label htmlFor="np-status" className={labelClass}>
-                Status
+                {t("projects.new.status")}
               </label>
               <select
                 id="np-status"
@@ -139,7 +137,7 @@ export function NewProjectButton() {
               >
                 {PROJECT_STATUSES.map((s) => (
                   <option key={s} value={s}>
-                    {PROJECT_STATUS_LABELS[s]}
+                    {t(`status.project.${s}`)}
                   </option>
                 ))}
               </select>
@@ -150,7 +148,7 @@ export function NewProjectButton() {
               disabled={busy}
               className={`${primaryButtonClass} w-full`}
             >
-              {busy ? "Creating…" : "Create project"}
+              {busy ? t("projects.new.creating") : t("projects.new.submit")}
             </button>
           </form>
         </Modal>

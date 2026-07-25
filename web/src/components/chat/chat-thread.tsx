@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RealtimePostgresInsertPayload } from "@supabase/supabase-js";
 
+import { useI18n } from "@/i18n/client";
 import type { Tables } from "@/lib/database.types";
 import { dayHeading, dayKey } from "@/lib/format";
 import { isOffice, type AppRole } from "@/lib/status";
@@ -34,6 +35,7 @@ export function ChatThread({
   currentUserId: string;
   role: AppRole;
 }) {
+  const { t, locale } = useI18n();
   const supabase = useMemo(() => createClient(), []);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -183,7 +185,7 @@ export function ChatThread({
       p_message_id: messageId,
     });
     if (error) {
-      alert(`Could not delete: ${error.message}`);
+      alert(t("chat.deleteFailed", { message: error.message }));
       return;
     }
     setMessages((prev) => prev.filter((m) => m.id !== messageId));
@@ -205,7 +207,7 @@ export function ChatThread({
   for (const message of messages) {
     const key = dayKey(message.created_at);
     withHeadings.push({
-      heading: key !== lastDay ? dayHeading(message.created_at) : null,
+      heading: key !== lastDay ? dayHeading(message.created_at, locale) : null,
       message,
     });
     lastDay = key;
@@ -216,7 +218,7 @@ export function ChatThread({
       <div className="min-h-0 flex-1 overflow-y-auto p-4">
         {loading ? (
           <p className="py-8 text-center text-sm text-slate-400">
-            Loading messages…
+            {t("chat.loadingMessages")}
           </p>
         ) : (
           <>
@@ -228,13 +230,13 @@ export function ChatThread({
                   disabled={loadingOlder}
                   className="rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
                 >
-                  {loadingOlder ? "Loading…" : "Load older messages"}
+                  {loadingOlder ? t("common.loading") : t("chat.loadOlder")}
                 </button>
               </div>
             )}
             {messages.length === 0 && (
               <p className="py-8 text-center text-sm text-slate-400">
-                No messages yet. Start the conversation.
+                {t("chat.empty")}
               </p>
             )}
             <div className="space-y-2.5">

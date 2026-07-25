@@ -59,6 +59,8 @@ struct OnboardingView: View {
 
     private func redeem() {
         run {
+            // Stored in the database as the profile name and shown to every teammate,
+            // so this fallback stays locale-independent.
             let name = fullName.isEmpty ? "New member" : fullName
             let ok = try await OnboardingRepo.redeemInvite(
                 code: inviteCode.uppercased().trimmingCharacters(in: .whitespaces),
@@ -66,7 +68,7 @@ struct OnboardingView: View {
             )
             if !ok {
                 throw NSError(domain: "Ventline", code: 4, userInfo: [
-                    NSLocalizedDescriptionKey: "That invite code is invalid or expired. Ask your manager for a new one.",
+                    NSLocalizedDescriptionKey: String(localized: "That invite code is invalid or expired. Ask your manager for a new one."),
                 ])
             }
         }

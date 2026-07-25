@@ -76,7 +76,7 @@ struct InviteSheet: View {
                             }
                         } label: {
                             HStack {
-                                Text(project.name ?? "Untitled")
+                                Text(project.name ?? String(localized: "Untitled"))
                                 Spacer()
                                 if selectedProjects.contains(id) {
                                     Image(systemName: "checkmark")
@@ -133,7 +133,12 @@ struct InviteSheet: View {
                 }
                 .buttonStyle(.bordered)
 
-                ShareLink(item: "Join our team on Ventline! Sign up with invite code: \(code)") {
+                ShareLink(
+                    item: String(
+                        format: String(localized: "Join our team on Ventline! Sign up with invite code: %@"),
+                        code
+                    )
+                ) {
                     Label("Share", systemImage: "square.and.arrow.up")
                 }
                 .buttonStyle(.borderedProminent)

@@ -15,10 +15,13 @@ struct CustomerPortalView: View {
                 ForEach(projects, id: \.id) { project in
                     if let id = project.id {
                         NavigationLink {
-                            CustomerProjectView(projectId: id, title: project.name ?? "Your project")
+                            CustomerProjectView(
+                                projectId: id,
+                                title: project.name ?? String(localized: "Your project")
+                            )
                         } label: {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(project.name ?? "Your project")
+                                Text(project.name ?? String(localized: "Your project"))
                                     .font(.headline)
                                 if let address = project.address {
                                     Text(address)

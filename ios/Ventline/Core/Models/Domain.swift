@@ -29,28 +29,39 @@ enum Timestamps {
         return isoFractional.date(from: value) ?? iso.date(from: value)
     }
 
+    /// The localization the app actually resolved to, which is not always the
+    /// device locale: a device set to a language we do not ship falls back to
+    /// German (CFBundleDevelopmentRegion). Formatting dates with this keeps
+    /// timestamps in the same language as the surrounding UI.
+    private static let resolvedLocale: Locale = {
+        Locale(identifier: Bundle.main.preferredLocalizations.first ?? "de")
+    }()
+
     static func relative(_ value: String?) -> String {
         guard let date = parse(value) else { return "" }
-        if Date().timeIntervalSince(date) < 60 { return "now" }
+        if Date().timeIntervalSince(date) < 60 { return String(localized: "now") }
         let f = RelativeDateTimeFormatter()
         f.unitsStyle = .short
+        f.locale = resolvedLocale
         return f.localizedString(for: date, relativeTo: Date())
     }
 
     static func time(_ value: String?) -> String {
         guard let date = parse(value) else { return "" }
-        return date.formatted(date: .omitted, time: .shortened)
+        return date.formatted(
+            Date.FormatStyle(date: .omitted, time: .shortened).locale(resolvedLocale)
+        )
     }
 }
 
 extension ProjectStatus {
     var label: String {
         switch self {
-        case .planning: "Planning"
-        case .active: "Active"
-        case .onHold: "On hold"
-        case .completed: "Completed"
-        case .archived: "Archived"
+        case .planning: String(localized: "Planning")
+        case .active: String(localized: "Active")
+        case .onHold: String(localized: "On hold")
+        case .completed: String(localized: "Completed")
+        case .archived: String(localized: "Archived")
         }
     }
 
@@ -68,11 +79,13 @@ extension ProjectStatus {
 extension TaskStatus {
     var label: String {
         switch self {
-        case .todo: "To do"
-        case .inProgress: "In progress"
-        case .blocked: "Blocked"
-        case .done: "Done"
-        case .approved: "Approved"
+        case .todo: String(localized: "To do")
+        case .inProgress: String(localized: "In progress")
+        case .blocked: String(localized: "Blocked")
+        // Distinct key: the bare "Done" literal is the toolbar dismiss button
+        // ("Fertig"), which is a different word from the task status ("Erledigt").
+        case .done: String(localized: "task.status.done", defaultValue: "Done")
+        case .approved: String(localized: "Approved")
         }
     }
 
@@ -100,11 +113,11 @@ extension TaskStatus {
 extension AppRole {
     var label: String {
         switch self {
-        case .owner: "Owner"
-        case .manager: "Manager"
-        case .foreman: "Site manager"
-        case .worker: "Worker"
-        case .customer: "Customer"
+        case .owner: String(localized: "Owner")
+        case .manager: String(localized: "Manager")
+        case .foreman: String(localized: "Site manager")
+        case .worker: String(localized: "Worker")
+        case .customer: String(localized: "Customer")
         }
     }
 

@@ -73,7 +73,7 @@ struct ProjectListView: View {
     private var filterBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                filterChip(nil, label: "All")
+                filterChip(nil, label: String(localized: "All"))
                 ForEach([ProjectStatus.active, .planning, .onHold, .completed, .archived], id: \.self) { status in
                     filterChip(status, label: status.label)
                 }
@@ -115,7 +115,7 @@ struct ProjectCard: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(overview.name ?? "Untitled")
+                    Text(overview.name ?? String(localized: "Untitled"))
                         .font(.headline)
                         .foregroundStyle(.primary)
                     if let address = overview.address, !address.isEmpty {
@@ -143,12 +143,13 @@ struct ProjectCard: View {
 
             HStack(spacing: 14) {
                 if let blocked = overview.blockedCount, blocked > 0 {
-                    Label("\(blocked) blocked", systemImage: "exclamationmark.octagon")
+                    // Int() keeps the catalog placeholder at %lld (Int32 would emit %d).
+                    Label("\(Int(blocked)) blocked", systemImage: "exclamationmark.octagon")
                         .font(.caption)
                         .foregroundStyle(.red)
                 }
                 if let members = overview.memberCount, members > 0 {
-                    Label("\(members)", systemImage: "person.2")
+                    Label("\(Int(members))", systemImage: "person.2")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

@@ -6,10 +6,10 @@ import { useState } from "react";
 import { Avatar } from "@/components/avatar";
 import { ErrorNote } from "@/components/form";
 import { RoleBadge } from "@/components/status-pill";
+import { useTranslator } from "@/i18n/client";
 import type { Profile } from "@/lib/queries";
 import {
   isOffice,
-  ROLE_LABELS,
   type AppRole,
 } from "@/lib/status";
 import { Constants } from "@/lib/database.types";
@@ -26,6 +26,7 @@ export function MembersTable({
   currentUserId: string;
   currentRole: AppRole;
 }) {
+  const t = useTranslator();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -76,14 +77,21 @@ export function MembersTable({
               <p className="truncate font-semibold text-slate-900">
                 {member.full_name}
                 {member.id === currentUserId && (
-                  <span className="font-normal text-slate-400"> (you)</span>
+                  <span className="font-normal text-slate-400">
+                    {" "}
+                    {t("people.members.you")}
+                  </span>
                 )}
               </p>
-              <p className="text-xs text-slate-500">{member.phone ?? "—"}</p>
+              <p className="text-xs text-slate-500">
+                {member.phone ?? t("common.none")}
+              </p>
             </div>
             {canEditRole(member) ? (
               <select
-                aria-label={`Role for ${member.full_name}`}
+                aria-label={t("people.members.roleFor", {
+                  name: member.full_name,
+                })}
                 value={member.role}
                 disabled={busyId === member.id}
                 onChange={(e) =>
@@ -93,12 +101,12 @@ export function MembersTable({
               >
                 {roleOptions().map((role) => (
                   <option key={role} value={role}>
-                    {ROLE_LABELS[role]}
+                    {t(`role.${role}`)}
                   </option>
                 ))}
                 {!roleOptions().includes(member.role) && (
                   <option value={member.role} disabled>
-                    {ROLE_LABELS[member.role]}
+                    {t(`role.${member.role}`)}
                   </option>
                 )}
               </select>

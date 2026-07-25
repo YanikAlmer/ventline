@@ -10,6 +10,10 @@ options:
   deploymentTarget:
     iOS: "17.0"
   createIntermediateGroups: true
+  # German is the fallback for any device language we do not ship: the app
+  # resolves to German unless the device explicitly prefers English.
+  developmentLanguage: de
+
 
 packages:
   Supabase:
@@ -33,6 +37,8 @@ targets:
       path: Ventline/Info.plist
       properties:
         CFBundleDisplayName: Ventline
+        # Fallback language when the device prefers neither de nor en.
+        CFBundleDevelopmentRegion: de
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait

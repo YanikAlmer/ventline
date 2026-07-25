@@ -55,8 +55,8 @@ final class ChatViewModel {
     }
 
     func senderName(_ id: UUID) -> String {
-        if id == profile.id { return "You" }
-        return senderCache[id]?.fullName ?? "Teammate"
+        if id == profile.id { return String(localized: "You") }
+        return senderCache[id]?.fullName ?? String(localized: "Teammate")
     }
 
     // MARK: - Loading

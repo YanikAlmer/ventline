@@ -2,11 +2,16 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { LoginForm } from "@/components/auth/login-form";
+import { getTranslator } from "@/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: "Sign in" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslator();
+  return { title: t("auth.signIn") };
+}
 
 export default async function LoginPage() {
+  const t = await getTranslator();
   const supabase = await createClient();
   const {
     data: { user },
@@ -23,9 +28,7 @@ export default async function LoginPage() {
           <h1 className="text-2xl font-black tracking-tight text-slate-900">
             Ventline
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Job-site communication for trades companies
-          </p>
+          <p className="mt-1 text-sm text-slate-500">{t("app.tagline")}</p>
         </div>
         <LoginForm />
       </div>

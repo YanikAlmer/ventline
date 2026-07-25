@@ -6,13 +6,14 @@ import { useState } from "react";
 
 import { Avatar } from "@/components/avatar";
 import { RoleBadge } from "@/components/status-pill";
+import { useTranslator } from "@/i18n/client";
 import type { AppRole } from "@/lib/status";
 import { createClient } from "@/lib/supabase/client";
 
 const NAV = [
-  { href: "/", label: "Overview", icon: "▦" },
-  { href: "/people", label: "People", icon: "👥" },
-  { href: "/settings", label: "Settings", icon: "⚙" },
+  { href: "/", labelKey: "nav.overview", icon: "▦" },
+  { href: "/people", labelKey: "nav.people", icon: "👥" },
+  { href: "/settings", labelKey: "nav.settings", icon: "⚙" },
 ] as const;
 
 export function Sidebar({
@@ -26,6 +27,7 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const t = useTranslator();
   const [open, setOpen] = useState(false);
 
   async function handleSignOut() {
@@ -58,7 +60,7 @@ export function Sidebar({
           <span aria-hidden className="w-5 text-center">
             {item.icon}
           </span>
-          {item.label}
+          {t(item.labelKey)}
         </Link>
       ))}
     </nav>
@@ -74,10 +76,10 @@ export function Sidebar({
       <button
         type="button"
         onClick={handleSignOut}
-        title="Sign out"
+        title={t("nav.signOut")}
         className="flex min-h-11 items-center rounded-lg px-2 text-xs font-semibold text-slate-400 hover:text-white"
       >
-        Sign out
+        {t("nav.signOut")}
       </button>
     </div>
   );
@@ -98,7 +100,7 @@ export function Sidebar({
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
-          aria-label="Toggle menu"
+          aria-label={t("nav.toggleMenu")}
           className="flex size-11 items-center justify-center rounded-lg text-white hover:bg-slate-800"
         >
           {open ? "✕" : "☰"}

@@ -80,7 +80,7 @@ struct ProjectDetailView: View {
                 ProgressView()
             }
         }
-        .navigationTitle(project?.name ?? "Project")
+        .navigationTitle(project?.name ?? String(localized: "Project"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {

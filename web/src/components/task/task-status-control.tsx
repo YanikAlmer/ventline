@@ -4,9 +4,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { TaskStatusPill } from "@/components/status-pill";
+import { useTranslator } from "@/i18n/client";
+import type { TranslationKey } from "@/i18n/translate";
 import {
   allowedTaskStatuses,
-  TASK_STATUS_LABELS,
   type AppRole,
   type TaskStatus,
 } from "@/lib/status";
@@ -15,6 +16,14 @@ import { createClient } from "@/lib/supabase/client";
 const SYSTEM_BODY: Partial<Record<TaskStatus, string>> = {
   done: "marked the task as done",
   approved: "approved the task",
+};
+
+const STATUS_LABEL_KEY: Record<TaskStatus, TranslationKey> = {
+  todo: "status.task.todo",
+  in_progress: "status.task.in_progress",
+  blocked: "status.task.blocked",
+  done: "status.task.done",
+  approved: "status.task.approved",
 };
 
 export function TaskStatusControl({
@@ -31,6 +40,7 @@ export function TaskStatusControl({
   isAssigned: boolean;
 }) {
   const router = useRouter();
+  const t = useTranslator();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -75,7 +85,7 @@ export function TaskStatusControl({
         <TaskStatusPill status={status} />
         {role === "worker" && !isAssigned && (
           <span className="text-xs text-slate-400">
-            Assigned workers can update
+            {t("tasks.status.assignedOnly")}
           </span>
         )}
       </div>
@@ -86,7 +96,7 @@ export function TaskStatusControl({
     <div className="flex flex-wrap items-center gap-2">
       <TaskStatusPill status={status} />
       <select
-        aria-label="Task status"
+        aria-label={t("tasks.status.ariaLabel")}
         value={status}
         disabled={busy}
         onChange={(e) => handleChange(e.target.value as TaskStatus)}
@@ -94,14 +104,14 @@ export function TaskStatusControl({
       >
         {options.map((s) => (
           <option key={s} value={s}>
-            {TASK_STATUS_LABELS[s]}
+            {t(STATUS_LABEL_KEY[s])}
           </option>
         ))}
         {/* Keep the current value selectable even when not settable by this
             role (e.g. a worker viewing an approved task). */}
         {!options.includes(status) && (
           <option value={status} disabled>
-            {TASK_STATUS_LABELS[status]}
+            {t(STATUS_LABEL_KEY[status])}
           </option>
         )}
       </select>

@@ -7,12 +7,16 @@ import {
   type TimelinePhoto,
 } from "@/components/portal/photo-timeline";
 import { ProjectStatusPill } from "@/components/status-pill";
+import { getLocale, getTranslator } from "@/i18n/server";
 import type { Tables } from "@/lib/database.types";
 import { formatDate } from "@/lib/format";
 import { signedUrlMap } from "@/lib/storage";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: "Project updates" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslator();
+  return { title: t("portal.project.title") };
+}
 
 type SharedPhotoMessage = Tables<"messages"> & {
   sender: Pick<Tables<"profiles">, "full_name"> | null;
@@ -29,6 +33,8 @@ export default async function PortalProjectPage(props: {
 }) {
   const { projectId } = await props.params;
   const supabase = await createClient();
+  const t = await getTranslator();
+  const locale = await getLocale();
 
   const { data: project } = await supabase
     .from("projects")
@@ -92,7 +98,7 @@ export default async function PortalProjectPage(props: {
     <div>
       <nav className="mb-4 text-sm text-slate-500">
         <Link href="/portal" className="font-semibold hover:text-slate-900">
-          Your projects
+          {t("portal.home.title")}
         </Link>{" "}
         / <span className="text-slate-700">{project.name}</span>
       </nav>
@@ -111,7 +117,9 @@ export default async function PortalProjectPage(props: {
 
       {tasks.length > 0 && (
         <section className="mb-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="mb-3 text-lg font-bold text-slate-900">Progress</h2>
+          <h2 className="mb-3 text-lg font-bold text-slate-900">
+            {t("portal.project.progress")}
+          </h2>
           <ul className="space-y-2.5">
             {tasks.map((task) => {
               const checked =
@@ -140,7 +148,9 @@ export default async function PortalProjectPage(props: {
                     </p>
                     {task.due_date && !checked && (
                       <p className="text-xs text-slate-400">
-                        Planned for {formatDate(task.due_date)}
+                        {t("portal.project.plannedFor", {
+                          date: formatDate(task.due_date, locale),
+                        })}
                       </p>
                     )}
                   </div>
@@ -153,12 +163,11 @@ export default async function PortalProjectPage(props: {
 
       <section>
         <h2 className="mb-3 text-lg font-bold text-slate-900">
-          Photo updates
+          {t("portal.project.photoUpdates")}
         </h2>
         {photos.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500">
-            No photos shared yet. Check back soon — your crew will post
-            progress photos here.
+            {t("portal.project.noPhotos")}
           </div>
         ) : (
           <PhotoTimeline photos={photos} />

@@ -9,9 +9,10 @@ import {
   labelClass,
   primaryButtonClass,
 } from "@/components/form";
+import { useI18n } from "@/i18n/client";
 import { relativeTime } from "@/lib/format";
 import type { OpenInvite } from "@/lib/queries";
-import { ROLE_LABELS, type AppRole } from "@/lib/status";
+import { type AppRole } from "@/lib/status";
 import { createClient } from "@/lib/supabase/client";
 
 const INVITABLE_ROLES: AppRole[] = [
@@ -33,6 +34,7 @@ export function InvitePanel({
   projects: ProjectOption[];
   currentRole: AppRole;
 }) {
+  const { t, locale } = useI18n();
   const router = useRouter();
   const [role, setRole] = useState<AppRole>("worker");
   const [fullName, setFullName] = useState("");
@@ -67,7 +69,7 @@ export function InvitePanel({
     });
     setBusy(false);
     if (rpcError || !data || data.length === 0) {
-      setError(rpcError?.message ?? "Could not create the invite.");
+      setError(rpcError?.message ?? t("people.invite.createError"));
       return;
     }
 
@@ -100,7 +102,9 @@ export function InvitePanel({
 
   return (
     <section className="mt-8">
-      <h2 className="mb-3 text-lg font-bold text-slate-900">Invites</h2>
+      <h2 className="mb-3 text-lg font-bold text-slate-900">
+        {t("people.invite.title")}
+      </h2>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <form
@@ -109,7 +113,7 @@ export function InvitePanel({
         >
           <div>
             <label htmlFor="inv-role" className={labelClass}>
-              Role
+              {t("people.invite.roleLabel")}
             </label>
             <select
               id="inv-role"
@@ -119,7 +123,7 @@ export function InvitePanel({
             >
               {roles.map((r) => (
                 <option key={r} value={r}>
-                  {ROLE_LABELS[r]}
+                  {t(`role.${r}`)}
                 </option>
               ))}
             </select>
@@ -127,28 +131,33 @@ export function InvitePanel({
 
           <div>
             <label htmlFor="inv-name" className={labelClass}>
-              Name <span className="font-normal text-slate-400">(optional)</span>
+              {t("people.invite.nameLabel")}{" "}
+              <span className="font-normal text-slate-400">
+                {t("people.invite.optional")}
+              </span>
             </label>
             <input
               id="inv-name"
               className={inputClass}
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              placeholder="Who is this invite for?"
+              placeholder={t("people.invite.namePlaceholder")}
             />
           </div>
 
           <fieldset>
             <legend className={labelClass}>
-              Add to projects{" "}
+              {t("people.invite.projectsLegend")}{" "}
               {role === "customer" && (
                 <span className="font-normal text-rose-600">
-                  (required for customers to see anything)
+                  {t("people.invite.customerProjectsHint")}
                 </span>
               )}
             </legend>
             {projects.length === 0 ? (
-              <p className="text-sm text-slate-500">No projects yet.</p>
+              <p className="text-sm text-slate-500">
+                {t("people.invite.noProjects")}
+              </p>
             ) : (
               <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-slate-200 p-2">
                 {projects.map((p) => (
@@ -174,13 +183,13 @@ export function InvitePanel({
           <ErrorNote message={error} />
 
           <button type="submit" disabled={busy} className={`${primaryButtonClass} w-full`}>
-            {busy ? "Creating…" : "Create invite"}
+            {busy ? t("people.invite.creating") : t("people.invite.create")}
           </button>
 
           {newCode && (
             <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-center">
               <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-emerald-700">
-                Invite code
+                {t("people.invite.codeLabel")}
               </p>
               <p className="font-mono text-3xl font-black tracking-[0.3em] text-emerald-900">
                 {newCode}
@@ -190,7 +199,7 @@ export function InvitePanel({
                 onClick={handleCopy}
                 className="mt-2 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
               >
-                {copied ? "Copied ✓" : "Copy code"}
+                {copied ? t("people.invite.copied") : t("people.invite.copy")}
               </button>
             </div>
           )}
@@ -198,10 +207,12 @@ export function InvitePanel({
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-500">
-            Open invites
+            {t("people.invite.openTitle")}
           </h3>
           {invites.length === 0 ? (
-            <p className="text-sm text-slate-500">No open invites.</p>
+            <p className="text-sm text-slate-500">
+              {t("people.invite.noOpen")}
+            </p>
           ) : (
             <ul className="divide-y divide-slate-100">
               {invites.map((invite) => {
@@ -216,17 +227,23 @@ export function InvitePanel({
                         {invite.code}
                       </p>
                       <p className="text-xs text-slate-500">
-                        {ROLE_LABELS[invite.role]}
+                        {t(`role.${invite.role}`)}
                         {invite.full_name ? ` · ${invite.full_name}` : ""} ·{" "}
                         {expired ? (
                           <span className="font-semibold text-red-600">
-                            expired
+                            {t("people.invite.expired")}
                           </span>
                         ) : (
-                          `expires ${new Date(invite.expires_at).toLocaleDateString()}`
+                          t("people.invite.expiresOn", {
+                            date: new Date(
+                              invite.expires_at
+                            ).toLocaleDateString(),
+                          })
                         )}
-                        {" · created "}
-                        {relativeTime(invite.created_at)}
+                        {" · "}
+                        {t("people.invite.createdAt", {
+                          time: relativeTime(invite.created_at, locale),
+                        })}
                       </p>
                     </div>
                     <button
@@ -234,7 +251,7 @@ export function InvitePanel({
                       onClick={() => handleRevoke(invite.id)}
                       className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50"
                     >
-                      Revoke
+                      {t("people.invite.revoke")}
                     </button>
                   </li>
                 );

@@ -131,7 +131,10 @@ struct PhotoMarkupView: View {
                 }
 
                 guard let jpeg = composite.jpegData(compressionQuality: 0.85) else {
-                    throw NSError(domain: "Ventline", code: 3, userInfo: [NSLocalizedDescriptionKey: "Could not render markup"])
+                    throw NSError(
+                        domain: "Ventline", code: 3,
+                        userInfo: [NSLocalizedDescriptionKey: String(localized: "Could not render markup")]
+                    )
                 }
 
                 // Rendered file lives next to the original: same folder,

@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 
+import { useTranslator } from "@/i18n/client";
 import { downscaleImage, jpegFilename } from "@/lib/image";
 import { buildUploadPath } from "@/lib/storage";
 import { createClient } from "@/lib/supabase/client";
@@ -18,6 +19,7 @@ export function Composer({
   taskId: string | null;
   onSent: (messageId: string) => void;
 }) {
+  const t = useTranslator();
   const [body, setBody] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [shareWithCustomer, setShareWithCustomer] = useState(false);
@@ -43,7 +45,7 @@ export function Composer({
     try {
       const attachments: Json[] = [];
       for (const file of files) {
-        const { blob, width, height } = await downscaleImage(file);
+        const { blob, width, height } = await downscaleImage(file, t);
         const path = buildUploadPath(
           companyId,
           projectId,
@@ -53,7 +55,9 @@ export function Composer({
           .from("photos")
           .upload(path, blob, { contentType: "image/jpeg" });
         if (uploadError) {
-          throw new Error(`Photo upload failed: ${uploadError.message}`);
+          throw new Error(
+            t("chat.photoUploadFailed", { message: uploadError.message })
+          );
         }
         attachments.push({
           kind: "photo",
@@ -78,7 +82,7 @@ export function Composer({
         }
       );
       if (rpcError || !messageId) {
-        throw new Error(rpcError?.message ?? "Sending failed.");
+        throw new Error(rpcError?.message ?? t("chat.sendFailed"));
       }
 
       setBody("");
@@ -86,7 +90,7 @@ export function Composer({
       setShareWithCustomer(false);
       onSent(messageId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Sending failed.");
+      setError(err instanceof Error ? err.message : t("chat.sendFailed"));
     } finally {
       setBusy(false);
     }
@@ -107,7 +111,7 @@ export function Composer({
               📷 {file.name}
               <button
                 type="button"
-                aria-label={`Remove ${file.name}`}
+                aria-label={t("chat.removeAttachment", { name: file.name })}
                 onClick={() =>
                   setFiles((prev) => prev.filter((_, idx) => idx !== i))
                 }
@@ -138,8 +142,8 @@ export function Composer({
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          title="Attach photos"
-          aria-label="Attach photos"
+          title={t("chat.attachPhotos")}
+          aria-label={t("chat.attachPhotos")}
           className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-slate-300 text-lg hover:bg-slate-50"
         >
           📷
@@ -154,7 +158,7 @@ export function Composer({
             }
           }}
           rows={1}
-          placeholder="Write a message…"
+          placeholder={t("chat.composerPlaceholder")}
           className="max-h-36 min-h-11 flex-1 resize-y rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-400/30"
         />
         <button
@@ -162,7 +166,7 @@ export function Composer({
           disabled={busy || (!body.trim() && files.length === 0)}
           className="flex h-11 shrink-0 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {busy ? "Sending…" : "Send"}
+          {busy ? t("chat.sending") : t("common.send")}
         </button>
       </div>
 
@@ -173,7 +177,7 @@ export function Composer({
           onChange={(e) => setShareWithCustomer(e.target.checked)}
           className="size-4 accent-rose-600"
         />
-        Share with customer
+        {t("chat.shareWithCustomer")}
       </label>
     </form>
   );

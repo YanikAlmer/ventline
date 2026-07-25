@@ -3,17 +3,20 @@ import Link from "next/link";
 
 import { NewProjectButton } from "@/components/overview/new-project-button";
 import { ProjectCard } from "@/components/overview/project-card";
+import { getTranslator } from "@/i18n/server";
 import { getCurrentUser, getProjectOverviews } from "@/lib/queries";
 import {
   PROJECT_STATUSES,
-  PROJECT_STATUS_LABELS,
   isOffice,
   type ProjectStatus,
 } from "@/lib/status";
 import { signedUrlMap } from "@/lib/storage";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: "Overview" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslator();
+  return { title: t("nav.overview") };
+}
 
 function parseStatus(value: string | undefined): ProjectStatus | undefined {
   return PROJECT_STATUSES.find((s) => s === value);
@@ -25,6 +28,7 @@ export default async function OverviewPage(props: {
   const searchParams = await props.searchParams;
   const statusFilter = parseStatus(searchParams.status);
 
+  const t = await getTranslator();
   const supabase = await createClient();
   const [current, projects] = await Promise.all([
     getCurrentUser(supabase),
@@ -39,9 +43,9 @@ export default async function OverviewPage(props: {
   );
 
   const tabs: { label: string; value: ProjectStatus | null }[] = [
-    { label: "All", value: null },
+    { label: t("common.all"), value: null },
     ...PROJECT_STATUSES.map((s) => ({
-      label: PROJECT_STATUS_LABELS[s],
+      label: t(`status.project.${s}`),
       value: s,
     })),
   ];
@@ -51,7 +55,7 @@ export default async function OverviewPage(props: {
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900">
-            Projects
+            {t("nav.projects")}
           </h1>
           <p className="text-sm text-slate-500">{current.company.name}</p>
         </div>
@@ -79,13 +83,17 @@ export default async function OverviewPage(props: {
 
       {projects.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
-          <p className="font-semibold text-slate-700">No projects here yet</p>
+          <p className="font-semibold text-slate-700">
+            {t("projects.empty.title")}
+          </p>
           <p className="mt-1 text-sm text-slate-500">
             {statusFilter
-              ? `No ${PROJECT_STATUS_LABELS[statusFilter].toLowerCase()} projects.`
+              ? t("projects.empty.filtered", {
+                  status: t(`status.project.${statusFilter}`),
+                })
               : isOffice(current.profile.role)
-                ? "Create your first project to get started."
-                : "You will see projects here once you are added to one."}
+                ? t("projects.empty.officeHint")
+                : t("projects.empty.memberHint")}
           </p>
         </div>
       ) : (

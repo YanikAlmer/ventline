@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 
 import { Lightbox } from "@/components/chat/lightbox";
+import { useI18n } from "@/i18n/client";
 import { dayHeading, dayKey } from "@/lib/format";
 
 /**
@@ -27,6 +28,7 @@ export type TimelinePhoto = {
 };
 
 export function PhotoTimeline({ photos }: { photos: TimelinePhoto[] }) {
+  const { t, locale } = useI18n();
   const [lightbox, setLightbox] = useState<TimelinePhoto | null>(null);
   // dayKey/dayHeading depend on the local timezone and current time, which
   // differ between the server render and the client. Group by a stable UTC key
@@ -38,7 +40,7 @@ export function PhotoTimeline({ photos }: { photos: TimelinePhoto[] }) {
   for (const photo of photos) {
     const key = mounted ? dayKey(photo.createdAt) : utcDayKey(photo.createdAt);
     const heading = mounted
-      ? dayHeading(photo.createdAt)
+      ? dayHeading(photo.createdAt, locale)
       : utcDayKey(photo.createdAt);
     const existing = days.find((d) => d.key === key);
     if (existing) existing.items.push(photo);
@@ -62,13 +64,13 @@ export function PhotoTimeline({ photos }: { photos: TimelinePhoto[] }) {
                 >
                   <img
                     src={photo.url}
-                    alt={photo.caption ?? "Progress photo"}
+                    alt={photo.caption ?? t("portal.photo.alt")}
                     className="aspect-square w-full object-cover transition-transform hover:scale-[1.02]"
                     loading="lazy"
                   />
                   {photo.annotated && (
                     <span className="absolute left-2 top-2 rounded-full bg-slate-900/80 px-2 py-0.5 text-[10px] font-bold text-white">
-                      ✏ Annotated
+                      ✏ {t("portal.photo.annotated")}
                     </span>
                   )}
                 </button>

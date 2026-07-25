@@ -1,3 +1,4 @@
+import type { TranslationKey, Translator } from "@/i18n/translate";
 import type { Database } from "@/lib/database.types";
 
 export type ProjectStatus = Database["public"]["Enums"]["project_status"];
@@ -20,6 +21,13 @@ export const TASK_STATUSES: TaskStatus[] = [
   "approved",
 ];
 
+/**
+ * English fallback labels.
+ *
+ * Kept for compatibility with call sites that have no translator to hand;
+ * anything rendered to a user should go through `projectStatusLabel` /
+ * `taskStatusLabel` / `roleLabel` below.
+ */
 export const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
   planning: "Planning",
   active: "Active",
@@ -35,6 +43,32 @@ export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
   done: "Done",
   approved: "Approved",
 };
+
+const PROJECT_STATUS_KEYS: Record<ProjectStatus, TranslationKey> = {
+  planning: "status.project.planning",
+  active: "status.project.active",
+  on_hold: "status.project.on_hold",
+  completed: "status.project.completed",
+  archived: "status.project.archived",
+};
+
+const TASK_STATUS_KEYS: Record<TaskStatus, TranslationKey> = {
+  todo: "status.task.todo",
+  in_progress: "status.task.in_progress",
+  blocked: "status.task.blocked",
+  done: "status.task.done",
+  approved: "status.task.approved",
+};
+
+/** Translated project status label, e.g. "Pausiert". */
+export function projectStatusLabel(t: Translator, status: ProjectStatus): string {
+  return t(PROJECT_STATUS_KEYS[status]);
+}
+
+/** Translated task status label, e.g. "In Arbeit". */
+export function taskStatusLabel(t: Translator, status: TaskStatus): string {
+  return t(TASK_STATUS_KEYS[status]);
+}
 
 export const PROJECT_STATUS_PILL: Record<ProjectStatus, string> = {
   planning: "bg-slate-100 text-slate-700 ring-slate-600/20",
@@ -60,6 +94,7 @@ export const TASK_STATUS_DOT: Record<TaskStatus, string> = {
   approved: "bg-emerald-500",
 };
 
+/** English fallback labels — prefer `roleLabel(t, role)` for anything rendered. */
 export const ROLE_LABELS: Record<AppRole, string> = {
   owner: "Owner",
   manager: "Manager",
@@ -67,6 +102,19 @@ export const ROLE_LABELS: Record<AppRole, string> = {
   worker: "Worker",
   customer: "Customer",
 };
+
+const ROLE_KEYS: Record<AppRole, TranslationKey> = {
+  owner: "role.owner",
+  manager: "role.manager",
+  foreman: "role.foreman",
+  worker: "role.worker",
+  customer: "role.customer",
+};
+
+/** Translated role label, e.g. "Vorarbeiter". */
+export function roleLabel(t: Translator, role: AppRole): string {
+  return t(ROLE_KEYS[role]);
+}
 
 export const ROLE_BADGE: Record<AppRole, string> = {
   owner: "bg-violet-100 text-violet-800 ring-violet-600/20",

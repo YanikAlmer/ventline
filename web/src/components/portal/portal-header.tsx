@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { useTranslator } from "@/i18n/client";
 import { createClient } from "@/lib/supabase/client";
 
 export function PortalHeader({
@@ -13,6 +14,7 @@ export function PortalHeader({
   userName: string;
 }) {
   const router = useRouter();
+  const t = useTranslator();
 
   async function handleSignOut() {
     const supabase = createClient();
@@ -33,7 +35,7 @@ export function PortalHeader({
               {companyName}
             </span>
             <span className="block text-xs text-slate-500">
-              Customer portal
+              {t("portal.header.subtitle")}
             </span>
           </span>
         </Link>
@@ -46,7 +48,7 @@ export function PortalHeader({
             onClick={handleSignOut}
             className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
           >
-            Sign out
+            {t("nav.signOut")}
           </button>
         </div>
       </div>

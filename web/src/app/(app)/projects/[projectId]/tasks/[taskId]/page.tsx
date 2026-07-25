@@ -6,17 +6,23 @@ import { Avatar } from "@/components/avatar";
 import { ChatThread } from "@/components/chat/chat-thread";
 import { CustomerVisibilityToggle } from "@/components/task/customer-visibility-toggle";
 import { TaskStatusControl } from "@/components/task/task-status-control";
+import { getLocale, getTranslator } from "@/i18n/server";
 import { formatDate } from "@/lib/format";
 import { getCurrentUser } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: "Task" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslator();
+  return { title: t("tasks.detail.metaTitle") };
+}
 
 export default async function TaskPage(props: {
   params: Promise<{ projectId: string; taskId: string }>;
 }) {
   const { projectId, taskId } = await props.params;
   const supabase = await createClient();
+  const t = await getTranslator();
+  const locale = await getLocale();
 
   const [current, taskResult] = await Promise.all([
     getCurrentUser(supabase),
@@ -42,7 +48,7 @@ export default async function TaskPage(props: {
     <div className="mx-auto flex min-h-[calc(100dvh-56px)] max-w-4xl flex-col px-4 py-6 sm:px-6 md:min-h-dvh">
       <nav className="mb-4 text-sm text-slate-500">
         <Link href="/" className="font-semibold hover:text-slate-900">
-          Projects
+          {t("nav.projects")}
         </Link>{" "}
         /{" "}
         <Link
@@ -77,18 +83,22 @@ export default async function TaskPage(props: {
 
         <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-slate-100 pt-4">
           <div className="text-sm">
-            <span className="font-semibold text-slate-500">Due: </span>
+            <span className="font-semibold text-slate-500">
+              {t("tasks.detail.dueLabel")}{" "}
+            </span>
             <span className="font-semibold text-slate-900">
-              {formatDate(task.due_date)}
+              {formatDate(task.due_date, locale)}
             </span>
           </div>
 
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-slate-500">
-              Assigned:
+              {t("tasks.detail.assignedLabel")}
             </span>
             {task.task_assignments.length === 0 ? (
-              <span className="text-sm text-slate-400">Nobody yet</span>
+              <span className="text-sm text-slate-400">
+                {t("tasks.detail.noAssignees")}
+              </span>
             ) : (
               <span className="flex items-center gap-1.5">
                 {task.task_assignments.map((a) => (
@@ -116,7 +126,7 @@ export default async function TaskPage(props: {
           )}
           {isWorker && task.visible_to_customer && (
             <span className="text-xs font-semibold text-rose-600">
-              Customer-visible
+              {t("tasks.detail.customerVisible")}
             </span>
           )}
         </div>

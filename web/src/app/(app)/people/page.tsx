@@ -1,7 +1,6 @@
-import type { Metadata } from "next";
-
 import { InvitePanel } from "@/components/people/invite-panel";
 import { MembersTable } from "@/components/people/members-table";
+import { getTranslator } from "@/i18n/server";
 import {
   getCompanyMembers,
   getCurrentUser,
@@ -10,9 +9,13 @@ import {
 import { isOffice } from "@/lib/status";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: "People" };
+export async function generateMetadata() {
+  const t = await getTranslator();
+  return { title: t("nav.people") };
+}
 
 export default async function PeoplePage() {
+  const t = await getTranslator();
   const supabase = await createClient();
   const current = await getCurrentUser(supabase);
   if (!current) return null;
@@ -29,10 +32,10 @@ export default async function PeoplePage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6">
       <h1 className="mb-1 text-2xl font-black tracking-tight text-slate-900">
-        People
+        {t("nav.people")}
       </h1>
       <p className="mb-6 text-sm text-slate-500">
-        Everyone at {current.company.name}
+        {t("people.subtitle", { company: current.company.name })}
       </p>
 
       <MembersTable

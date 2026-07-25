@@ -10,6 +10,7 @@ import {
   primaryButtonClass,
   secondaryButtonClass,
 } from "@/components/form";
+import { useTranslator } from "@/i18n/client";
 import { createClient } from "@/lib/supabase/client";
 
 type Tab = "invite" | "company";
@@ -19,6 +20,7 @@ export function OnboardingForm({
 }: {
   defaultFullName: string;
 }) {
+  const t = useTranslator();
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("invite");
   const [fullName, setFullName] = useState(defaultFullName);
@@ -44,7 +46,7 @@ export function OnboardingForm({
         return;
       }
       if (!data) {
-        setError("That invite code is invalid or has expired.");
+        setError(t("auth.inviteCodeInvalid"));
         setBusy(false);
         return;
       }
@@ -87,7 +89,7 @@ export function OnboardingForm({
             setError(null);
           }}
         >
-          Enter invite code
+          {t("auth.enterInviteCode")}
         </button>
         <button
           type="button"
@@ -97,14 +99,14 @@ export function OnboardingForm({
             setError(null);
           }}
         >
-          Create company
+          {t("auth.createCompany")}
         </button>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="ob-name" className={labelClass}>
-            Your full name
+            {t("auth.yourFullName")}
           </label>
           <input
             id="ob-name"
@@ -119,7 +121,7 @@ export function OnboardingForm({
         {tab === "invite" ? (
           <div>
             <label htmlFor="ob-code" className={labelClass}>
-              Invite code
+              {t("auth.inviteCode")}
             </label>
             <input
               id="ob-code"
@@ -127,14 +129,14 @@ export function OnboardingForm({
               value={inviteCode}
               onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
               required
-              placeholder="ABCD2345"
+              placeholder={t("auth.inviteCodePlaceholder")}
               maxLength={16}
             />
           </div>
         ) : (
           <div>
             <label htmlFor="ob-company" className={labelClass}>
-              Company name
+              {t("auth.companyName")}
             </label>
             <input
               id="ob-company"
@@ -142,10 +144,10 @@ export function OnboardingForm({
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
               required
-              placeholder="Alpine Air HVAC"
+              placeholder={t("auth.companyNamePlaceholder")}
             />
             <p className="mt-1 text-xs text-slate-500">
-              You will be the company owner.
+              {t("auth.companyOwnerNote")}
             </p>
           </div>
         )}
@@ -153,14 +155,18 @@ export function OnboardingForm({
         <ErrorNote message={error} />
 
         <button type="submit" disabled={busy} className={`${primaryButtonClass} w-full`}>
-          {busy ? "Working…" : tab === "invite" ? "Join company" : "Create company"}
+          {busy
+            ? t("common.working")
+            : tab === "invite"
+              ? t("auth.joinCompany")
+              : t("auth.createCompany")}
         </button>
         <button
           type="button"
           onClick={handleSignOut}
           className={`${secondaryButtonClass} w-full`}
         >
-          Sign out
+          {t("nav.signOut")}
         </button>
       </form>
     </div>

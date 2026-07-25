@@ -4,6 +4,8 @@
 
 import { useEffect } from "react";
 
+import { useTranslator } from "@/i18n/client";
+
 export function Lightbox({
   url,
   caption,
@@ -13,6 +15,8 @@ export function Lightbox({
   caption: string | null;
   onClose: () => void;
 }) {
+  const t = useTranslator();
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
@@ -31,19 +35,19 @@ export function Lightbox({
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-label="Photo viewer"
+      aria-label={t("chat.photoViewer")}
     >
       <button
         type="button"
         onClick={onClose}
-        aria-label="Close"
+        aria-label={t("common.close")}
         className="absolute right-4 top-4 flex size-11 items-center justify-center rounded-full bg-white/10 text-lg text-white hover:bg-white/20"
       >
         ✕
       </button>
       <img
         src={url}
-        alt={caption ?? "Photo"}
+        alt={caption ?? t("chat.photoAlt")}
         className="max-h-[85dvh] max-w-full rounded-lg object-contain"
         onClick={(e) => e.stopPropagation()}
       />

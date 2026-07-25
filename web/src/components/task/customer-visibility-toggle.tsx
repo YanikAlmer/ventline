@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { useTranslator } from "@/i18n/client";
 import { createClient } from "@/lib/supabase/client";
 
 export function CustomerVisibilityToggle({
@@ -13,6 +14,7 @@ export function CustomerVisibilityToggle({
   visible: boolean;
 }) {
   const router = useRouter();
+  const t = useTranslator();
   const [busy, setBusy] = useState(false);
 
   async function handleToggle() {
@@ -24,7 +26,7 @@ export function CustomerVisibilityToggle({
       .eq("id", taskId);
     setBusy(false);
     if (error) {
-      alert(`Could not update: ${error.message}`);
+      alert(t("tasks.visibility.updateFailed", { message: error.message }));
       return;
     }
     router.refresh();
@@ -39,7 +41,7 @@ export function CustomerVisibilityToggle({
         onChange={handleToggle}
         className="size-4 accent-rose-600"
       />
-      Visible in customer portal
+      {t("tasks.visibility.label")}
     </label>
   );
 }

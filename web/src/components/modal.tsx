@@ -2,6 +2,8 @@
 
 import { useEffect } from "react";
 
+import { useTranslator } from "@/i18n/client";
+
 export function Modal({
   title,
   onClose,
@@ -11,6 +13,8 @@ export function Modal({
   onClose: () => void;
   children: React.ReactNode;
 }) {
+  const t = useTranslator();
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
@@ -40,7 +44,7 @@ export function Modal({
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t("common.close")}
             className="flex size-9 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-900"
           >
             ✕

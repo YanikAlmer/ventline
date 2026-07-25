@@ -9,12 +9,14 @@ import {
   labelClass,
   primaryButtonClass,
 } from "@/components/form";
+import { useTranslator } from "@/i18n/client";
 import { createClient } from "@/lib/supabase/client";
 
 type Mode = "sign_in" | "sign_up";
 type SignupPath = "invite" | "company";
 
 export function LoginForm() {
+  const t = useTranslator();
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("sign_in");
   const [signupPath, setSignupPath] = useState<SignupPath>("invite");
@@ -58,9 +60,7 @@ export function LoginForm() {
         return;
       }
       if (!data.session) {
-        setError(
-          "Check your email to confirm your account, then sign in here."
-        );
+        setError(t("auth.confirmEmailNotice"));
         setBusy(false);
         return;
       }
@@ -77,8 +77,8 @@ export function LoginForm() {
       if (!profileRow) {
         setError(
           signupPath === "invite"
-            ? "That invite code is invalid or has expired. Double-check the code and try again."
-            : "We couldn't finish setting up your company. Please try again."
+            ? t("auth.inviteCodeInvalidRetry")
+            : t("auth.companySetupFailed")
         );
         setBusy(false);
         return;
@@ -114,7 +114,7 @@ export function LoginForm() {
             setError(null);
           }}
         >
-          Sign in
+          {t("auth.signIn")}
         </button>
         <button
           type="button"
@@ -124,7 +124,7 @@ export function LoginForm() {
             setError(null);
           }}
         >
-          Sign up
+          {t("auth.signUp")}
         </button>
       </div>
 
@@ -132,7 +132,7 @@ export function LoginForm() {
         {mode === "sign_up" && (
           <div>
             <label htmlFor="full-name" className={labelClass}>
-              Full name
+              {t("auth.fullName")}
             </label>
             <input
               id="full-name"
@@ -141,14 +141,14 @@ export function LoginForm() {
               onChange={(e) => setFullName(e.target.value)}
               required
               autoComplete="name"
-              placeholder="Alex Alvarez"
+              placeholder={t("auth.fullNamePlaceholder")}
             />
           </div>
         )}
 
         <div>
           <label htmlFor="email" className={labelClass}>
-            Email
+            {t("auth.email")}
           </label>
           <input
             id="email"
@@ -158,13 +158,13 @@ export function LoginForm() {
             onChange={(e) => setEmail(e.target.value)}
             required
             autoComplete="email"
-            placeholder="you@company.com"
+            placeholder={t("auth.emailPlaceholder")}
           />
         </div>
 
         <div>
           <label htmlFor="password" className={labelClass}>
-            Password
+            {t("auth.password")}
           </label>
           <input
             id="password"
@@ -186,21 +186,21 @@ export function LoginForm() {
                 className={subTabClass(signupPath === "invite")}
                 onClick={() => setSignupPath("invite")}
               >
-                I have an invite code
+                {t("auth.haveInviteCode")}
               </button>
               <button
                 type="button"
                 className={subTabClass(signupPath === "company")}
                 onClick={() => setSignupPath("company")}
               >
-                New company
+                {t("auth.newCompany")}
               </button>
             </div>
 
             {signupPath === "invite" ? (
               <div>
                 <label htmlFor="invite-code" className={labelClass}>
-                  Invite code
+                  {t("auth.inviteCode")}
                 </label>
                 <input
                   id="invite-code"
@@ -208,14 +208,14 @@ export function LoginForm() {
                   value={inviteCode}
                   onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                   required
-                  placeholder="ABCD2345"
+                  placeholder={t("auth.inviteCodePlaceholder")}
                   maxLength={16}
                 />
               </div>
             ) : (
               <div>
                 <label htmlFor="company-name" className={labelClass}>
-                  Company name
+                  {t("auth.companyName")}
                 </label>
                 <input
                   id="company-name"
@@ -223,10 +223,10 @@ export function LoginForm() {
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
                   required
-                  placeholder="Alpine Air HVAC"
+                  placeholder={t("auth.companyNamePlaceholder")}
                 />
                 <p className="mt-1 text-xs text-slate-500">
-                  You will be the company owner.
+                  {t("auth.companyOwnerNote")}
                 </p>
               </div>
             )}
@@ -237,10 +237,10 @@ export function LoginForm() {
 
         <button type="submit" disabled={busy} className={`${primaryButtonClass} w-full`}>
           {busy
-            ? "Working…"
+            ? t("common.working")
             : mode === "sign_in"
-              ? "Sign in"
-              : "Create account"}
+              ? t("auth.signIn")
+              : t("auth.createAccount")}
         </button>
       </form>
     </div>

@@ -2,14 +2,19 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { ProjectStatusPill } from "@/components/status-pill";
+import { getTranslator } from "@/i18n/server";
 import { getCurrentUser, getProjectOverviews } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: "Your projects" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslator();
+  return { title: t("portal.home.title") };
+}
 
 export default async function PortalHomePage() {
   const supabase = await createClient();
-  const [current, projects] = await Promise.all([
+  const [t, current, projects] = await Promise.all([
+    getTranslator(),
     getCurrentUser(supabase),
     getProjectOverviews(supabase),
   ]);
@@ -18,16 +23,17 @@ export default async function PortalHomePage() {
   return (
     <div>
       <h1 className="mb-1 text-2xl font-black tracking-tight text-slate-900">
-        Welcome, {current.profile.full_name.split(" ")[0]}
+        {t("portal.home.welcome", {
+          name: current.profile.full_name.split(" ")[0],
+        })}
       </h1>
       <p className="mb-6 text-sm text-slate-500">
-        Follow along with the progress on your projects.
+        {t("portal.home.subtitle")}
       </p>
 
       {projects.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500">
-          No projects to show yet. {current.company.name} will add you to a
-          project soon.
+          {t("portal.home.empty", { company: current.company.name })}
         </div>
       ) : (
         <ul className="space-y-3">
@@ -61,7 +67,11 @@ export default async function PortalHomePage() {
                     <div className="mt-4">
                       <div className="mb-1 flex justify-between text-xs font-semibold text-slate-500">
                         <span>
-                          {finished} of {total} steps finished
+                          {t("portal.home.stepsFinished", {
+                            count: total,
+                            finished,
+                            total,
+                          })}
                         </span>
                         <span>{pct}%</span>
                       </div>

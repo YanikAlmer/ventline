@@ -1,5 +1,8 @@
 "use client";
 
+import { DEFAULT_LOCALE } from "@/i18n/config";
+import { createTranslator, type Translator } from "@/i18n/translate";
+
 export type DownscaledImage = {
   blob: Blob;
   width: number;
@@ -12,8 +15,15 @@ const JPEG_QUALITY = 0.85;
 /**
  * Downscale an image file client-side to at most 2048px on its longest edge
  * and re-encode as JPEG, so job-site photos upload fast on cell connections.
+ *
+ * The thrown error messages are shown to the user, so callers should pass the
+ * translator from `useTranslator()`; without one the app's default locale
+ * (German) is used.
  */
-export async function downscaleImage(file: File): Promise<DownscaledImage> {
+export async function downscaleImage(
+  file: File,
+  t: Translator = createTranslator(DEFAULT_LOCALE)
+): Promise<DownscaledImage> {
   let bitmap: ImageBitmap;
   try {
     bitmap = await createImageBitmap(file);
@@ -24,9 +34,7 @@ export async function downscaleImage(file: File): Promise<DownscaledImage> {
     const isHeic =
       /hei[cf]/i.test(file.type) || /\.hei[cf]$/i.test(file.name);
     throw new Error(
-      isHeic
-        ? "This looks like a HEIC photo, which this browser can't process. Convert it to JPEG or PNG (or upload from the Ventline iOS app) and try again."
-        : "That image couldn't be processed. Please try a JPEG or PNG."
+      isHeic ? t("shared.image.heic") : t("shared.image.failed")
     );
   }
   try {

@@ -2,10 +2,26 @@
 
 /* eslint-disable @next/next/no-img-element -- signed Supabase URLs */
 
+import { useI18n } from "@/i18n/client";
+import type { TranslationKey } from "@/i18n/translate";
 import { clockTime } from "@/lib/format";
 
 import { displayPhoto, waveformBars, type ChatMessage } from "./types";
 import { VoicePlayer } from "./voice-player";
+
+/**
+ * System events are stored in the database in English so the row means the
+ * same thing to every reader regardless of who triggered it. Map the stored
+ * body to a key at render time so each reader sees it in their own language;
+ * an unrecognised body falls back to the stored text.
+ */
+const SYSTEM_BODY_KEYS: Record<string, TranslationKey> = {
+  "started work": "chat.system.startedWork",
+  "marked the task as done": "chat.system.markedDone",
+  "flagged the task as blocked": "chat.system.flaggedBlocked",
+  "approved the task": "chat.system.approved",
+  "reopened the task": "chat.system.reopened",
+};
 
 export function MessageBubble({
   message,
@@ -22,13 +38,16 @@ export function MessageBubble({
   onOpenPhoto: (url: string, caption: string | null) => void;
   onDelete: (messageId: string) => void;
 }) {
+  const { t, locale } = useI18n();
+
   if (message.kind === "system") {
+    const bodyKey = message.body ? SYSTEM_BODY_KEYS[message.body] : undefined;
     return (
       <div className="my-2 text-center text-xs text-slate-400">
         <span className="font-semibold">
-          {message.sender?.full_name ?? "Someone"}
+          {message.sender?.full_name ?? t("chat.someone")}
         </span>{" "}
-        {message.body}
+        {bodyKey ? t(bodyKey) : message.body}
       </div>
     );
   }
@@ -55,12 +74,14 @@ export function MessageBubble({
             <span
               className={`text-xs font-bold ${own ? "text-slate-300" : "text-slate-500"}`}
             >
-              {own ? "You" : (message.sender?.full_name ?? "Unknown")}
+              {own
+                ? t("chat.you")
+                : (message.sender?.full_name ?? t("chat.unknownSender"))}
             </span>
             <span
               className={`text-[10px] ${own ? "text-slate-400" : "text-slate-400"}`}
             >
-              {clockTime(message.created_at)}
+              {clockTime(message.created_at, locale)}
             </span>
           </div>
 
@@ -83,18 +104,18 @@ export function MessageBubble({
                     {url ? (
                       <img
                         src={url}
-                        alt={message.body ?? "Photo"}
+                        alt={message.body ?? t("chat.photoAlt")}
                         className="max-h-64 w-full object-cover"
                         loading="lazy"
                       />
                     ) : (
                       <div className="flex h-32 w-40 items-center justify-center text-xs text-slate-500">
-                        Loading…
+                        {t("common.loading")}
                       </div>
                     )}
                     {annotated && (
                       <span className="absolute left-1.5 top-1.5 rounded-full bg-slate-900/80 px-2 py-0.5 text-[10px] font-bold text-white">
-                        ✏ Annotated
+                        ✏ {t("chat.annotated")}
                       </span>
                     )}
                   </button>
@@ -124,7 +145,7 @@ export function MessageBubble({
               />
             ) : (
               <p key={att.id} className="text-xs opacity-70">
-                Loading video…
+                {t("chat.loadingVideo")}
               </p>
             );
           })}
@@ -145,7 +166,7 @@ export function MessageBubble({
         >
           {message.shared_with_customer && (
             <span className="font-semibold text-rose-500">
-              Shared with customer
+              {t("chat.sharedWithCustomer")}
             </span>
           )}
           {canDelete && (
@@ -154,7 +175,7 @@ export function MessageBubble({
               onClick={() => onDelete(message.id)}
               className="font-semibold text-slate-400 opacity-0 transition-opacity hover:text-red-600 focus:opacity-100 group-hover:opacity-100"
             >
-              Delete
+              {t("common.delete")}
             </button>
           )}
         </div>

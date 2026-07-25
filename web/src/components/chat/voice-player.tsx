@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslator } from "@/i18n/client";
 import { formatDuration } from "@/lib/format";
 
 export function VoicePlayer({
@@ -11,6 +12,8 @@ export function VoicePlayer({
   waveform: number[];
   durationSeconds: number | null;
 }) {
+  const t = useTranslator();
+
   return (
     <div className="min-w-56 space-y-1.5">
       {waveform.length > 0 && (
@@ -30,13 +33,13 @@ export function VoicePlayer({
       )}
       {url ? (
         <audio controls preload="metadata" src={url} className="w-full max-w-72">
-          Your browser does not support audio playback.
+          {t("chat.audioUnsupported")}
         </audio>
       ) : (
-        <p className="text-xs opacity-70">Loading voice message…</p>
+        <p className="text-xs opacity-70">{t("chat.loadingVoice")}</p>
       )}
       <p className="text-xs opacity-70">
-        Voice message · {formatDuration(durationSeconds)}
+        {t("chat.voiceMessage")} · {formatDuration(durationSeconds)}
       </p>
     </div>
   );

@@ -2,12 +2,17 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { OnboardingForm } from "@/components/auth/onboarding-form";
+import { getTranslator } from "@/i18n/server";
 import { getCurrentUser } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: "Get set up" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslator();
+  return { title: t("auth.getSetUp") };
+}
 
 export default async function OnboardingPage() {
+  const t = await getTranslator();
   const supabase = await createClient();
   const {
     data: { user },
@@ -30,11 +35,10 @@ export default async function OnboardingPage() {
             V
           </div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900">
-            Almost there
+            {t("auth.almostThere")}
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Your account needs a company. Create one, or join with an invite
-            code.
+            {t("auth.onboardingIntro")}
           </p>
         </div>
         <OnboardingForm defaultFullName={fallbackName} />

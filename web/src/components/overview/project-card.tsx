@@ -4,27 +4,29 @@
 import Link from "next/link";
 
 import { ProjectStatusPill } from "@/components/status-pill";
+import { getLocale, getTranslator } from "@/i18n/server";
 import { relativeTime } from "@/lib/format";
 import type { ProjectOverview } from "@/lib/queries";
-import { TASK_STATUS_DOT, TASK_STATUS_LABELS } from "@/lib/status";
+import { TASK_STATUS_DOT } from "@/lib/status";
 
-export function ProjectCard({
+export async function ProjectCard({
   project,
   thumbnailUrl,
 }: {
   project: ProjectOverview;
   thumbnailUrl: string | null;
 }) {
+  const t = await getTranslator();
   const total = project.task_count ?? 0;
   const finished = (project.done_count ?? 0) + (project.approved_count ?? 0);
   const pct = total > 0 ? Math.round((finished / total) * 100) : 0;
 
   const counts = [
-    { label: TASK_STATUS_LABELS.todo, dot: TASK_STATUS_DOT.todo, value: project.todo_count ?? 0 },
-    { label: TASK_STATUS_LABELS.in_progress, dot: TASK_STATUS_DOT.in_progress, value: project.in_progress_count ?? 0 },
-    { label: TASK_STATUS_LABELS.blocked, dot: TASK_STATUS_DOT.blocked, value: project.blocked_count ?? 0 },
-    { label: TASK_STATUS_LABELS.done, dot: TASK_STATUS_DOT.done, value: project.done_count ?? 0 },
-    { label: TASK_STATUS_LABELS.approved, dot: TASK_STATUS_DOT.approved, value: project.approved_count ?? 0 },
+    { label: t("status.task.todo"), dot: TASK_STATUS_DOT.todo, value: project.todo_count ?? 0 },
+    { label: t("status.task.in_progress"), dot: TASK_STATUS_DOT.in_progress, value: project.in_progress_count ?? 0 },
+    { label: t("status.task.blocked"), dot: TASK_STATUS_DOT.blocked, value: project.blocked_count ?? 0 },
+    { label: t("status.task.done"), dot: TASK_STATUS_DOT.done, value: project.done_count ?? 0 },
+    { label: t("status.task.approved"), dot: TASK_STATUS_DOT.approved, value: project.approved_count ?? 0 },
   ];
 
   return (
@@ -64,7 +66,7 @@ export function ProjectCard({
         <div>
           <div className="mb-1 flex items-center justify-between text-xs font-semibold text-slate-500">
             <span>
-              {finished}/{total} tasks finished
+              {t("projects.card.tasksFinished", { finished, count: total })}
             </span>
             <span>{pct}%</span>
           </div>
@@ -90,10 +92,13 @@ export function ProjectCard({
         </div>
 
         <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500">
-          <span>Active {relativeTime(project.last_activity_at)}</span>
           <span>
-            {project.member_count ?? 0}{" "}
-            {(project.member_count ?? 0) === 1 ? "member" : "members"}
+            {t("projects.card.lastActivity", {
+              time: relativeTime(project.last_activity_at, await getLocale()),
+            })}
+          </span>
+          <span>
+            {t("projects.card.members", { count: project.member_count ?? 0 })}
           </span>
         </div>
       </div>
