@@ -60,6 +60,9 @@ final class AppState {
     }
 
     func signOut() async {
+        // Stop holding a token for a profile that is no longer signed in; the
+        // next sign-in re-registers the same install_id, which moves the row.
+        PushManager.shared.stop()
         try? await Supa.client.auth.signOut()
     }
 
@@ -73,6 +76,13 @@ final class AppState {
                 .value
             if let profile = profiles.first {
                 phase = .ready(profile)
+                // Provisional push registration: no dialog, so it is safe to do
+                // the moment a profile exists. Customers use the read-only
+                // portal and are never in an internal audience, so registering
+                // a token for them would only ever be dead weight.
+                if profile.role != .customer {
+                    await PushManager.shared.start()
+                }
             } else {
                 phase = .onboarding
             }

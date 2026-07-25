@@ -48,6 +48,8 @@ targets:
         # Filled from Config/Secrets.xcconfig at build time:
         SupabaseURL: $(SUPABASE_URL)
         SupabaseAnonKey: $(SUPABASE_ANON_KEY)
+    entitlements:
+      path: Ventline/Ventline.entitlements
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.ventline.app

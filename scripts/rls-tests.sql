@@ -1047,4 +1047,196 @@ begin
 end;
 $$;
 
+-- ================================= push notifications (20260727090000) tests
+do $$
+declare
+  olivia uuid := '00000000-0000-4000-8000-000000000001';
+  marcus uuid := '00000000-0000-4000-8000-000000000002';
+  frank  uuid := '00000000-0000-4000-8000-000000000003';
+  wanda  uuid := '00000000-0000-4000-8000-000000000004';
+  miguel uuid := '00000000-0000-4000-8000-000000000005';
+  carla  uuid := '00000000-0000-4000-8000-000000000006';
+  boris  uuid := '00000000-0000-4000-8000-000000000007';
+  maple  uuid := '00000000-0000-4000-9000-000000000001';
+  t_filter uuid := '00000000-0000-4000-a000-000000000001';
+  v_install uuid := '00000000-0000-4000-e000-000000000001';
+  v_msg uuid;
+  v_batch jsonb;
+  v_count int;
+  denied boolean;
+begin
+  -- Everyone who should be able to receive needs a device.
+  perform tests.reset();
+  insert into public.devices (profile_id, install_id, platform, push_token)
+  values (frank,  gen_random_uuid(), 'ios', 'tok-frank'),
+         (wanda,  gen_random_uuid(), 'ios', 'tok-wanda'),
+         (marcus, gen_random_uuid(), 'ios', 'tok-marcus'),
+         (olivia, gen_random_uuid(), 'ios', 'tok-olivia'),
+         (carla,  gen_random_uuid(), 'ios', 'tok-carla');
+
+  -- ------------------------------------------------------ register_device
+  perform tests.impersonate(wanda);
+  perform public.register_device(v_install, 'ios', 'tok-handset', 'sandbox', 'de', '0.1.0');
+  assert (select profile_id from public.devices where install_id = v_install) = wanda,
+    'register_device stores the handset against the caller';
+
+  -- Re-registering the same handset as someone else must move it, or signing
+  -- out of one account and into another keeps delivering the first one's chat.
+  perform tests.impersonate(miguel);
+  perform public.register_device(v_install, 'ios', 'tok-handset', 'sandbox', 'de', '0.1.0');
+  assert (select profile_id from public.devices where install_id = v_install) = miguel,
+    'register_device reassigns a handset to the new signed-in profile';
+  assert (select count(*) from public.devices where install_id = v_install) = 1,
+    'a handset never ends up registered twice';
+  perform tests.reset();
+  delete from public.devices where install_id = v_install;
+
+  -- ---------------------------------------------------------- enqueueing
+  perform tests.impersonate(wanda);
+  v_msg := public.send_message(maple, null, 'text', 'Kompressor läuft wieder');
+  perform tests.reset();
+  assert (select count(*) from public.notification_outbox
+           where message_id = v_msg and kind = 'chat_message') = 1,
+    'a chat message enqueues exactly one outbox row';
+
+  -- System rows would duplicate the task_status push for the same event.
+  perform tests.impersonate(wanda);
+  v_msg := public.send_message(maple, t_filter, 'system', 'marked the task as done');
+  perform tests.reset();
+  assert (select count(*) from public.notification_outbox where message_id = v_msg) = 0,
+    'system messages do not enqueue a notification';
+
+  -- Mentions enqueue with the mentioned person as the explicit target.
+  perform tests.impersonate(wanda);
+  v_msg := public.send_message(maple, null, 'text', 'Frank bitte pruefen', '[]', false, null,
+    jsonb_build_array(jsonb_build_object('profile_id', frank)));
+  perform tests.reset();
+  assert (select count(*) from public.notification_outbox
+           where message_id = v_msg and kind = 'mention' and target_id = frank) = 1,
+    'a mention enqueues a targeted notification';
+
+  -- --------------------------------------------- recipient resolution
+  -- The actor is never notified about their own action.
+  select count(*) into v_count
+  from app.notification_recipients('chat_message', (select company_id from public.profiles where id = wanda),
+                                   maple, null, v_msg, wanda, null)
+  where profile_id = wanda;
+  assert v_count = 0, 'the actor is never a recipient of their own message';
+
+  -- THE security case: a customer must never be in an internal audience, even
+  -- though carla is a member of Maple and has a device.
+  select count(*) into v_count
+  from app.notification_recipients('chat_message', (select company_id from public.profiles where id = wanda),
+                                   maple, null, v_msg, wanda, null)
+  where profile_id = carla;
+  assert v_count = 0, 'a customer is NEVER an internal notification recipient';
+
+  -- A member of the project does get it.
+  select count(*) into v_count
+  from app.notification_recipients('chat_message', (select company_id from public.profiles where id = wanda),
+                                   maple, null, v_msg, wanda, null)
+  where profile_id = frank;
+  assert v_count = 1, 'a project member receives project chat';
+
+  -- Someone from another company never appears.
+  select count(*) into v_count
+  from app.notification_recipients('chat_message', (select company_id from public.profiles where id = wanda),
+                                   maple, null, v_msg, wanda, null)
+  where profile_id = boris;
+  assert v_count = 0, 'another company is never in the audience';
+
+  -- Muting a project removes you from its audience.
+  insert into public.project_notification_mutes (profile_id, project_id)
+  values (frank, maple);
+  select count(*) into v_count
+  from app.notification_recipients('chat_message', (select company_id from public.profiles where id = wanda),
+                                   maple, null, v_msg, wanda, null)
+  where profile_id = frank;
+  assert v_count = 0, 'muting a project removes you from its audience';
+  delete from public.project_notification_mutes where profile_id = frank;
+
+  -- Turning chat notifications off removes you too, without affecting mentions.
+  update public.notification_prefs set chat_enabled = false where profile_id = frank;
+  select count(*) into v_count
+  from app.notification_recipients('chat_message', (select company_id from public.profiles where id = wanda),
+                                   maple, null, v_msg, wanda, null)
+  where profile_id = frank;
+  assert v_count = 0, 'chat_enabled = false silences chat pushes';
+  select count(*) into v_count
+  from app.notification_recipients('mention', (select company_id from public.profiles where id = wanda),
+                                   maple, null, v_msg, wanda, frank)
+  where profile_id = frank;
+  assert v_count = 1, 'a mention still arrives when chat pushes are off';
+  update public.notification_prefs set chat_enabled = true where profile_id = frank;
+
+  -- Quiet hours mark the push passive; they never drop it.
+  update public.notification_prefs
+     set quiet_hours_enabled = true, quiet_hours_start = '00:00', quiet_hours_end = '23:59',
+         time_zone = 'Europe/Zurich'
+   where profile_id = frank;
+  select count(*) into v_count
+  from app.notification_recipients('chat_message', (select company_id from public.profiles where id = wanda),
+                                   maple, null, v_msg, wanda, null)
+  where profile_id = frank and passive;
+  assert v_count = 1, 'quiet hours mark a recipient passive rather than removing them';
+  update public.notification_prefs
+     set quiet_hours_start = '21:00', quiet_hours_end = '06:00' where profile_id = frank;
+
+  -- No device means nowhere to deliver.
+  delete from public.devices where profile_id = frank;
+  select count(*) into v_count
+  from app.notification_recipients('chat_message', (select company_id from public.profiles where id = wanda),
+                                   maple, null, v_msg, wanda, null)
+  where profile_id = frank;
+  assert v_count = 0, 'a profile with no device is not a recipient';
+  insert into public.devices (profile_id, install_id, platform, push_token)
+  values (frank, gen_random_uuid(), 'ios', 'tok-frank-2');
+
+  -- --------------------------------------------------- claim and settle
+  v_batch := public.claim_notification_batch(100);
+  assert jsonb_typeof(v_batch) = 'array', 'claim returns a JSON array';
+  assert (select count(*) from public.notification_outbox where status = 'pending') = 0,
+    'claiming moves every due row out of pending';
+
+  -- A batch never contains a customer.
+  select count(*) into v_count
+  from jsonb_array_elements(v_batch) e
+  where (e ->> 'profile_id')::uuid = carla;
+  assert v_count = 0, 'a claimed batch never targets a customer';
+
+  -- Settling as delivered finishes the rows.
+  perform public.settle_notification_batch(
+    (select coalesce(jsonb_agg(jsonb_build_object(
+       'id', e -> 'id', 'device_id', e -> 'device_id', 'ok', true, 'retryable', false)), '[]'::jsonb)
+     from jsonb_array_elements(v_batch) e));
+  assert (select count(*) from public.notification_outbox where status = 'sending') = 0,
+    'settling clears the sending state';
+
+  -- A 410 from APNs prunes the token so we stop pushing to a dead handset.
+  perform tests.impersonate(wanda);
+  v_msg := public.send_message(maple, null, 'text', 'Noch eine Nachricht');
+  perform tests.reset();
+  v_batch := public.claim_notification_batch(100);
+  perform public.settle_notification_batch(
+    (select coalesce(jsonb_agg(jsonb_build_object(
+       'id', e -> 'id', 'device_id', e -> 'device_id',
+       'ok', false, 'retryable', false, 'prune', true)), '[]'::jsonb)
+     from jsonb_array_elements(v_batch) e
+     where (e ->> 'profile_id')::uuid = marcus));
+  assert (select count(*) from public.devices where profile_id = marcus) = 0,
+    'a 410 prunes the dead token';
+
+  -- The outbox is service-role only: no client may read who is being notified.
+  perform tests.impersonate(olivia);
+  denied := false;
+  begin
+    perform 1 from public.notification_outbox limit 1;
+  exception when others then denied := true;
+  end;
+  assert denied, 'even an owner cannot read the notification outbox';
+
+  perform tests.reset();
+end;
+$$;
+
 select 'RLS TESTS PASSED' as result;

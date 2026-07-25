@@ -92,3 +92,60 @@ grant usage on schema storage to anon, authenticated, service_role;
 grant select on storage.buckets to anon, authenticated, service_role;
 grant select, insert, update, delete on storage.objects to authenticated, service_role;
 grant execute on function storage.foldername(text) to anon, authenticated, service_role;
+
+-- platform extensions ---------------------------------------------------
+-- Supabase provides pg_net, pg_cron and Vault; a plain Postgres does not.
+-- Stub the surface the migrations touch so they apply unchanged locally and
+-- the RLS suite exercises the real trigger/enqueue paths. Every stub is inert:
+-- nudges go nowhere, cron jobs are recorded and never run, and the secrets
+-- view is empty, which is exactly the "not configured" branch in production.
+
+create schema net;
+
+create table net.sent (
+  id bigserial primary key,
+  url text,
+  headers jsonb,
+  body jsonb,
+  sent_at timestamptz not null default now()
+);
+
+create function net.http_post(
+  url text,
+  body jsonb default '{}',
+  params jsonb default '{}',
+  headers jsonb default '{}',
+  timeout_milliseconds integer default 5000
+) returns bigint
+language sql
+as $$
+  insert into net.sent (url, headers, body) values (url, headers, body)
+  returning id;
+$$;
+
+create schema cron;
+
+create table cron.job (
+  jobid bigserial primary key,
+  jobname text unique,
+  schedule text,
+  command text
+);
+
+create function cron.schedule(job_name text, schedule text, command text)
+returns bigint
+language sql
+as $$
+  insert into cron.job (jobname, schedule, command)
+  values (job_name, schedule, command)
+  on conflict (jobname) do update set schedule = excluded.schedule,
+                                      command = excluded.command
+  returning jobid;
+$$;
+
+create schema vault;
+
+-- Empty on purpose: app.nudge_notifier() must take its "not configured"
+-- branch locally rather than attempting a real HTTP call.
+create view vault.decrypted_secrets as
+  select null::text as name, null::text as decrypted_secret where false;
