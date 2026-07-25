@@ -197,6 +197,75 @@ export type Database = {
         }
         Relationships: []
       }
+      message_mentions: {
+        Row: {
+          acknowledged_at: string | null
+          company_id: string
+          created_at: string
+          length: number | null
+          mentioned_profile_id: string
+          message_id: string
+          project_id: string
+          start_offset: number | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          company_id: string
+          created_at?: string
+          length?: number | null
+          mentioned_profile_id: string
+          message_id: string
+          project_id: string
+          start_offset?: number | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          company_id?: string
+          created_at?: string
+          length?: number | null
+          mentioned_profile_id?: string
+          message_id?: string
+          project_id?: string
+          start_offset?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_mentions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_mentions_mentioned_profile_id_fkey"
+            columns: ["mentioned_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_mentions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_mentions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_mentions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       message_reads: {
         Row: {
           message_id: string
@@ -230,6 +299,88 @@ export type Database = {
           },
         ]
       }
+      message_refs: {
+        Row: {
+          attachment_id: string | null
+          company_id: string
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["message_ref_kind"]
+          length: number | null
+          message_id: string
+          project_id: string
+          start_offset: number | null
+          task_id: string | null
+        }
+        Insert: {
+          attachment_id?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          kind: Database["public"]["Enums"]["message_ref_kind"]
+          length?: number | null
+          message_id: string
+          project_id: string
+          start_offset?: number | null
+          task_id?: string | null
+        }
+        Update: {
+          attachment_id?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["message_ref_kind"]
+          length?: number | null
+          message_id?: string
+          project_id?: string
+          start_offset?: number | null
+          task_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_refs_attachment_id_fkey"
+            columns: ["attachment_id"]
+            isOneToOne: false
+            referencedRelation: "attachments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_refs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_refs_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_refs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_refs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_refs_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           body: string | null
@@ -238,13 +389,18 @@ export type Database = {
           deleted_at: string | null
           edited_at: string | null
           expires_at: string | null
+          has_photo: boolean
+          has_video: boolean
+          has_voice: boolean
           id: string
           kind: Database["public"]["Enums"]["message_kind"]
           project_id: string
           reply_to_message_id: string | null
+          search_tsv: unknown
           sender_id: string
           shared_with_customer: boolean
           task_id: string | null
+          thread_id: string | null
         }
         Insert: {
           body?: string | null
@@ -253,13 +409,18 @@ export type Database = {
           deleted_at?: string | null
           edited_at?: string | null
           expires_at?: string | null
+          has_photo?: boolean
+          has_video?: boolean
+          has_voice?: boolean
           id?: string
           kind?: Database["public"]["Enums"]["message_kind"]
           project_id: string
           reply_to_message_id?: string | null
+          search_tsv?: unknown
           sender_id: string
           shared_with_customer?: boolean
           task_id?: string | null
+          thread_id?: string | null
         }
         Update: {
           body?: string | null
@@ -268,13 +429,18 @@ export type Database = {
           deleted_at?: string | null
           edited_at?: string | null
           expires_at?: string | null
+          has_photo?: boolean
+          has_video?: boolean
+          has_voice?: boolean
           id?: string
           kind?: Database["public"]["Enums"]["message_kind"]
           project_id?: string
           reply_to_message_id?: string | null
+          search_tsv?: unknown
           sender_id?: string
           shared_with_customer?: boolean
           task_id?: string | null
+          thread_id?: string | null
         }
         Relationships: [
           {
@@ -654,8 +820,226 @@ export type Database = {
           },
         ]
       }
+      thread_read_state: {
+        Row: {
+          last_read_at: string
+          last_read_message_id: string | null
+          muted: boolean
+          profile_id: string
+          thread_id: string
+          updated_at: string
+        }
+        Insert: {
+          last_read_at?: string
+          last_read_message_id?: string | null
+          muted?: boolean
+          profile_id: string
+          thread_id: string
+          updated_at?: string
+        }
+        Update: {
+          last_read_at?: string
+          last_read_message_id?: string | null
+          muted?: boolean
+          profile_id?: string
+          thread_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "thread_read_state_last_read_message_id_fkey"
+            columns: ["last_read_message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thread_read_state_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      thread_state: {
+        Row: {
+          company_id: string
+          created_at: string
+          last_expires_at: string | null
+          last_kind: Database["public"]["Enums"]["message_kind"] | null
+          last_message_at: string | null
+          last_message_id: string | null
+          last_preview: string | null
+          last_sender_id: string | null
+          message_count: number
+          project_id: string
+          task_id: string | null
+          thread_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          last_expires_at?: string | null
+          last_kind?: Database["public"]["Enums"]["message_kind"] | null
+          last_message_at?: string | null
+          last_message_id?: string | null
+          last_preview?: string | null
+          last_sender_id?: string | null
+          message_count?: number
+          project_id: string
+          task_id?: string | null
+          thread_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          last_expires_at?: string | null
+          last_kind?: Database["public"]["Enums"]["message_kind"] | null
+          last_message_at?: string | null
+          last_message_id?: string | null
+          last_preview?: string | null
+          last_sender_id?: string | null
+          message_count?: number
+          project_id?: string
+          task_id?: string | null
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "thread_state_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thread_state_last_message_id_fkey"
+            columns: ["last_message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thread_state_last_sender_id_fkey"
+            columns: ["last_sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thread_state_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thread_state_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thread_state_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
+      inbox_threads: {
+        Row: {
+          has_unread: boolean | null
+          last_kind: Database["public"]["Enums"]["message_kind"] | null
+          last_message_at: string | null
+          last_message_id: string | null
+          last_preview: string | null
+          last_read_at: string | null
+          last_sender_id: string | null
+          message_count: number | null
+          muted: boolean | null
+          project_id: string | null
+          project_name: string | null
+          project_status: Database["public"]["Enums"]["project_status"] | null
+          task_id: string | null
+          task_status: Database["public"]["Enums"]["task_status"] | null
+          task_title: string | null
+          thread_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "thread_state_last_message_id_fkey"
+            columns: ["last_message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thread_state_last_sender_id_fkey"
+            columns: ["last_sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thread_state_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thread_state_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "thread_state_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      person_activity: {
+        Row: {
+          last_message_at: string | null
+          message_count: number | null
+          profile_id: string | null
+          project_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_overview: {
         Row: {
           address: string | null
@@ -705,10 +1089,131 @@ export type Database = {
         }[]
       }
       delete_message: { Args: { p_message_id: string }; Returns: undefined }
+      inbox_attention: {
+        Args: { p_limit?: number }
+        Returns: {
+          body: string
+          created_at: string
+          kind: Database["public"]["Enums"]["message_kind"]
+          message_id: string
+          project_id: string
+          reason: string
+          sender_id: string
+          task_id: string
+          thread_id: string
+        }[]
+      }
+      inbox_page: {
+        Args: { p_before?: string; p_limit?: number; p_project_id?: string }
+        Returns: {
+          last_kind: Database["public"]["Enums"]["message_kind"]
+          last_message_at: string
+          last_message_id: string
+          last_preview: string
+          last_read_at: string
+          last_sender_id: string
+          last_sender_name: string
+          muted: boolean
+          project_id: string
+          project_name: string
+          project_status: Database["public"]["Enums"]["project_status"]
+          task_id: string
+          task_status: Database["public"]["Enums"]["task_status"]
+          task_title: string
+          thread_id: string
+          unread_count: number
+          unread_mention_count: number
+        }[]
+      }
+      mark_thread_read: {
+        Args: { p_thread_id: string; p_up_to?: string }
+        Returns: undefined
+      }
+      messages_around: {
+        Args: { p_message_id: string; p_radius?: number }
+        Returns: {
+          body: string | null
+          company_id: string
+          created_at: string
+          deleted_at: string | null
+          edited_at: string | null
+          expires_at: string | null
+          has_photo: boolean
+          has_video: boolean
+          has_voice: boolean
+          id: string
+          kind: Database["public"]["Enums"]["message_kind"]
+          project_id: string
+          reply_to_message_id: string | null
+          search_tsv: unknown
+          sender_id: string
+          shared_with_customer: boolean
+          task_id: string | null
+          thread_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "messages"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      person_messages: {
+        Args: {
+          p_before_created_at?: string
+          p_before_id?: string
+          p_direction?: string
+          p_limit?: number
+          p_profile_id: string
+          p_project_id?: string
+        }
+        Returns: {
+          body: string
+          created_at: string
+          direction: string
+          has_photo: boolean
+          has_voice: boolean
+          id: string
+          kind: Database["public"]["Enums"]["message_kind"]
+          project_id: string
+          sender_id: string
+          task_id: string
+          thread_id: string
+        }[]
+      }
       purge_expired_messages: { Args: never; Returns: number }
       redeem_invite: {
         Args: { p_code: string; p_full_name?: string }
         Returns: boolean
+      }
+      search_messages: {
+        Args: {
+          p_before_created_at?: string
+          p_before_id?: string
+          p_from?: string
+          p_has_photo?: boolean
+          p_has_voice?: boolean
+          p_limit?: number
+          p_mentions_profile_id?: string
+          p_project_ids?: string[]
+          p_query?: string
+          p_sender_ids?: string[]
+          p_to?: string
+        }
+        Returns: {
+          body: string
+          created_at: string
+          has_photo: boolean
+          has_voice: boolean
+          headline: string
+          id: string
+          kind: Database["public"]["Enums"]["message_kind"]
+          project_id: string
+          rank: number
+          sender_id: string
+          task_id: string
+          thread_id: string
+        }[]
       }
       send_message: {
         Args: {
@@ -716,7 +1221,9 @@ export type Database = {
           p_body?: string
           p_expires_at?: string
           p_kind?: Database["public"]["Enums"]["message_kind"]
+          p_mentions?: Json
           p_project_id: string
+          p_refs?: Json
           p_shared_with_customer?: boolean
           p_task_id?: string
         }
@@ -728,6 +1235,7 @@ export type Database = {
       attachment_kind: "photo" | "voice" | "video"
       device_platform: "ios" | "web"
       message_kind: "text" | "photo" | "voice" | "video" | "system"
+      message_ref_kind: "task" | "attachment"
       project_status:
         "planning" | "active" | "on_hold" | "completed" | "archived"
       task_status: "todo" | "in_progress" | "blocked" | "done" | "approved"
@@ -859,6 +1367,7 @@ export const Constants = {
       attachment_kind: ["photo", "voice", "video"],
       device_platform: ["ios", "web"],
       message_kind: ["text", "photo", "voice", "video", "system"],
+      message_ref_kind: ["task", "attachment"],
       project_status: [
         "planning",
         "active",

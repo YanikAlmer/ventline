@@ -25,6 +25,10 @@ public enum PublicSchema {
     case video = "video"
     case system = "system"
   }
+  public enum MessageRefKind: String, Codable, Hashable, Sendable {
+    case task = "task"
+    case attachment = "attachment"
+  }
   public enum ProjectStatus: String, Codable, Hashable, Sendable {
     case planning = "planning"
     case active = "active"
@@ -309,6 +313,66 @@ public enum PublicSchema {
       case storagePath = "storage_path"
     }
   }
+  public struct MessageMentionsSelect: Codable, Hashable, Sendable {
+    public let acknowledgedAt: String?
+    public let companyId: UUID
+    public let createdAt: String
+    public let length: Int32?
+    public let mentionedProfileId: UUID
+    public let messageId: UUID
+    public let projectId: UUID
+    public let startOffset: Int32?
+    public enum CodingKeys: String, CodingKey {
+      case acknowledgedAt = "acknowledged_at"
+      case companyId = "company_id"
+      case createdAt = "created_at"
+      case length = "length"
+      case mentionedProfileId = "mentioned_profile_id"
+      case messageId = "message_id"
+      case projectId = "project_id"
+      case startOffset = "start_offset"
+    }
+  }
+  public struct MessageMentionsInsert: Codable, Hashable, Sendable {
+    public let acknowledgedAt: String?
+    public let companyId: UUID
+    public let createdAt: String?
+    public let length: Int32?
+    public let mentionedProfileId: UUID
+    public let messageId: UUID
+    public let projectId: UUID
+    public let startOffset: Int32?
+    public enum CodingKeys: String, CodingKey {
+      case acknowledgedAt = "acknowledged_at"
+      case companyId = "company_id"
+      case createdAt = "created_at"
+      case length = "length"
+      case mentionedProfileId = "mentioned_profile_id"
+      case messageId = "message_id"
+      case projectId = "project_id"
+      case startOffset = "start_offset"
+    }
+  }
+  public struct MessageMentionsUpdate: Codable, Hashable, Sendable {
+    public let acknowledgedAt: String?
+    public let companyId: UUID?
+    public let createdAt: String?
+    public let length: Int32?
+    public let mentionedProfileId: UUID?
+    public let messageId: UUID?
+    public let projectId: UUID?
+    public let startOffset: Int32?
+    public enum CodingKeys: String, CodingKey {
+      case acknowledgedAt = "acknowledged_at"
+      case companyId = "company_id"
+      case createdAt = "created_at"
+      case length = "length"
+      case mentionedProfileId = "mentioned_profile_id"
+      case messageId = "message_id"
+      case projectId = "project_id"
+      case startOffset = "start_offset"
+    }
+  }
   public struct MessageReadsSelect: Codable, Hashable, Sendable {
     public let messageId: UUID
     public let profileId: UUID
@@ -339,6 +403,78 @@ public enum PublicSchema {
       case readAt = "read_at"
     }
   }
+  public struct MessageRefsSelect: Codable, Hashable, Sendable {
+    public let attachmentId: UUID?
+    public let companyId: UUID
+    public let createdAt: String
+    public let id: UUID
+    public let kind: MessageRefKind
+    public let length: Int32?
+    public let messageId: UUID
+    public let projectId: UUID
+    public let startOffset: Int32?
+    public let taskId: UUID?
+    public enum CodingKeys: String, CodingKey {
+      case attachmentId = "attachment_id"
+      case companyId = "company_id"
+      case createdAt = "created_at"
+      case id = "id"
+      case kind = "kind"
+      case length = "length"
+      case messageId = "message_id"
+      case projectId = "project_id"
+      case startOffset = "start_offset"
+      case taskId = "task_id"
+    }
+  }
+  public struct MessageRefsInsert: Codable, Hashable, Sendable {
+    public let attachmentId: UUID?
+    public let companyId: UUID
+    public let createdAt: String?
+    public let id: UUID?
+    public let kind: MessageRefKind
+    public let length: Int32?
+    public let messageId: UUID
+    public let projectId: UUID
+    public let startOffset: Int32?
+    public let taskId: UUID?
+    public enum CodingKeys: String, CodingKey {
+      case attachmentId = "attachment_id"
+      case companyId = "company_id"
+      case createdAt = "created_at"
+      case id = "id"
+      case kind = "kind"
+      case length = "length"
+      case messageId = "message_id"
+      case projectId = "project_id"
+      case startOffset = "start_offset"
+      case taskId = "task_id"
+    }
+  }
+  public struct MessageRefsUpdate: Codable, Hashable, Sendable {
+    public let attachmentId: UUID?
+    public let companyId: UUID?
+    public let createdAt: String?
+    public let id: UUID?
+    public let kind: MessageRefKind?
+    public let length: Int32?
+    public let messageId: UUID?
+    public let projectId: UUID?
+    public let startOffset: Int32?
+    public let taskId: UUID?
+    public enum CodingKeys: String, CodingKey {
+      case attachmentId = "attachment_id"
+      case companyId = "company_id"
+      case createdAt = "created_at"
+      case id = "id"
+      case kind = "kind"
+      case length = "length"
+      case messageId = "message_id"
+      case projectId = "project_id"
+      case startOffset = "start_offset"
+      case taskId = "task_id"
+    }
+  }
   public struct MessagesSelect: Codable, Hashable, Sendable {
     public let body: String?
     public let companyId: UUID
@@ -346,13 +482,18 @@ public enum PublicSchema {
     public let deletedAt: String?
     public let editedAt: String?
     public let expiresAt: String?
+    public let hasPhoto: Bool
+    public let hasVideo: Bool
+    public let hasVoice: Bool
     public let id: UUID
     public let kind: MessageKind
     public let projectId: UUID
     public let replyToMessageId: UUID?
+    public let searchTsv: TsvectorSelect?
     public let senderId: UUID
     public let sharedWithCustomer: Bool
     public let taskId: UUID?
+    public let threadId: UUID?
     public enum CodingKeys: String, CodingKey {
       case body = "body"
       case companyId = "company_id"
@@ -360,13 +501,18 @@ public enum PublicSchema {
       case deletedAt = "deleted_at"
       case editedAt = "edited_at"
       case expiresAt = "expires_at"
+      case hasPhoto = "has_photo"
+      case hasVideo = "has_video"
+      case hasVoice = "has_voice"
       case id = "id"
       case kind = "kind"
       case projectId = "project_id"
       case replyToMessageId = "reply_to_message_id"
+      case searchTsv = "search_tsv"
       case senderId = "sender_id"
       case sharedWithCustomer = "shared_with_customer"
       case taskId = "task_id"
+      case threadId = "thread_id"
     }
   }
   public struct MessagesInsert: Codable, Hashable, Sendable {
@@ -376,13 +522,18 @@ public enum PublicSchema {
     public let deletedAt: String?
     public let editedAt: String?
     public let expiresAt: String?
+    public let hasPhoto: Bool?
+    public let hasVideo: Bool?
+    public let hasVoice: Bool?
     public let id: UUID?
     public let kind: MessageKind?
     public let projectId: UUID
     public let replyToMessageId: UUID?
+    public let searchTsv: TsvectorSelect?
     public let senderId: UUID
     public let sharedWithCustomer: Bool?
     public let taskId: UUID?
+    public let threadId: UUID?
     public enum CodingKeys: String, CodingKey {
       case body = "body"
       case companyId = "company_id"
@@ -390,13 +541,18 @@ public enum PublicSchema {
       case deletedAt = "deleted_at"
       case editedAt = "edited_at"
       case expiresAt = "expires_at"
+      case hasPhoto = "has_photo"
+      case hasVideo = "has_video"
+      case hasVoice = "has_voice"
       case id = "id"
       case kind = "kind"
       case projectId = "project_id"
       case replyToMessageId = "reply_to_message_id"
+      case searchTsv = "search_tsv"
       case senderId = "sender_id"
       case sharedWithCustomer = "shared_with_customer"
       case taskId = "task_id"
+      case threadId = "thread_id"
     }
   }
   public struct MessagesUpdate: Codable, Hashable, Sendable {
@@ -406,13 +562,18 @@ public enum PublicSchema {
     public let deletedAt: String?
     public let editedAt: String?
     public let expiresAt: String?
+    public let hasPhoto: Bool?
+    public let hasVideo: Bool?
+    public let hasVoice: Bool?
     public let id: UUID?
     public let kind: MessageKind?
     public let projectId: UUID?
     public let replyToMessageId: UUID?
+    public let searchTsv: TsvectorSelect?
     public let senderId: UUID?
     public let sharedWithCustomer: Bool?
     public let taskId: UUID?
+    public let threadId: UUID?
     public enum CodingKeys: String, CodingKey {
       case body = "body"
       case companyId = "company_id"
@@ -420,13 +581,18 @@ public enum PublicSchema {
       case deletedAt = "deleted_at"
       case editedAt = "edited_at"
       case expiresAt = "expires_at"
+      case hasPhoto = "has_photo"
+      case hasVideo = "has_video"
+      case hasVoice = "has_voice"
       case id = "id"
       case kind = "kind"
       case projectId = "project_id"
       case replyToMessageId = "reply_to_message_id"
+      case searchTsv = "search_tsv"
       case senderId = "sender_id"
       case sharedWithCustomer = "shared_with_customer"
       case taskId = "task_id"
+      case threadId = "thread_id"
     }
   }
   public struct PhotoAnnotationsSelect: Codable, Hashable, Sendable {
@@ -793,6 +959,186 @@ public enum PublicSchema {
       case title = "title"
       case updatedAt = "updated_at"
       case visibleToCustomer = "visible_to_customer"
+    }
+  }
+  public struct ThreadReadStateSelect: Codable, Hashable, Sendable {
+    public let lastReadAt: String
+    public let lastReadMessageId: UUID?
+    public let muted: Bool
+    public let profileId: UUID
+    public let threadId: UUID
+    public let updatedAt: String
+    public enum CodingKeys: String, CodingKey {
+      case lastReadAt = "last_read_at"
+      case lastReadMessageId = "last_read_message_id"
+      case muted = "muted"
+      case profileId = "profile_id"
+      case threadId = "thread_id"
+      case updatedAt = "updated_at"
+    }
+  }
+  public struct ThreadReadStateInsert: Codable, Hashable, Sendable {
+    public let lastReadAt: String?
+    public let lastReadMessageId: UUID?
+    public let muted: Bool?
+    public let profileId: UUID
+    public let threadId: UUID
+    public let updatedAt: String?
+    public enum CodingKeys: String, CodingKey {
+      case lastReadAt = "last_read_at"
+      case lastReadMessageId = "last_read_message_id"
+      case muted = "muted"
+      case profileId = "profile_id"
+      case threadId = "thread_id"
+      case updatedAt = "updated_at"
+    }
+  }
+  public struct ThreadReadStateUpdate: Codable, Hashable, Sendable {
+    public let lastReadAt: String?
+    public let lastReadMessageId: UUID?
+    public let muted: Bool?
+    public let profileId: UUID?
+    public let threadId: UUID?
+    public let updatedAt: String?
+    public enum CodingKeys: String, CodingKey {
+      case lastReadAt = "last_read_at"
+      case lastReadMessageId = "last_read_message_id"
+      case muted = "muted"
+      case profileId = "profile_id"
+      case threadId = "thread_id"
+      case updatedAt = "updated_at"
+    }
+  }
+  public struct ThreadStateSelect: Codable, Hashable, Sendable {
+    public let companyId: UUID
+    public let createdAt: String
+    public let lastExpiresAt: String?
+    public let lastKind: MessageKind?
+    public let lastMessageAt: String?
+    public let lastMessageId: UUID?
+    public let lastPreview: String?
+    public let lastSenderId: UUID?
+    public let messageCount: Int32
+    public let projectId: UUID
+    public let taskId: UUID?
+    public let threadId: UUID
+    public enum CodingKeys: String, CodingKey {
+      case companyId = "company_id"
+      case createdAt = "created_at"
+      case lastExpiresAt = "last_expires_at"
+      case lastKind = "last_kind"
+      case lastMessageAt = "last_message_at"
+      case lastMessageId = "last_message_id"
+      case lastPreview = "last_preview"
+      case lastSenderId = "last_sender_id"
+      case messageCount = "message_count"
+      case projectId = "project_id"
+      case taskId = "task_id"
+      case threadId = "thread_id"
+    }
+  }
+  public struct ThreadStateInsert: Codable, Hashable, Sendable {
+    public let companyId: UUID
+    public let createdAt: String?
+    public let lastExpiresAt: String?
+    public let lastKind: MessageKind?
+    public let lastMessageAt: String?
+    public let lastMessageId: UUID?
+    public let lastPreview: String?
+    public let lastSenderId: UUID?
+    public let messageCount: Int32?
+    public let projectId: UUID
+    public let taskId: UUID?
+    public let threadId: UUID
+    public enum CodingKeys: String, CodingKey {
+      case companyId = "company_id"
+      case createdAt = "created_at"
+      case lastExpiresAt = "last_expires_at"
+      case lastKind = "last_kind"
+      case lastMessageAt = "last_message_at"
+      case lastMessageId = "last_message_id"
+      case lastPreview = "last_preview"
+      case lastSenderId = "last_sender_id"
+      case messageCount = "message_count"
+      case projectId = "project_id"
+      case taskId = "task_id"
+      case threadId = "thread_id"
+    }
+  }
+  public struct ThreadStateUpdate: Codable, Hashable, Sendable {
+    public let companyId: UUID?
+    public let createdAt: String?
+    public let lastExpiresAt: String?
+    public let lastKind: MessageKind?
+    public let lastMessageAt: String?
+    public let lastMessageId: UUID?
+    public let lastPreview: String?
+    public let lastSenderId: UUID?
+    public let messageCount: Int32?
+    public let projectId: UUID?
+    public let taskId: UUID?
+    public let threadId: UUID?
+    public enum CodingKeys: String, CodingKey {
+      case companyId = "company_id"
+      case createdAt = "created_at"
+      case lastExpiresAt = "last_expires_at"
+      case lastKind = "last_kind"
+      case lastMessageAt = "last_message_at"
+      case lastMessageId = "last_message_id"
+      case lastPreview = "last_preview"
+      case lastSenderId = "last_sender_id"
+      case messageCount = "message_count"
+      case projectId = "project_id"
+      case taskId = "task_id"
+      case threadId = "thread_id"
+    }
+  }
+  public struct InboxThreadsSelect: Codable, Hashable, Sendable {
+    public let hasUnread: Bool?
+    public let lastKind: MessageKind?
+    public let lastMessageAt: String?
+    public let lastMessageId: UUID?
+    public let lastPreview: String?
+    public let lastReadAt: String?
+    public let lastSenderId: UUID?
+    public let messageCount: Int32?
+    public let muted: Bool?
+    public let projectId: UUID?
+    public let projectName: String?
+    public let projectStatus: ProjectStatus?
+    public let taskId: UUID?
+    public let taskStatus: TaskStatus?
+    public let taskTitle: String?
+    public let threadId: UUID?
+    public enum CodingKeys: String, CodingKey {
+      case hasUnread = "has_unread"
+      case lastKind = "last_kind"
+      case lastMessageAt = "last_message_at"
+      case lastMessageId = "last_message_id"
+      case lastPreview = "last_preview"
+      case lastReadAt = "last_read_at"
+      case lastSenderId = "last_sender_id"
+      case messageCount = "message_count"
+      case muted = "muted"
+      case projectId = "project_id"
+      case projectName = "project_name"
+      case projectStatus = "project_status"
+      case taskId = "task_id"
+      case taskStatus = "task_status"
+      case taskTitle = "task_title"
+      case threadId = "thread_id"
+    }
+  }
+  public struct PersonActivitySelect: Codable, Hashable, Sendable {
+    public let lastMessageAt: String?
+    public let messageCount: Int32?
+    public let profileId: UUID?
+    public let projectId: UUID?
+    public enum CodingKeys: String, CodingKey {
+      case lastMessageAt = "last_message_at"
+      case messageCount = "message_count"
+      case profileId = "profile_id"
+      case projectId = "project_id"
     }
   }
   public struct ProjectOverviewSelect: Codable, Hashable, Sendable {

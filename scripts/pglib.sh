@@ -12,6 +12,13 @@ if [ -z "$PGBIN" ] || [ ! -x "$PGBIN/initdb" ]; then
   fi
 fi
 
+# Locale for both initdb and the server process. UTF8 matters: a SQL_ASCII
+# cluster tokenizes "Lüftung" as 'l' + 'ftung', which silently invalidates every
+# German full-text test. On macOS an unset/invalid LC_ALL also makes the
+# postmaster go multithreaded during locale init and refuse to start outright.
+PG_LOCALE="${VENTLINE_PG_LOCALE:-C.UTF-8}"
+export LC_ALL="${LC_ALL:-$PG_LOCALE}"
+
 SCRATCH="${VENTLINE_PG_DIR:-/tmp/ventline-pgscratch}"
 DATADIR="$SCRATCH/data"
 SOCKDIR="$SCRATCH/sock"
@@ -27,7 +34,16 @@ if [ "$(id -u)" = "0" ]; then
     exit 1
   fi
 fi
-run() { "${RUN[@]}" "$@"; }
+# Guard the empty case explicitly: under `set -u`, bash 3.2 (still the system
+# bash on macOS) treats "${RUN[@]}" on an empty array as an unbound variable and
+# aborts, so every script sourcing this failed there before reaching initdb.
+run() {
+  if [ "${#RUN[@]}" -eq 0 ]; then
+    "$@"
+  else
+    "${RUN[@]}" "$@"
+  fi
+}
 
 pg_setup() {
   mkdir -p "$DATADIR" "$SOCKDIR"
@@ -41,7 +57,7 @@ pg_setup() {
     # treats "ü" as two non-letters — "Lüftung" tokenizes as "l" + "ftung" and
     # every German full-text assertion becomes meaningless.
     run "$PGBIN/initdb" -D "$DATADIR" -A trust -U postgres --no-instructions \
-      --encoding=UTF8 --locale="${VENTLINE_PG_LOCALE:-C.UTF-8}" >/dev/null
+      --encoding=UTF8 --locale="$PG_LOCALE" >/dev/null
   fi
 }
 
