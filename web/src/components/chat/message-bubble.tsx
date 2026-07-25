@@ -3,25 +3,11 @@
 /* eslint-disable @next/next/no-img-element -- signed Supabase URLs */
 
 import { useI18n } from "@/i18n/client";
-import type { TranslationKey } from "@/i18n/translate";
 import { clockTime } from "@/lib/format";
+import { localizeSystemBody } from "@/lib/system-messages";
 
 import { displayPhoto, waveformBars, type ChatMessage } from "./types";
 import { VoicePlayer } from "./voice-player";
-
-/**
- * System events are stored in the database in English so the row means the
- * same thing to every reader regardless of who triggered it. Map the stored
- * body to a key at render time so each reader sees it in their own language;
- * an unrecognised body falls back to the stored text.
- */
-const SYSTEM_BODY_KEYS: Record<string, TranslationKey> = {
-  "started work": "chat.system.startedWork",
-  "marked the task as done": "chat.system.markedDone",
-  "flagged the task as blocked": "chat.system.flaggedBlocked",
-  "approved the task": "chat.system.approved",
-  "reopened the task": "chat.system.reopened",
-};
 
 export function MessageBubble({
   message,
@@ -41,13 +27,13 @@ export function MessageBubble({
   const { t, locale } = useI18n();
 
   if (message.kind === "system") {
-    const bodyKey = message.body ? SYSTEM_BODY_KEYS[message.body] : undefined;
+
     return (
       <div className="my-2 text-center text-xs text-slate-400">
         <span className="font-semibold">
           {message.sender?.full_name ?? t("chat.someone")}
         </span>{" "}
-        {bodyKey ? t(bodyKey) : message.body}
+        {localizeSystemBody(message.body, t)}
       </div>
     );
   }
