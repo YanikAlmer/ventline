@@ -654,4 +654,66 @@ begin
 end;
 $$;
 
+-- ===================== project insert + RETURNING (20260725090000 regression)
+-- The clients insert with a RETURNING clause, so the new row must also pass
+-- the SELECT policy. This previously failed for every role.
+do $$
+declare
+  olivia uuid := '00000000-0000-4000-8000-000000000001';
+  frank  uuid := '00000000-0000-4000-8000-000000000003';
+  wanda  uuid := '00000000-0000-4000-8000-000000000004';
+  boris  uuid := '00000000-0000-4000-8000-000000000007';
+  maple  uuid := '00000000-0000-4000-9000-000000000001';
+  v_alpine uuid;
+  v_id uuid;
+  v_name text;
+  denied boolean;
+begin
+  select company_id into strict v_alpine from public.profiles where id = wanda;
+
+  -- Owner creates a project and reads it back in the same statement.
+  perform tests.impersonate(olivia);
+  insert into public.projects (company_id, name, status)
+  values (v_alpine, 'Returning Project', 'active')
+  returning id, name into v_id, v_name;
+  assert v_name = 'Returning Project', 'insert ... returning must return the new row';
+  assert (select count(*) from public.projects where id = v_id) = 1,
+    'creator can select the project afterwards';
+
+  -- Office still sees every company project; a non-member worker does not.
+  perform tests.impersonate(wanda);
+  assert (select count(*) from public.projects where id = v_id) = 0,
+    'worker who is not a member cannot see the new project';
+
+  -- Adding the worker as a member grants visibility.
+  perform tests.reset();
+  insert into public.project_members (project_id, profile_id) values (v_id, wanda);
+  perform tests.impersonate(wanda);
+  assert (select count(*) from public.projects where id = v_id) = 1,
+    'member worker sees the project';
+
+  -- Foreman on Maple still sees Maple (unchanged behaviour).
+  perform tests.impersonate(frank);
+  assert (select count(*) from public.projects where id = maple) = 1,
+    'foreman still sees their project';
+
+  -- Cross-company isolation holds.
+  perform tests.impersonate(boris);
+  assert (select count(*) from public.projects where id = v_id) = 0,
+    'other-company owner cannot see the project';
+
+  -- A worker still cannot create a project (office-only insert).
+  perform tests.impersonate(wanda);
+  denied := false;
+  begin
+    insert into public.projects (company_id, name) values (v_alpine, 'Worker Project');
+  exception when others then denied := true;
+  end;
+  assert denied, 'worker must not create projects';
+
+  perform tests.reset();
+  delete from public.projects where id = v_id;
+end;
+$$;
+
 select 'RLS TESTS PASSED' as result;
