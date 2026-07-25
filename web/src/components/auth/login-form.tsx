@@ -64,6 +64,25 @@ export function LoginForm() {
         setBusy(false);
         return;
       }
+
+      // A session exists, but the profile bootstrap (handle_new_user trigger)
+      // may not have created a profile — most commonly an invalid/expired
+      // invite code. Without this check the user is silently bounced to
+      // /onboarding with no explanation. Surface a clear error instead.
+      const { data: profileRow } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", data.session.user.id)
+        .maybeSingle();
+      if (!profileRow) {
+        setError(
+          signupPath === "invite"
+            ? "That invite code is invalid or has expired. Double-check the code and try again."
+            : "We couldn't finish setting up your company. Please try again."
+        );
+        setBusy(false);
+        return;
+      }
     }
 
     router.push("/");

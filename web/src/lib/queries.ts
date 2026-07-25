@@ -28,11 +28,18 @@ export async function getCurrentUser(
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from("profiles")
     .select("*, companies(*)")
     .eq("id", user.id)
     .maybeSingle();
+  // A genuine read failure (DB/network error, RLS misconfig) must NOT be
+  // conflated with "no profile yet": returning null there would eject a
+  // fully-onboarded user into the onboarding flow. Surface it instead so the
+  // caller renders an error boundary rather than a misleading redirect.
+  if (error) {
+    throw new Error(`Failed to load your profile: ${error.message}`);
+  }
   if (!profile || !profile.companies) return null;
 
   const { companies: company, ...profileRow } = profile;

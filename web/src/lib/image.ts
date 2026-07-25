@@ -14,7 +14,21 @@ const JPEG_QUALITY = 0.85;
  * and re-encode as JPEG, so job-site photos upload fast on cell connections.
  */
 export async function downscaleImage(file: File): Promise<DownscaledImage> {
-  const bitmap = await createImageBitmap(file);
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch {
+    // Desktop Chrome/Firefox cannot decode HEIC/HEIF (the default iPhone
+    // format), so createImageBitmap rejects. Give the user an actionable
+    // message instead of a raw DOMException.
+    const isHeic =
+      /hei[cf]/i.test(file.type) || /\.hei[cf]$/i.test(file.name);
+    throw new Error(
+      isHeic
+        ? "This looks like a HEIC photo, which this browser can't process. Convert it to JPEG or PNG (or upload from the Ventline iOS app) and try again."
+        : "That image couldn't be processed. Please try a JPEG or PNG."
+    );
+  }
   try {
     const scale = Math.min(
       1,
