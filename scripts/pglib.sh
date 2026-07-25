@@ -36,7 +36,12 @@ pg_setup() {
   fi
   if [ ! -f "$DATADIR/PG_VERSION" ]; then
     echo "==> initdb ($DATADIR)"
-    run "$PGBIN/initdb" -D "$DATADIR" -A trust -U postgres --no-instructions >/dev/null
+    # Pin UTF8 explicitly. Supabase runs UTF8, and inheriting a C/POSIX locale
+    # here silently produces a SQL_ASCII cluster where the text-search parser
+    # treats "ü" as two non-letters — "Lüftung" tokenizes as "l" + "ftung" and
+    # every German full-text assertion becomes meaningless.
+    run "$PGBIN/initdb" -D "$DATADIR" -A trust -U postgres --no-instructions \
+      --encoding=UTF8 --locale="${VENTLINE_PG_LOCALE:-C.UTF-8}" >/dev/null
   fi
 }
 

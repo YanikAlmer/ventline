@@ -36,11 +36,15 @@ create table auth.users (
 
 -- Same mechanism PostgREST/Supabase use: claims arrive via the
 -- request.jwt.claims GUC.
+-- Guard the empty string BEFORE the cast, exactly as the real Supabase
+-- auth.uid() does (and as auth.jwt() below already did). tests.reset() sets the
+-- claims GUC to '' rather than NULL, and ''::jsonb throws — so casting first
+-- made auth.uid() explode in any service-role write path that reaches a trigger.
 create function auth.uid()
 returns uuid
 language sql stable
 as $$
-  select nullif(current_setting('request.jwt.claims', true)::jsonb ->> 'sub', '')::uuid;
+  select nullif(nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub', '')::uuid;
 $$;
 
 create function auth.jwt()

@@ -716,4 +716,207 @@ begin
 end;
 $$;
 
+-- ==================================== chat overview (20260726090000) regression
+do $$
+declare
+  marcus uuid := '00000000-0000-4000-8000-000000000002';
+  frank  uuid := '00000000-0000-4000-8000-000000000003';
+  wanda  uuid := '00000000-0000-4000-8000-000000000004';
+  miguel uuid := '00000000-0000-4000-8000-000000000005';
+  carla  uuid := '00000000-0000-4000-8000-000000000006';
+  boris  uuid := '00000000-0000-4000-8000-000000000007';
+  maple  uuid := '00000000-0000-4000-9000-000000000001';
+  depot  uuid := '00000000-0000-4000-9000-000000000002';
+  t_filter uuid := '00000000-0000-4000-a000-000000000001';
+  t_therm  uuid := '00000000-0000-4000-a000-000000000003';
+  v_proj_msg uuid;
+  v_task_msg uuid;
+  v_att uuid;
+  v_count int;
+  denied boolean;
+begin
+  -- thread_id: project thread keys on project, task thread keys on task.
+  perform tests.impersonate(wanda);
+  v_proj_msg := public.send_message(maple, null, 'text', 'Projekt-Thread Nachricht');
+  v_task_msg := public.send_message(maple, t_filter, 'text', 'Aufgaben-Thread Nachricht');
+  perform tests.reset();
+
+  assert (select thread_id from public.messages where id = v_proj_msg) = maple,
+    'project-level message threads on the project id';
+  assert (select thread_id from public.messages where id = v_task_msg) = t_filter,
+    'task message threads on the task id';
+
+  -- thread_state is maintained by trigger, with the newest message as preview.
+  assert (select last_message_id from public.thread_state where thread_id = maple) = v_proj_msg,
+    'thread_state tracks the newest project message';
+  assert (select last_preview from public.thread_state where thread_id = t_filter)
+         = 'Aufgaben-Thread Nachricht',
+    'thread_state stores a preview of the newest task message';
+  assert (select message_count from public.thread_state where thread_id = t_filter) >= 1,
+    'thread_state counts messages';
+
+  -- Soft-deleting the newest message must not leave a stale preview behind.
+  perform tests.impersonate(wanda);
+  v_task_msg := public.send_message(maple, t_filter, 'text', 'Wird gelöscht');
+  perform tests.reset();
+  assert (select last_preview from public.thread_state where thread_id = t_filter) = 'Wird gelöscht',
+    'newest message becomes the preview';
+  perform tests.impersonate(marcus);
+  perform public.delete_message(v_task_msg);
+  perform tests.reset();
+  assert (select last_preview from public.thread_state where thread_id = t_filter) <> 'Wird gelöscht',
+    'soft delete resyncs the thread preview';
+
+  -- Customers must never see thread_state: last_preview would leak unshared text.
+  perform tests.impersonate(carla);
+  assert (select count(*) from public.thread_state) = 0,
+    'customer sees no thread_state rows';
+
+  -- Cross-company isolation.
+  perform tests.impersonate(boris);
+  assert (select count(*) from public.thread_state) = 0,
+    'other-company owner sees no thread_state rows';
+
+  -- Read cursor + unread. Wanda has read nothing in the depot thread she cannot see;
+  -- use the maple project thread she can.
+  perform tests.impersonate(frank);
+  perform public.mark_thread_read(maple);
+  assert (select last_read_at from public.thread_read_state
+           where profile_id = frank and thread_id = maple) is not null,
+    'mark_thread_read stores a cursor for the caller';
+
+  -- The cursor is private to its owner.
+  perform tests.impersonate(wanda);
+  assert (select count(*) from public.thread_read_state where profile_id = frank) = 0,
+    'read cursors are not visible to other users';
+
+  -- Mentions: a worker may mention a colleague on a shared project.
+  perform tests.impersonate(wanda);
+  v_proj_msg := public.send_message(
+    maple, null, 'text', 'Frank schau dir das an',
+    '[]', false, null,
+    jsonb_build_array(jsonb_build_object('profile_id', frank, 'start_offset', 0, 'length', 5)));
+  perform tests.reset();
+  assert (select count(*) from public.message_mentions
+           where message_id = v_proj_msg and mentioned_profile_id = frank) = 1,
+    'mention is stored with derived scope';
+  assert (select project_id from public.message_mentions where message_id = v_proj_msg) = maple,
+    'mention scope is derived from the message, not the client';
+
+  -- A customer can never be mentioned.
+  perform tests.impersonate(wanda);
+  denied := false;
+  begin
+    perform public.send_message(maple, null, 'text', 'Hallo Carla', '[]', false, null,
+      jsonb_build_array(jsonb_build_object('profile_id', carla)));
+  exception when others then denied := true;
+  end;
+  assert denied, 'a customer must not be mentionable';
+
+  -- Nor may someone from another company.
+  denied := false;
+  begin
+    perform public.send_message(maple, null, 'text', 'Hallo Boris', '[]', false, null,
+      jsonb_build_array(jsonb_build_object('profile_id', boris)));
+  exception when others then denied := true;
+  end;
+  assert denied, 'a member of another company must not be mentionable';
+
+  -- Opening the thread acknowledges the mention.
+  perform tests.impersonate(frank);
+  assert (select count(*) from public.message_mentions
+           where mentioned_profile_id = frank and acknowledged_at is null) >= 1,
+    'mention starts unacknowledged';
+  perform public.mark_thread_read(maple);
+  assert (select count(*) from public.message_mentions
+           where mentioned_profile_id = frank and acknowledged_at is null) = 0,
+    'opening the thread clears the mention from the attention list';
+
+  -- References: a task in the same project is fine.
+  perform tests.impersonate(wanda);
+  v_proj_msg := public.send_message(
+    maple, null, 'text', 'Siehe Aufgabe', '[]', false, null, '[]',
+    jsonb_build_array(jsonb_build_object('kind', 'task', 'task_id', t_filter)));
+  perform tests.reset();
+  assert (select count(*) from public.message_refs
+           where message_id = v_proj_msg and task_id = t_filter) = 1,
+    'task reference is stored';
+
+  -- ...but referencing a task from a different project is rejected outright,
+  -- so a reference can never leak a title across project boundaries.
+  perform tests.impersonate(marcus);
+  denied := false;
+  begin
+    perform public.send_message(maple, null, 'text', 'Fremde Aufgabe', '[]', false, null, '[]',
+      jsonb_build_array(jsonb_build_object('kind', 'task', 'task_id', t_therm)));
+  exception when others then denied := true;
+  end;
+  assert denied, 'referencing a task from another project must fail';
+
+  -- Media flags are set from the attachment, whatever the write path.
+  perform tests.impersonate(wanda);
+  v_task_msg := public.send_message(
+    maple, t_filter, 'photo', 'Mit Foto',
+    jsonb_build_array(jsonb_build_object(
+      'kind', 'photo', 'storage_bucket', 'photos',
+      'storage_path', 'x/y/z/flagged.jpg', 'mime_type', 'image/jpeg')));
+  perform tests.reset();
+  assert (select has_photo from public.messages where id = v_task_msg),
+    'has_photo is set by the attachment trigger';
+  assert not (select has_voice from public.messages where id = v_task_msg),
+    'has_voice stays false when no voice attachment exists';
+
+  -- German full-text search. NOTE these assertions only mean anything on a UTF8
+  -- cluster: under SQL_ASCII the parser splits "Lüftung" into 'l' + 'ftung'.
+  -- scripts/pglib.sh pins --encoding=UTF8 for exactly this reason.
+  perform tests.impersonate(wanda);
+  v_proj_msg := public.send_message(maple, null, 'text', 'Die Lüftung muss noch eingestellt werden');
+  perform tests.reset();
+
+  -- unaccent strips the diaeresis: "Lüftung" indexes as "luftung".
+  select count(*) into v_count from public.messages
+   where id = v_proj_msg
+     and search_tsv @@ to_tsquery('public.german_unaccent', 'luftung');
+  assert v_count = 1, 'accent-folded search matches (luftung -> Lüftung)';
+
+  -- Typing the umlaut works too.
+  select count(*) into v_count from public.messages
+   where id = v_proj_msg
+     and search_tsv @@ to_tsquery('public.german_unaccent', 'Lüftung');
+  assert v_count = 1, 'searching with the umlaut matches';
+
+  -- Documented limitation: unaccent folds ü->u, NOT the German transliteration
+  -- ü->ue, so "lueftung" does not match. The search RPC compensates by also
+  -- querying a de-transliterated variant; asserted here so the behaviour is
+  -- pinned and a future unaccent rules change is caught.
+  select count(*) into v_count from public.messages
+   where id = v_proj_msg
+     and search_tsv @@ to_tsquery('public.german_unaccent', 'lueftung');
+  assert v_count = 0, 'ue-transliteration does NOT match via unaccent alone';
+
+  -- Stemming folds plurals, which is what matters for trades vocabulary
+  -- (Leitungen/Leitung, Rohre/Rohr, Ventile/Ventil). Snowball is a stemmer and
+  -- not a lemmatizer, so a participle like "eingestellt" is NOT reduced to
+  -- "einstellen" — do not assert that.
+  perform tests.impersonate(wanda);
+  v_proj_msg := public.send_message(maple, null, 'text', 'Die Leitungen sind verlegt');
+  perform tests.reset();
+  select count(*) into v_count from public.messages
+   where id = v_proj_msg
+     and search_tsv @@ to_tsquery('public.german_unaccent', 'Leitung');
+  assert v_count = 1, 'German stemming folds plurals (Leitung matches Leitungen)';
+
+  -- Compounds: a prefix query reaches the head of a compound word.
+  perform tests.impersonate(wanda);
+  v_proj_msg := public.send_message(maple, null, 'text', 'Das Lüftungsrohr ist undicht');
+  perform tests.reset();
+  select count(*) into v_count from public.messages
+   where id = v_proj_msg
+     and search_tsv @@ to_tsquery('public.german_unaccent', 'luftung:*');
+  assert v_count = 1, 'prefix query matches the head of a German compound';
+
+  perform tests.reset();
+end;
+$$;
+
 select 'RLS TESTS PASSED' as result;
