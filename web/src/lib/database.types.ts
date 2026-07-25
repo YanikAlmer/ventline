@@ -20,6 +20,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["attachment_kind"]
           message_id: string | null
           mime_type: string
+          report_id: string | null
           storage_bucket: string
           storage_path: string
           task_id: string | null
@@ -37,6 +38,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["attachment_kind"]
           message_id?: string | null
           mime_type: string
+          report_id?: string | null
           storage_bucket: string
           storage_path: string
           task_id?: string | null
@@ -54,6 +56,7 @@ export type Database = {
           kind?: Database["public"]["Enums"]["attachment_kind"]
           message_id?: string | null
           mime_type?: string
+          report_id?: string | null
           storage_bucket?: string
           storage_path?: string
           task_id?: string | null
@@ -67,6 +70,20 @@ export type Database = {
             columns: ["message_id"]
             isOneToOne: false
             referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attachments_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "report_divergences"
+            referencedColumns: ["report_id"]
+          },
+          {
+            foreignKeyName: "attachments_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
             referencedColumns: ["id"]
           },
           {
@@ -102,6 +119,146 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      company_billing_settings: {
+        Row: {
+          company_id: string
+          created_at: string
+          creditor_building_no: string | null
+          creditor_country: string
+          creditor_name: string
+          creditor_post_code: string
+          creditor_street: string | null
+          creditor_town: string
+          default_hourly_rate_rappen: number
+          default_mwst_rate_bp: number
+          iban: string | null
+          logo_path: string | null
+          mwst_status: Database["public"]["Enums"]["mwst_status"]
+          payment_terms_days: number
+          saldo_rate_bp: number | null
+          show_prices_on_rapport: boolean
+          uid_digits: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          creditor_building_no?: string | null
+          creditor_country?: string
+          creditor_name: string
+          creditor_post_code: string
+          creditor_street?: string | null
+          creditor_town: string
+          default_hourly_rate_rappen?: number
+          default_mwst_rate_bp?: number
+          iban?: string | null
+          logo_path?: string | null
+          mwst_status?: Database["public"]["Enums"]["mwst_status"]
+          payment_terms_days?: number
+          saldo_rate_bp?: number | null
+          show_prices_on_rapport?: boolean
+          uid_digits?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          creditor_building_no?: string | null
+          creditor_country?: string
+          creditor_name?: string
+          creditor_post_code?: string
+          creditor_street?: string | null
+          creditor_town?: string
+          default_hourly_rate_rappen?: number
+          default_mwst_rate_bp?: number
+          iban?: string | null
+          logo_path?: string | null
+          mwst_status?: Database["public"]["Enums"]["mwst_status"]
+          payment_terms_days?: number
+          saldo_rate_bp?: number | null
+          show_prices_on_rapport?: boolean
+          uid_digits?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_billing_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customers: {
+        Row: {
+          bexio_contact_id: number | null
+          building_no: string | null
+          company_id: string
+          country: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          post_code: string | null
+          street: string | null
+          town: string | null
+          updated_at: string
+        }
+        Insert: {
+          bexio_contact_id?: number | null
+          building_no?: string | null
+          company_id: string
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          post_code?: string | null
+          street?: string | null
+          town?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bexio_contact_id?: number | null
+          building_no?: string | null
+          company_id?: string
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          post_code?: string | null
+          street?: string | null
+          town?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customers_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       devices: {
         Row: {
@@ -149,6 +306,116 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_link_views: {
+        Row: {
+          id: number
+          link_id: string
+          user_agent_family: string | null
+          viewed_at: string
+        }
+        Insert: {
+          id?: number
+          link_id: string
+          user_agent_family?: string | null
+          viewed_at?: string
+        }
+        Update: {
+          id?: number
+          link_id?: string
+          user_agent_family?: string | null
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_link_views_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "document_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_links: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          invoice_id: string | null
+          kind: Database["public"]["Enums"]["document_link_kind"]
+          last_viewed_at: string | null
+          report_id: string | null
+          revoked_at: string | null
+          token_hash: string
+          view_count: number
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          expires_at: string
+          id?: string
+          invoice_id?: string | null
+          kind: Database["public"]["Enums"]["document_link_kind"]
+          last_viewed_at?: string | null
+          report_id?: string | null
+          revoked_at?: string | null
+          token_hash: string
+          view_count?: number
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          invoice_id?: string | null
+          kind?: Database["public"]["Enums"]["document_link_kind"]
+          last_viewed_at?: string | null
+          report_id?: string | null
+          revoked_at?: string | null
+          token_hash?: string
+          view_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_links_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_links_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_links_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_links_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "report_divergences"
+            referencedColumns: ["report_id"]
+          },
+          {
+            foreignKeyName: "document_links_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
             referencedColumns: ["id"]
           },
         ]
@@ -213,6 +480,366 @@ export type Database = {
             columns: ["redeemed_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_lines: {
+        Row: {
+          description: string
+          id: string
+          invoice_id: string
+          mwst_rate_bp: number
+          net_rappen: number
+          quantity_milli: number
+          service_date: string | null
+          sort_order: number
+          unit: string
+          unit_price_rappen: number
+        }
+        Insert: {
+          description: string
+          id?: string
+          invoice_id: string
+          mwst_rate_bp?: number
+          net_rappen?: number
+          quantity_milli?: number
+          service_date?: string | null
+          sort_order?: number
+          unit?: string
+          unit_price_rappen?: number
+        }
+        Update: {
+          description?: string
+          id?: string
+          invoice_id?: string
+          mwst_rate_bp?: number
+          net_rappen?: number
+          quantity_milli?: number
+          service_date?: string | null
+          sort_order?: number
+          unit?: string
+          unit_price_rappen?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_lines_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_tax_groups: {
+        Row: {
+          invoice_id: string
+          net_rappen: number
+          rate_bp: number
+          tax_rappen: number
+        }
+        Insert: {
+          invoice_id: string
+          net_rappen: number
+          rate_bp: number
+          tax_rappen: number
+        }
+        Update: {
+          invoice_id?: string
+          net_rappen?: number
+          rate_bp?: number
+          tax_rappen?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_tax_groups_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          bexio_invoice_id: number | null
+          bexio_sync_error: string | null
+          bexio_synced_at: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          creditor_building_no: string | null
+          creditor_country: string | null
+          creditor_iban: string | null
+          creditor_mwst_status:
+            Database["public"]["Enums"]["mwst_status"] | null
+          creditor_name: string | null
+          creditor_post_code: string | null
+          creditor_street: string | null
+          creditor_town: string | null
+          creditor_uid_digits: string | null
+          currency: string
+          customer_id: string
+          debtor_building_no: string | null
+          debtor_country: string | null
+          debtor_name: string | null
+          debtor_post_code: string | null
+          debtor_street: string | null
+          debtor_town: string | null
+          due_date: string | null
+          id: string
+          invoice_date: string | null
+          number: number | null
+          number_text: string | null
+          paid_at: string | null
+          pdf_generated_at: string | null
+          pdf_path: string | null
+          pdf_sha256: string | null
+          period_key: string | null
+          project_id: string
+          qr_payload: string | null
+          qr_spec_version: string
+          reference: string | null
+          reference_type:
+            Database["public"]["Enums"]["qr_reference_type"] | null
+          report_id: string | null
+          sent_at: string | null
+          service_date_from: string | null
+          service_date_to: string | null
+          status: Database["public"]["Enums"]["invoice_status"]
+          total_gross_rappen: number
+          total_net_rappen: number
+          total_tax_rappen: number
+          updated_at: string
+        }
+        Insert: {
+          bexio_invoice_id?: number | null
+          bexio_sync_error?: string | null
+          bexio_synced_at?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          creditor_building_no?: string | null
+          creditor_country?: string | null
+          creditor_iban?: string | null
+          creditor_mwst_status?:
+            Database["public"]["Enums"]["mwst_status"] | null
+          creditor_name?: string | null
+          creditor_post_code?: string | null
+          creditor_street?: string | null
+          creditor_town?: string | null
+          creditor_uid_digits?: string | null
+          currency?: string
+          customer_id: string
+          debtor_building_no?: string | null
+          debtor_country?: string | null
+          debtor_name?: string | null
+          debtor_post_code?: string | null
+          debtor_street?: string | null
+          debtor_town?: string | null
+          due_date?: string | null
+          id?: string
+          invoice_date?: string | null
+          number?: number | null
+          number_text?: string | null
+          paid_at?: string | null
+          pdf_generated_at?: string | null
+          pdf_path?: string | null
+          pdf_sha256?: string | null
+          period_key?: string | null
+          project_id: string
+          qr_payload?: string | null
+          qr_spec_version?: string
+          reference?: string | null
+          reference_type?:
+            Database["public"]["Enums"]["qr_reference_type"] | null
+          report_id?: string | null
+          sent_at?: string | null
+          service_date_from?: string | null
+          service_date_to?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          total_gross_rappen?: number
+          total_net_rappen?: number
+          total_tax_rappen?: number
+          updated_at?: string
+        }
+        Update: {
+          bexio_invoice_id?: number | null
+          bexio_sync_error?: string | null
+          bexio_synced_at?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          creditor_building_no?: string | null
+          creditor_country?: string | null
+          creditor_iban?: string | null
+          creditor_mwst_status?:
+            Database["public"]["Enums"]["mwst_status"] | null
+          creditor_name?: string | null
+          creditor_post_code?: string | null
+          creditor_street?: string | null
+          creditor_town?: string | null
+          creditor_uid_digits?: string | null
+          currency?: string
+          customer_id?: string
+          debtor_building_no?: string | null
+          debtor_country?: string | null
+          debtor_name?: string | null
+          debtor_post_code?: string | null
+          debtor_street?: string | null
+          debtor_town?: string | null
+          due_date?: string | null
+          id?: string
+          invoice_date?: string | null
+          number?: number | null
+          number_text?: string | null
+          paid_at?: string | null
+          pdf_generated_at?: string | null
+          pdf_path?: string | null
+          pdf_sha256?: string | null
+          period_key?: string | null
+          project_id?: string
+          qr_payload?: string | null
+          qr_spec_version?: string
+          reference?: string | null
+          reference_type?:
+            Database["public"]["Enums"]["qr_reference_type"] | null
+          report_id?: string | null
+          sent_at?: string | null
+          service_date_from?: string | null
+          service_date_to?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          total_gross_rappen?: number
+          total_net_rappen?: number
+          total_tax_rappen?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "report_divergences"
+            referencedColumns: ["report_id"]
+          },
+          {
+            foreignKeyName: "invoices_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      material_lines: {
+        Row: {
+          company_id: string
+          created_at: string
+          description: string
+          id: string
+          project_id: string
+          quantity_milli: number
+          recorded_by: string | null
+          task_id: string | null
+          unit: string
+          unit_price_rappen: number
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          description: string
+          id?: string
+          project_id: string
+          quantity_milli: number
+          recorded_by?: string | null
+          task_id?: string | null
+          unit?: string
+          unit_price_rappen?: number
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          project_id?: string
+          quantity_milli?: number
+          recorded_by?: string | null
+          task_id?: string | null
+          unit?: string
+          unit_price_rappen?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_lines_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_lines_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_lines_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_lines_recorded_by_fkey"
+            columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_lines_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
         ]
@@ -899,11 +1526,13 @@ export type Database = {
       projects: {
         Row: {
           address: string | null
+          billing_mode: Database["public"]["Enums"]["billing_mode"]
           company_id: string
           cover_photo_path: string | null
           created_at: string
           created_by: string | null
           customer_display_name: string | null
+          customer_id: string | null
           description: string | null
           id: string
           name: string
@@ -912,11 +1541,13 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          billing_mode?: Database["public"]["Enums"]["billing_mode"]
           company_id: string
           cover_photo_path?: string | null
           created_at?: string
           created_by?: string | null
           customer_display_name?: string | null
+          customer_id?: string | null
           description?: string | null
           id?: string
           name: string
@@ -925,11 +1556,13 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          billing_mode?: Database["public"]["Enums"]["billing_mode"]
           company_id?: string
           cover_photo_path?: string | null
           created_at?: string
           created_by?: string | null
           customer_display_name?: string | null
+          customer_id?: string | null
           description?: string | null
           id?: string
           name?: string
@@ -949,6 +1582,319 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_material_lines: {
+        Row: {
+          description: string
+          id: string
+          material_line_id: string | null
+          quantity_milli: number
+          report_id: string
+          sort_order: number
+          unit: string
+          unit_price_rappen: number
+        }
+        Insert: {
+          description: string
+          id?: string
+          material_line_id?: string | null
+          quantity_milli: number
+          report_id: string
+          sort_order?: number
+          unit?: string
+          unit_price_rappen?: number
+        }
+        Update: {
+          description?: string
+          id?: string
+          material_line_id?: string | null
+          quantity_milli?: number
+          report_id?: string
+          sort_order?: number
+          unit?: string
+          unit_price_rappen?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_material_lines_material_line_id_fkey"
+            columns: ["material_line_id"]
+            isOneToOne: false
+            referencedRelation: "material_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_material_lines_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "report_divergences"
+            referencedColumns: ["report_id"]
+          },
+          {
+            foreignKeyName: "report_material_lines_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_photos: {
+        Row: {
+          attachment_id: string
+          report_id: string
+          sort_order: number
+        }
+        Insert: {
+          attachment_id: string
+          report_id: string
+          sort_order?: number
+        }
+        Update: {
+          attachment_id?: string
+          report_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_photos_attachment_id_fkey"
+            columns: ["attachment_id"]
+            isOneToOne: false
+            referencedRelation: "attachments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_photos_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "report_divergences"
+            referencedColumns: ["report_id"]
+          },
+          {
+            foreignKeyName: "report_photos_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_time_lines: {
+        Row: {
+          description: string | null
+          id: string
+          minutes: number
+          performed_by_name: string | null
+          performed_on: string
+          profile_id: string | null
+          rate_rappen: number
+          report_id: string
+          sort_order: number
+          source_revision: number | null
+          time_entry_id: string | null
+        }
+        Insert: {
+          description?: string | null
+          id?: string
+          minutes: number
+          performed_by_name?: string | null
+          performed_on: string
+          profile_id?: string | null
+          rate_rappen?: number
+          report_id: string
+          sort_order?: number
+          source_revision?: number | null
+          time_entry_id?: string | null
+        }
+        Update: {
+          description?: string | null
+          id?: string
+          minutes?: number
+          performed_by_name?: string | null
+          performed_on?: string
+          profile_id?: string | null
+          rate_rappen?: number
+          report_id?: string
+          sort_order?: number
+          source_revision?: number | null
+          time_entry_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_time_lines_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_time_lines_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "report_divergences"
+            referencedColumns: ["report_id"]
+          },
+          {
+            foreignKeyName: "report_time_lines_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_time_lines_time_entry_id_fkey"
+            columns: ["time_entry_id"]
+            isOneToOne: false
+            referencedRelation: "time_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reports: {
+        Row: {
+          company_id: string
+          content_hash: string | null
+          corrects_report_id: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          doc_type: Database["public"]["Enums"]["document_type"]
+          id: string
+          number: number | null
+          number_text: string | null
+          pdf_generated_at: string | null
+          pdf_path: string | null
+          pdf_sha256: string | null
+          period_from: string | null
+          period_key: string | null
+          period_to: string | null
+          project_id: string
+          sent_at: string | null
+          signature_path: string | null
+          signed_at: string | null
+          signer_name: string | null
+          snapshot: Json | null
+          status: Database["public"]["Enums"]["report_status"]
+          summary: string | null
+          title: string | null
+          total_net_rappen: number | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          content_hash?: string | null
+          corrects_report_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          doc_type?: Database["public"]["Enums"]["document_type"]
+          id?: string
+          number?: number | null
+          number_text?: string | null
+          pdf_generated_at?: string | null
+          pdf_path?: string | null
+          pdf_sha256?: string | null
+          period_from?: string | null
+          period_key?: string | null
+          period_to?: string | null
+          project_id: string
+          sent_at?: string | null
+          signature_path?: string | null
+          signed_at?: string | null
+          signer_name?: string | null
+          snapshot?: Json | null
+          status?: Database["public"]["Enums"]["report_status"]
+          summary?: string | null
+          title?: string | null
+          total_net_rappen?: number | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          content_hash?: string | null
+          corrects_report_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          doc_type?: Database["public"]["Enums"]["document_type"]
+          id?: string
+          number?: number | null
+          number_text?: string | null
+          pdf_generated_at?: string | null
+          pdf_path?: string | null
+          pdf_sha256?: string | null
+          period_from?: string | null
+          period_key?: string | null
+          period_to?: string | null
+          project_id?: string
+          sent_at?: string | null
+          signature_path?: string | null
+          signed_at?: string | null
+          signer_name?: string | null
+          snapshot?: Json | null
+          status?: Database["public"]["Enums"]["report_status"]
+          summary?: string | null
+          title?: string | null
+          total_net_rappen?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_corrects_report_id_fkey"
+            columns: ["corrects_report_id"]
+            isOneToOne: false
+            referencedRelation: "report_divergences"
+            referencedColumns: ["report_id"]
+          },
+          {
+            foreignKeyName: "reports_corrects_report_id_fkey"
+            columns: ["corrects_report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -1239,6 +2185,173 @@ export type Database = {
           },
         ]
       }
+      time_entries: {
+        Row: {
+          break_minutes: number
+          company_id: string
+          created_at: string
+          ended_at: string | null
+          id: string
+          kind: Database["public"]["Enums"]["time_entry_kind"]
+          note: string | null
+          profile_id: string
+          project_id: string
+          recorded_by: string | null
+          revision: number
+          started_at: string
+          task_id: string | null
+          updated_at: string
+          voided_at: string | null
+          voided_reason: string | null
+          work_date: string
+          worked_minutes: number | null
+        }
+        Insert: {
+          break_minutes?: number
+          company_id: string
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["time_entry_kind"]
+          note?: string | null
+          profile_id: string
+          project_id: string
+          recorded_by?: string | null
+          revision?: number
+          started_at: string
+          task_id?: string | null
+          updated_at?: string
+          voided_at?: string | null
+          voided_reason?: string | null
+          work_date: string
+          worked_minutes?: number | null
+        }
+        Update: {
+          break_minutes?: number
+          company_id?: string
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["time_entry_kind"]
+          note?: string | null
+          profile_id?: string
+          project_id?: string
+          recorded_by?: string | null
+          revision?: number
+          started_at?: string
+          task_id?: string | null
+          updated_at?: string
+          voided_at?: string | null
+          voided_reason?: string | null
+          work_date?: string
+          worked_minutes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_entries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_entries_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_entries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_entries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_entries_recorded_by_fkey"
+            columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_entries_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      time_entry_revisions: {
+        Row: {
+          after: Json | null
+          before: Json | null
+          changed_at: string
+          changed_by: string | null
+          company_id: string
+          id: number
+          op: string
+          reason: string | null
+          revision: number
+          time_entry_id: string
+        }
+        Insert: {
+          after?: Json | null
+          before?: Json | null
+          changed_at?: string
+          changed_by?: string | null
+          company_id: string
+          id?: number
+          op: string
+          reason?: string | null
+          revision: number
+          time_entry_id: string
+        }
+        Update: {
+          after?: Json | null
+          before?: Json | null
+          changed_at?: string
+          changed_by?: string | null
+          company_id?: string
+          id?: number
+          op?: string
+          reason?: string | null
+          revision?: number
+          time_entry_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_entry_revisions_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_entry_revisions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_entry_revisions_time_entry_id_fkey"
+            columns: ["time_entry_id"]
+            isOneToOne: false
+            referencedRelation: "time_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       inbox_threads: {
@@ -1294,6 +2407,26 @@ export type Database = {
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      number_series_audit: {
+        Row: {
+          company_id: string | null
+          doc_type: Database["public"]["Enums"]["document_type"] | null
+          highest: number | null
+          issued: number | null
+          lowest: number | null
+          missing: number | null
+          period_key: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -1360,12 +2493,65 @@ export type Database = {
           },
         ]
       }
+      report_divergences: {
+        Row: {
+          delta_minutes: number | null
+          has_correction: boolean | null
+          is_already_a_correction: boolean | null
+          minutes_now: number | null
+          minutes_on_paper: number | null
+          number_text: string | null
+          project_id: string | null
+          report_id: string | null
+          source_was_voided: boolean | null
+          time_entry_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_time_lines_time_entry_id_fkey"
+            columns: ["time_entry_id"]
+            isOneToOne: false
+            referencedRelation: "time_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      attach_time_to_report: {
+        Args: { p_report_id: string; p_time_entry_ids: string[] }
+        Returns: number
+      }
       claim_notification_batch: { Args: { p_limit?: number }; Returns: Json }
       create_company: {
         Args: { p_full_name: string; p_name: string }
         Returns: string
+      }
+      create_document_link: {
+        Args: {
+          p_document_id: string
+          p_kind: Database["public"]["Enums"]["document_link_kind"]
+          p_valid_days?: number
+        }
+        Returns: {
+          expires_at: string
+          link_id: string
+          token: string
+        }[]
       }
       create_invite: {
         Args: {
@@ -1416,6 +2602,66 @@ export type Database = {
           unread_count: number
           unread_mention_count: number
         }[]
+      }
+      issue_invoice: {
+        Args: { p_invoice_id: string }
+        Returns: {
+          bexio_invoice_id: number | null
+          bexio_sync_error: string | null
+          bexio_synced_at: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          creditor_building_no: string | null
+          creditor_country: string | null
+          creditor_iban: string | null
+          creditor_mwst_status:
+            Database["public"]["Enums"]["mwst_status"] | null
+          creditor_name: string | null
+          creditor_post_code: string | null
+          creditor_street: string | null
+          creditor_town: string | null
+          creditor_uid_digits: string | null
+          currency: string
+          customer_id: string
+          debtor_building_no: string | null
+          debtor_country: string | null
+          debtor_name: string | null
+          debtor_post_code: string | null
+          debtor_street: string | null
+          debtor_town: string | null
+          due_date: string | null
+          id: string
+          invoice_date: string | null
+          number: number | null
+          number_text: string | null
+          paid_at: string | null
+          pdf_generated_at: string | null
+          pdf_path: string | null
+          pdf_sha256: string | null
+          period_key: string | null
+          project_id: string
+          qr_payload: string | null
+          qr_spec_version: string
+          reference: string | null
+          reference_type:
+            Database["public"]["Enums"]["qr_reference_type"] | null
+          report_id: string | null
+          sent_at: string | null
+          service_date_from: string | null
+          service_date_to: string | null
+          status: Database["public"]["Enums"]["invoice_status"]
+          total_gross_rappen: number
+          total_net_rappen: number
+          total_tax_rappen: number
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "invoices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       mark_thread_read: {
         Args: { p_thread_id: string; p_up_to?: string }
@@ -1474,6 +2720,7 @@ export type Database = {
         }[]
       }
       purge_expired_messages: { Args: never; Returns: number }
+      qr_bill_payload: { Args: { p_invoice_id: string }; Returns: string }
       redeem_invite: {
         Args: { p_code: string; p_full_name?: string }
         Returns: boolean
@@ -1489,6 +2736,11 @@ export type Database = {
         }
         Returns: string
       }
+      resolve_document_link: {
+        Args: { p_token: string; p_user_agent_family?: string }
+        Returns: Json
+      }
+      revoke_document_link: { Args: { p_link_id: string }; Returns: undefined }
       search_messages: {
         Args: {
           p_before_created_at?: string
@@ -1532,17 +2784,67 @@ export type Database = {
         }
         Returns: string
       }
+      set_correction_reason: { Args: { p_reason: string }; Returns: undefined }
       settle_notification_batch: {
         Args: { p_results: Json }
         Returns: undefined
       }
+      sign_report: {
+        Args: {
+          p_report_id: string
+          p_signature_path?: string
+          p_signer_name: string
+        }
+        Returns: {
+          company_id: string
+          content_hash: string | null
+          corrects_report_id: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          doc_type: Database["public"]["Enums"]["document_type"]
+          id: string
+          number: number | null
+          number_text: string | null
+          pdf_generated_at: string | null
+          pdf_path: string | null
+          pdf_sha256: string | null
+          period_from: string | null
+          period_key: string | null
+          period_to: string | null
+          project_id: string
+          sent_at: string | null
+          signature_path: string | null
+          signed_at: string | null
+          signer_name: string | null
+          snapshot: Json | null
+          status: Database["public"]["Enums"]["report_status"]
+          summary: string | null
+          title: string | null
+          total_net_rappen: number | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "reports"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      verify_report_hash: { Args: { p_report_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "owner" | "manager" | "foreman" | "worker" | "customer"
       attachment_kind: "photo" | "voice" | "video"
+      billing_mode: "regie" | "pauschal"
       device_platform: "ios" | "web"
+      document_link_kind: "report" | "invoice"
+      document_type: "rapport" | "invoice"
+      invoice_status: "draft" | "issued" | "sent" | "paid" | "cancelled"
       message_kind: "text" | "photo" | "voice" | "video" | "system"
       message_ref_kind: "task" | "attachment"
+      mwst_status:
+        "registered_effective" | "registered_saldo" | "not_registered"
       notification_kind:
         | "chat_message"
         | "mention"
@@ -1554,7 +2856,10 @@ export type Database = {
         "pending" | "sending" | "sent" | "failed" | "skipped" | "expired"
       project_status:
         "planning" | "active" | "on_hold" | "completed" | "archived"
+      qr_reference_type: "QRR" | "SCOR" | "NON"
+      report_status: "draft" | "signed" | "sent" | "cancelled"
       task_status: "todo" | "in_progress" | "blocked" | "done" | "approved"
+      time_entry_kind: "work" | "travel" | "standby"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1681,9 +2986,18 @@ export const Constants = {
     Enums: {
       app_role: ["owner", "manager", "foreman", "worker", "customer"],
       attachment_kind: ["photo", "voice", "video"],
+      billing_mode: ["regie", "pauschal"],
       device_platform: ["ios", "web"],
+      document_link_kind: ["report", "invoice"],
+      document_type: ["rapport", "invoice"],
+      invoice_status: ["draft", "issued", "sent", "paid", "cancelled"],
       message_kind: ["text", "photo", "voice", "video", "system"],
       message_ref_kind: ["task", "attachment"],
+      mwst_status: [
+        "registered_effective",
+        "registered_saldo",
+        "not_registered",
+      ],
       notification_kind: [
         "chat_message",
         "mention",
@@ -1707,7 +3021,10 @@ export const Constants = {
         "completed",
         "archived",
       ],
+      qr_reference_type: ["QRR", "SCOR", "NON"],
+      report_status: ["draft", "signed", "sent", "cancelled"],
       task_status: ["todo", "in_progress", "blocked", "done", "approved"],
+      time_entry_kind: ["work", "travel", "standby"],
     },
   },
 } as const

@@ -14,9 +14,28 @@ public enum PublicSchema {
     case voice = "voice"
     case video = "video"
   }
+  public enum BillingMode: String, Codable, Hashable, Sendable {
+    case regie = "regie"
+    case pauschal = "pauschal"
+  }
   public enum DevicePlatform: String, Codable, Hashable, Sendable {
     case ios = "ios"
     case web = "web"
+  }
+  public enum DocumentLinkKind: String, Codable, Hashable, Sendable {
+    case report = "report"
+    case invoice = "invoice"
+  }
+  public enum DocumentType: String, Codable, Hashable, Sendable {
+    case rapport = "rapport"
+    case invoice = "invoice"
+  }
+  public enum InvoiceStatus: String, Codable, Hashable, Sendable {
+    case draft = "draft"
+    case issued = "issued"
+    case sent = "sent"
+    case paid = "paid"
+    case cancelled = "cancelled"
   }
   public enum MessageKind: String, Codable, Hashable, Sendable {
     case text = "text"
@@ -28,6 +47,11 @@ public enum PublicSchema {
   public enum MessageRefKind: String, Codable, Hashable, Sendable {
     case task = "task"
     case attachment = "attachment"
+  }
+  public enum MwstStatus: String, Codable, Hashable, Sendable {
+    case registeredEffective = "registered_effective"
+    case registeredSaldo = "registered_saldo"
+    case notRegistered = "not_registered"
   }
   public enum NotificationKind: String, Codable, Hashable, Sendable {
     case chatMessage = "chat_message"
@@ -52,12 +76,28 @@ public enum PublicSchema {
     case completed = "completed"
     case archived = "archived"
   }
+  public enum QrReferenceType: String, Codable, Hashable, Sendable {
+    case qrr = "QRR"
+    case scor = "SCOR"
+    case non = "NON"
+  }
+  public enum ReportStatus: String, Codable, Hashable, Sendable {
+    case draft = "draft"
+    case signed = "signed"
+    case sent = "sent"
+    case cancelled = "cancelled"
+  }
   public enum TaskStatus: String, Codable, Hashable, Sendable {
     case todo = "todo"
     case inProgress = "in_progress"
     case blocked = "blocked"
     case done = "done"
     case approved = "approved"
+  }
+  public enum TimeEntryKind: String, Codable, Hashable, Sendable {
+    case work = "work"
+    case travel = "travel"
+    case standby = "standby"
   }
   public struct AttachmentsSelect: Codable, Hashable, Sendable {
     public let byteSize: Int64?
@@ -69,6 +109,7 @@ public enum PublicSchema {
     public let kind: AttachmentKind
     public let messageId: UUID?
     public let mimeType: String
+    public let reportId: UUID?
     public let storageBucket: String
     public let storagePath: String
     public let taskId: UUID?
@@ -85,6 +126,7 @@ public enum PublicSchema {
       case kind = "kind"
       case messageId = "message_id"
       case mimeType = "mime_type"
+      case reportId = "report_id"
       case storageBucket = "storage_bucket"
       case storagePath = "storage_path"
       case taskId = "task_id"
@@ -103,6 +145,7 @@ public enum PublicSchema {
     public let kind: AttachmentKind
     public let messageId: UUID?
     public let mimeType: String
+    public let reportId: UUID?
     public let storageBucket: String
     public let storagePath: String
     public let taskId: UUID?
@@ -119,6 +162,7 @@ public enum PublicSchema {
       case kind = "kind"
       case messageId = "message_id"
       case mimeType = "mime_type"
+      case reportId = "report_id"
       case storageBucket = "storage_bucket"
       case storagePath = "storage_path"
       case taskId = "task_id"
@@ -137,6 +181,7 @@ public enum PublicSchema {
     public let kind: AttachmentKind?
     public let messageId: UUID?
     public let mimeType: String?
+    public let reportId: UUID?
     public let storageBucket: String?
     public let storagePath: String?
     public let taskId: UUID?
@@ -153,6 +198,7 @@ public enum PublicSchema {
       case kind = "kind"
       case messageId = "message_id"
       case mimeType = "mime_type"
+      case reportId = "report_id"
       case storageBucket = "storage_bucket"
       case storagePath = "storage_path"
       case taskId = "task_id"
@@ -189,6 +235,228 @@ public enum PublicSchema {
       case createdAt = "created_at"
       case id = "id"
       case name = "name"
+    }
+  }
+  public struct CompanyBillingSettingsSelect: Codable, Hashable, Sendable {
+    public let companyId: UUID
+    public let createdAt: String
+    public let creditorBuildingNo: String?
+    public let creditorCountry: String
+    public let creditorName: String
+    public let creditorPostCode: String
+    public let creditorStreet: String?
+    public let creditorTown: String
+    public let defaultHourlyRateRappen: Int64
+    public let defaultMwstRateBp: Int32
+    public let iban: String?
+    public let logoPath: String?
+    public let mwstStatus: MwstStatus
+    public let paymentTermsDays: Int32
+    public let saldoRateBp: Int32?
+    public let showPricesOnRapport: Bool
+    public let uidDigits: String?
+    public let updatedAt: String
+    public enum CodingKeys: String, CodingKey {
+      case companyId = "company_id"
+      case createdAt = "created_at"
+      case creditorBuildingNo = "creditor_building_no"
+      case creditorCountry = "creditor_country"
+      case creditorName = "creditor_name"
+      case creditorPostCode = "creditor_post_code"
+      case creditorStreet = "creditor_street"
+      case creditorTown = "creditor_town"
+      case defaultHourlyRateRappen = "default_hourly_rate_rappen"
+      case defaultMwstRateBp = "default_mwst_rate_bp"
+      case iban = "iban"
+      case logoPath = "logo_path"
+      case mwstStatus = "mwst_status"
+      case paymentTermsDays = "payment_terms_days"
+      case saldoRateBp = "saldo_rate_bp"
+      case showPricesOnRapport = "show_prices_on_rapport"
+      case uidDigits = "uid_digits"
+      case updatedAt = "updated_at"
+    }
+  }
+  public struct CompanyBillingSettingsInsert: Codable, Hashable, Sendable {
+    public let companyId: UUID
+    public let createdAt: String?
+    public let creditorBuildingNo: String?
+    public let creditorCountry: String?
+    public let creditorName: String
+    public let creditorPostCode: String
+    public let creditorStreet: String?
+    public let creditorTown: String
+    public let defaultHourlyRateRappen: Int64?
+    public let defaultMwstRateBp: Int32?
+    public let iban: String?
+    public let logoPath: String?
+    public let mwstStatus: MwstStatus?
+    public let paymentTermsDays: Int32?
+    public let saldoRateBp: Int32?
+    public let showPricesOnRapport: Bool?
+    public let uidDigits: String?
+    public let updatedAt: String?
+    public enum CodingKeys: String, CodingKey {
+      case companyId = "company_id"
+      case createdAt = "created_at"
+      case creditorBuildingNo = "creditor_building_no"
+      case creditorCountry = "creditor_country"
+      case creditorName = "creditor_name"
+      case creditorPostCode = "creditor_post_code"
+      case creditorStreet = "creditor_street"
+      case creditorTown = "creditor_town"
+      case defaultHourlyRateRappen = "default_hourly_rate_rappen"
+      case defaultMwstRateBp = "default_mwst_rate_bp"
+      case iban = "iban"
+      case logoPath = "logo_path"
+      case mwstStatus = "mwst_status"
+      case paymentTermsDays = "payment_terms_days"
+      case saldoRateBp = "saldo_rate_bp"
+      case showPricesOnRapport = "show_prices_on_rapport"
+      case uidDigits = "uid_digits"
+      case updatedAt = "updated_at"
+    }
+  }
+  public struct CompanyBillingSettingsUpdate: Codable, Hashable, Sendable {
+    public let companyId: UUID?
+    public let createdAt: String?
+    public let creditorBuildingNo: String?
+    public let creditorCountry: String?
+    public let creditorName: String?
+    public let creditorPostCode: String?
+    public let creditorStreet: String?
+    public let creditorTown: String?
+    public let defaultHourlyRateRappen: Int64?
+    public let defaultMwstRateBp: Int32?
+    public let iban: String?
+    public let logoPath: String?
+    public let mwstStatus: MwstStatus?
+    public let paymentTermsDays: Int32?
+    public let saldoRateBp: Int32?
+    public let showPricesOnRapport: Bool?
+    public let uidDigits: String?
+    public let updatedAt: String?
+    public enum CodingKeys: String, CodingKey {
+      case companyId = "company_id"
+      case createdAt = "created_at"
+      case creditorBuildingNo = "creditor_building_no"
+      case creditorCountry = "creditor_country"
+      case creditorName = "creditor_name"
+      case creditorPostCode = "creditor_post_code"
+      case creditorStreet = "creditor_street"
+      case creditorTown = "creditor_town"
+      case defaultHourlyRateRappen = "default_hourly_rate_rappen"
+      case defaultMwstRateBp = "default_mwst_rate_bp"
+      case iban = "iban"
+      case logoPath = "logo_path"
+      case mwstStatus = "mwst_status"
+      case paymentTermsDays = "payment_terms_days"
+      case saldoRateBp = "saldo_rate_bp"
+      case showPricesOnRapport = "show_prices_on_rapport"
+      case uidDigits = "uid_digits"
+      case updatedAt = "updated_at"
+    }
+  }
+  public struct CustomersSelect: Codable, Hashable, Sendable {
+    public let bexioContactId: Int64?
+    public let buildingNo: String?
+    public let companyId: UUID
+    public let country: String?
+    public let createdAt: String
+    public let createdBy: UUID?
+    public let email: String?
+    public let id: UUID
+    public let name: String
+    public let notes: String?
+    public let phone: String?
+    public let postCode: String?
+    public let street: String?
+    public let town: String?
+    public let updatedAt: String
+    public enum CodingKeys: String, CodingKey {
+      case bexioContactId = "bexio_contact_id"
+      case buildingNo = "building_no"
+      case companyId = "company_id"
+      case country = "country"
+      case createdAt = "created_at"
+      case createdBy = "created_by"
+      case email = "email"
+      case id = "id"
+      case name = "name"
+      case notes = "notes"
+      case phone = "phone"
+      case postCode = "post_code"
+      case street = "street"
+      case town = "town"
+      case updatedAt = "updated_at"
+    }
+  }
+  public struct CustomersInsert: Codable, Hashable, Sendable {
+    public let bexioContactId: Int64?
+    public let buildingNo: String?
+    public let companyId: UUID
+    public let country: String?
+    public let createdAt: String?
+    public let createdBy: UUID?
+    public let email: String?
+    public let id: UUID?
+    public let name: String
+    public let notes: String?
+    public let phone: String?
+    public let postCode: String?
+    public let street: String?
+    public let town: String?
+    public let updatedAt: String?
+    public enum CodingKeys: String, CodingKey {
+      case bexioContactId = "bexio_contact_id"
+      case buildingNo = "building_no"
+      case companyId = "company_id"
+      case country = "country"
+      case createdAt = "created_at"
+      case createdBy = "created_by"
+      case email = "email"
+      case id = "id"
+      case name = "name"
+      case notes = "notes"
+      case phone = "phone"
+      case postCode = "post_code"
+      case street = "street"
+      case town = "town"
+      case updatedAt = "updated_at"
+    }
+  }
+  public struct CustomersUpdate: Codable, Hashable, Sendable {
+    public let bexioContactId: Int64?
+    public let buildingNo: String?
+    public let companyId: UUID?
+    public let country: String?
+    public let createdAt: String?
+    public let createdBy: UUID?
+    public let email: String?
+    public let id: UUID?
+    public let name: String?
+    public let notes: String?
+    public let phone: String?
+    public let postCode: String?
+    public let street: String?
+    public let town: String?
+    public let updatedAt: String?
+    public enum CodingKeys: String, CodingKey {
+      case bexioContactId = "bexio_contact_id"
+      case buildingNo = "building_no"
+      case companyId = "company_id"
+      case country = "country"
+      case createdAt = "created_at"
+      case createdBy = "created_by"
+      case email = "email"
+      case id = "id"
+      case name = "name"
+      case notes = "notes"
+      case phone = "phone"
+      case postCode = "post_code"
+      case street = "street"
+      case town = "town"
+      case updatedAt = "updated_at"
     }
   }
   public struct DevicesSelect: Codable, Hashable, Sendable {
@@ -269,6 +537,126 @@ public enum PublicSchema {
       case updatedAt = "updated_at"
     }
   }
+  public struct DocumentLinkViewsSelect: Codable, Hashable, Sendable {
+    public let id: Int64
+    public let linkId: UUID
+    public let userAgentFamily: String?
+    public let viewedAt: String
+    public enum CodingKeys: String, CodingKey {
+      case id = "id"
+      case linkId = "link_id"
+      case userAgentFamily = "user_agent_family"
+      case viewedAt = "viewed_at"
+    }
+  }
+  public struct DocumentLinkViewsInsert: Codable, Hashable, Sendable {
+    public let id: Int64?
+    public let linkId: UUID
+    public let userAgentFamily: String?
+    public let viewedAt: String?
+    public enum CodingKeys: String, CodingKey {
+      case id = "id"
+      case linkId = "link_id"
+      case userAgentFamily = "user_agent_family"
+      case viewedAt = "viewed_at"
+    }
+  }
+  public struct DocumentLinkViewsUpdate: Codable, Hashable, Sendable {
+    public let id: Int64?
+    public let linkId: UUID?
+    public let userAgentFamily: String?
+    public let viewedAt: String?
+    public enum CodingKeys: String, CodingKey {
+      case id = "id"
+      case linkId = "link_id"
+      case userAgentFamily = "user_agent_family"
+      case viewedAt = "viewed_at"
+    }
+  }
+  public struct DocumentLinksSelect: Codable, Hashable, Sendable {
+    public let companyId: UUID
+    public let createdAt: String
+    public let createdBy: UUID?
+    public let expiresAt: String
+    public let id: UUID
+    public let invoiceId: UUID?
+    public let kind: DocumentLinkKind
+    public let lastViewedAt: String?
+    public let reportId: UUID?
+    public let revokedAt: String?
+    public let tokenHash: String
+    public let viewCount: Int32
+    public enum CodingKeys: String, CodingKey {
+      case companyId = "company_id"
+      case createdAt = "created_at"
+      case createdBy = "created_by"
+      case expiresAt = "expires_at"
+      case id = "id"
+      case invoiceId = "invoice_id"
+      case kind = "kind"
+      case lastViewedAt = "last_viewed_at"
+      case reportId = "report_id"
+      case revokedAt = "revoked_at"
+      case tokenHash = "token_hash"
+      case viewCount = "view_count"
+    }
+  }
+  public struct DocumentLinksInsert: Codable, Hashable, Sendable {
+    public let companyId: UUID
+    public let createdAt: String?
+    public let createdBy: UUID?
+    public let expiresAt: String
+    public let id: UUID?
+    public let invoiceId: UUID?
+    public let kind: DocumentLinkKind
+    public let lastViewedAt: String?
+    public let reportId: UUID?
+    public let revokedAt: String?
+    public let tokenHash: String
+    public let viewCount: Int32?
+    public enum CodingKeys: String, CodingKey {
+      case companyId = "company_id"
+      case createdAt = "created_at"
+      case createdBy = "created_by"
+      case expiresAt = "expires_at"
+      case id = "id"
+      case invoiceId = "invoice_id"
+      case kind = "kind"
+      case lastViewedAt = "last_viewed_at"
+      case reportId = "report_id"
+      case revokedAt = "revoked_at"
+      case tokenHash = "token_hash"
+      case viewCount = "view_count"
+    }
+  }
+  public struct DocumentLinksUpdate: Codable, Hashable, Sendable {
+    public let companyId: UUID?
+    public let createdAt: String?
+    public let createdBy: UUID?
+    public let expiresAt: String?
+    public let id: UUID?
+    public let invoiceId: UUID?
+    public let kind: DocumentLinkKind?
+    public let lastViewedAt: String?
+    public let reportId: UUID?
+    public let revokedAt: String?
+    public let tokenHash: String?
+    public let viewCount: Int32?
+    public enum CodingKeys: String, CodingKey {
+      case companyId = "company_id"
+      case createdAt = "created_at"
+      case createdBy = "created_by"
+      case expiresAt = "expires_at"
+      case id = "id"
+      case invoiceId = "invoice_id"
+      case kind = "kind"
+      case lastViewedAt = "last_viewed_at"
+      case reportId = "report_id"
+      case revokedAt = "revoked_at"
+      case tokenHash = "token_hash"
+      case viewCount = "view_count"
+    }
+  }
   public struct InvitesSelect: Codable, Hashable, Sendable {
     public let code: String
     public let companyId: UUID
@@ -345,6 +733,486 @@ public enum PublicSchema {
       case redeemedAt = "redeemed_at"
       case redeemedBy = "redeemed_by"
       case role = "role"
+    }
+  }
+  public struct InvoiceLinesSelect: Codable, Hashable, Sendable {
+    public let description: String
+    public let id: UUID
+    public let invoiceId: UUID
+    public let mwstRateBp: Int32
+    public let netRappen: Int64
+    public let quantityMilli: Int64
+    public let serviceDate: String?
+    public let sortOrder: Int32
+    public let unit: String
+    public let unitPriceRappen: Int64
+    public enum CodingKeys: String, CodingKey {
+      case description = "description"
+      case id = "id"
+      case invoiceId = "invoice_id"
+      case mwstRateBp = "mwst_rate_bp"
+      case netRappen = "net_rappen"
+      case quantityMilli = "quantity_milli"
+      case serviceDate = "service_date"
+      case sortOrder = "sort_order"
+      case unit = "unit"
+      case unitPriceRappen = "unit_price_rappen"
+    }
+  }
+  public struct InvoiceLinesInsert: Codable, Hashable, Sendable {
+    public let description: String
+    public let id: UUID?
+    public let invoiceId: UUID
+    public let mwstRateBp: Int32?
+    public let netRappen: Int64?
+    public let quantityMilli: Int64?
+    public let serviceDate: String?
+    public let sortOrder: Int32?
+    public let unit: String?
+    public let unitPriceRappen: Int64?
+    public enum CodingKeys: String, CodingKey {
+      case description = "description"
+      case id = "id"
+      case invoiceId = "invoice_id"
+      case mwstRateBp = "mwst_rate_bp"
+      case netRappen = "net_rappen"
+      case quantityMilli = "quantity_milli"
+      case serviceDate = "service_date"
+      case sortOrder = "sort_order"
+      case unit = "unit"
+      case unitPriceRappen = "unit_price_rappen"
+    }
+  }
+  public struct InvoiceLinesUpdate: Codable, Hashable, Sendable {
+    public let description: String?
+    public let id: UUID?
+    public let invoiceId: UUID?
+    public let mwstRateBp: Int32?
+    public let netRappen: Int64?
+    public let quantityMilli: Int64?
+    public let serviceDate: String?
+    public let sortOrder: Int32?
+    public let unit: String?
+    public let unitPriceRappen: Int64?
+    public enum CodingKeys: String, CodingKey {
+      case description = "description"
+      case id = "id"
+      case invoiceId = "invoice_id"
+      case mwstRateBp = "mwst_rate_bp"
+      case netRappen = "net_rappen"
+      case quantityMilli = "quantity_milli"
+      case serviceDate = "service_date"
+      case sortOrder = "sort_order"
+      case unit = "unit"
+      case unitPriceRappen = "unit_price_rappen"
+    }
+  }
+  public struct InvoiceTaxGroupsSelect: Codable, Hashable, Sendable {
+    public let invoiceId: UUID
+    public let netRappen: Int64
+    public let rateBp: Int32
+    public let taxRappen: Int64
+    public enum CodingKeys: String, CodingKey {
+      case invoiceId = "invoice_id"
+      case netRappen = "net_rappen"
+      case rateBp = "rate_bp"
+      case taxRappen = "tax_rappen"
+    }
+  }
+  public struct InvoiceTaxGroupsInsert: Codable, Hashable, Sendable {
+    public let invoiceId: UUID
+    public let netRappen: Int64
+    public let rateBp: Int32
+    public let taxRappen: Int64
+    public enum CodingKeys: String, CodingKey {
+      case invoiceId = "invoice_id"
+      case netRappen = "net_rappen"
+      case rateBp = "rate_bp"
+      case taxRappen = "tax_rappen"
+    }
+  }
+  public struct InvoiceTaxGroupsUpdate: Codable, Hashable, Sendable {
+    public let invoiceId: UUID?
+    public let netRappen: Int64?
+    public let rateBp: Int32?
+    public let taxRappen: Int64?
+    public enum CodingKeys: String, CodingKey {
+      case invoiceId = "invoice_id"
+      case netRappen = "net_rappen"
+      case rateBp = "rate_bp"
+      case taxRappen = "tax_rappen"
+    }
+  }
+  public struct InvoicesSelect: Codable, Hashable, Sendable {
+    public let bexioInvoiceId: Int64?
+    public let bexioSyncError: String?
+    public let bexioSyncedAt: String?
+    public let companyId: UUID
+    public let createdAt: String
+    public let createdBy: UUID?
+    public let creditorBuildingNo: String?
+    public let creditorCountry: String?
+    public let creditorIban: String?
+    public let creditorMwstStatus: MwstStatus?
+    public let creditorName: String?
+    public let creditorPostCode: String?
+    public let creditorStreet: String?
+    public let creditorTown: String?
+    public let creditorUidDigits: String?
+    public let currency: String
+    public let customerId: UUID
+    public let debtorBuildingNo: String?
+    public let debtorCountry: String?
+    public let debtorName: String?
+    public let debtorPostCode: String?
+    public let debtorStreet: String?
+    public let debtorTown: String?
+    public let dueDate: String?
+    public let id: UUID
+    public let invoiceDate: String?
+    public let number: Int64?
+    public let numberText: String?
+    public let paidAt: String?
+    public let pdfGeneratedAt: String?
+    public let pdfPath: String?
+    public let pdfSha256: String?
+    public let periodKey: String?
+    public let projectId: UUID
+    public let qrPayload: String?
+    public let qrSpecVersion: String
+    public let reference: String?
+    public let referenceType: QrReferenceType?
+    public let reportId: UUID?
+    public let sentAt: String?
+    public let serviceDateFrom: String?
+    public let serviceDateTo: String?
+    public let status: InvoiceStatus
+    public let totalGrossRappen: Int64
+    public let totalNetRappen: Int64
+    public let totalTaxRappen: Int64
+    public let updatedAt: String
+    public enum CodingKeys: String, CodingKey {
+      case bexioInvoiceId = "bexio_invoice_id"
+      case bexioSyncError = "bexio_sync_error"
+      case bexioSyncedAt = "bexio_synced_at"
+      case companyId = "company_id"
+      case createdAt = "created_at"
+      case createdBy = "created_by"
+      case creditorBuildingNo = "creditor_building_no"
+      case creditorCountry = "creditor_country"
+      case creditorIban = "creditor_iban"
+      case creditorMwstStatus = "creditor_mwst_status"
+      case creditorName = "creditor_name"
+      case creditorPostCode = "creditor_post_code"
+      case creditorStreet = "creditor_street"
+      case creditorTown = "creditor_town"
+      case creditorUidDigits = "creditor_uid_digits"
+      case currency = "currency"
+      case customerId = "customer_id"
+      case debtorBuildingNo = "debtor_building_no"
+      case debtorCountry = "debtor_country"
+      case debtorName = "debtor_name"
+      case debtorPostCode = "debtor_post_code"
+      case debtorStreet = "debtor_street"
+      case debtorTown = "debtor_town"
+      case dueDate = "due_date"
+      case id = "id"
+      case invoiceDate = "invoice_date"
+      case number = "number"
+      case numberText = "number_text"
+      case paidAt = "paid_at"
+      case pdfGeneratedAt = "pdf_generated_at"
+      case pdfPath = "pdf_path"
+      case pdfSha256 = "pdf_sha256"
+      case periodKey = "period_key"
+      case projectId = "project_id"
+      case qrPayload = "qr_payload"
+      case qrSpecVersion = "qr_spec_version"
+      case reference = "reference"
+      case referenceType = "reference_type"
+      case reportId = "report_id"
+      case sentAt = "sent_at"
+      case serviceDateFrom = "service_date_from"
+      case serviceDateTo = "service_date_to"
+      case status = "status"
+      case totalGrossRappen = "total_gross_rappen"
+      case totalNetRappen = "total_net_rappen"
+      case totalTaxRappen = "total_tax_rappen"
+      case updatedAt = "updated_at"
+    }
+  }
+  public struct InvoicesInsert: Codable, Hashable, Sendable {
+    public let bexioInvoiceId: Int64?
+    public let bexioSyncError: String?
+    public let bexioSyncedAt: String?
+    public let companyId: UUID
+    public let createdAt: String?
+    public let createdBy: UUID?
+    public let creditorBuildingNo: String?
+    public let creditorCountry: String?
+    public let creditorIban: String?
+    public let creditorMwstStatus: MwstStatus?
+    public let creditorName: String?
+    public let creditorPostCode: String?
+    public let creditorStreet: String?
+    public let creditorTown: String?
+    public let creditorUidDigits: String?
+    public let currency: String?
+    public let customerId: UUID
+    public let debtorBuildingNo: String?
+    public let debtorCountry: String?
+    public let debtorName: String?
+    public let debtorPostCode: String?
+    public let debtorStreet: String?
+    public let debtorTown: String?
+    public let dueDate: String?
+    public let id: UUID?
+    public let invoiceDate: String?
+    public let number: Int64?
+    public let numberText: String?
+    public let paidAt: String?
+    public let pdfGeneratedAt: String?
+    public let pdfPath: String?
+    public let pdfSha256: String?
+    public let periodKey: String?
+    public let projectId: UUID
+    public let qrPayload: String?
+    public let qrSpecVersion: String?
+    public let reference: String?
+    public let referenceType: QrReferenceType?
+    public let reportId: UUID?
+    public let sentAt: String?
+    public let serviceDateFrom: String?
+    public let serviceDateTo: String?
+    public let status: InvoiceStatus?
+    public let totalGrossRappen: Int64?
+    public let totalNetRappen: Int64?
+    public let totalTaxRappen: Int64?
+    public let updatedAt: String?
+    public enum CodingKeys: String, CodingKey {
+      case bexioInvoiceId = "bexio_invoice_id"
+      case bexioSyncError = "bexio_sync_error"
+      case bexioSyncedAt = "bexio_synced_at"
+      case companyId = "company_id"
+      case createdAt = "created_at"
+      case createdBy = "created_by"
+      case creditorBuildingNo = "creditor_building_no"
+      case creditorCountry = "creditor_country"
+      case creditorIban = "creditor_iban"
+      case creditorMwstStatus = "creditor_mwst_status"
+      case creditorName = "creditor_name"
+      case creditorPostCode = "creditor_post_code"
+      case creditorStreet = "creditor_street"
+      case creditorTown = "creditor_town"
+      case creditorUidDigits = "creditor_uid_digits"
+      case currency = "currency"
+      case customerId = "customer_id"
+      case debtorBuildingNo = "debtor_building_no"
+      case debtorCountry = "debtor_country"
+      case debtorName = "debtor_name"
+      case debtorPostCode = "debtor_post_code"
+      case debtorStreet = "debtor_street"
+      case debtorTown = "debtor_town"
+      case dueDate = "due_date"
+      case id = "id"
+      case invoiceDate = "invoice_date"
+      case number = "number"
+      case numberText = "number_text"
+      case paidAt = "paid_at"
+      case pdfGeneratedAt = "pdf_generated_at"
+      case pdfPath = "pdf_path"
+      case pdfSha256 = "pdf_sha256"
+      case periodKey = "period_key"
+      case projectId = "project_id"
+      case qrPayload = "qr_payload"
+      case qrSpecVersion = "qr_spec_version"
+      case reference = "reference"
+      case referenceType = "reference_type"
+      case reportId = "report_id"
+      case sentAt = "sent_at"
+      case serviceDateFrom = "service_date_from"
+      case serviceDateTo = "service_date_to"
+      case status = "status"
+      case totalGrossRappen = "total_gross_rappen"
+      case totalNetRappen = "total_net_rappen"
+      case totalTaxRappen = "total_tax_rappen"
+      case updatedAt = "updated_at"
+    }
+  }
+  public struct InvoicesUpdate: Codable, Hashable, Sendable {
+    public let bexioInvoiceId: Int64?
+    public let bexioSyncError: String?
+    public let bexioSyncedAt: String?
+    public let companyId: UUID?
+    public let createdAt: String?
+    public let createdBy: UUID?
+    public let creditorBuildingNo: String?
+    public let creditorCountry: String?
+    public let creditorIban: String?
+    public let creditorMwstStatus: MwstStatus?
+    public let creditorName: String?
+    public let creditorPostCode: String?
+    public let creditorStreet: String?
+    public let creditorTown: String?
+    public let creditorUidDigits: String?
+    public let currency: String?
+    public let customerId: UUID?
+    public let debtorBuildingNo: String?
+    public let debtorCountry: String?
+    public let debtorName: String?
+    public let debtorPostCode: String?
+    public let debtorStreet: String?
+    public let debtorTown: String?
+    public let dueDate: String?
+    public let id: UUID?
+    public let invoiceDate: String?
+    public let number: Int64?
+    public let numberText: String?
+    public let paidAt: String?
+    public let pdfGeneratedAt: String?
+    public let pdfPath: String?
+    public let pdfSha256: String?
+    public let periodKey: String?
+    public let projectId: UUID?
+    public let qrPayload: String?
+    public let qrSpecVersion: String?
+    public let reference: String?
+    public let referenceType: QrReferenceType?
+    public let reportId: UUID?
+    public let sentAt: String?
+    public let serviceDateFrom: String?
+    public let serviceDateTo: String?
+    public let status: InvoiceStatus?
+    public let totalGrossRappen: Int64?
+    public let totalNetRappen: Int64?
+    public let totalTaxRappen: Int64?
+    public let updatedAt: String?
+    public enum CodingKeys: String, CodingKey {
+      case bexioInvoiceId = "bexio_invoice_id"
+      case bexioSyncError = "bexio_sync_error"
+      case bexioSyncedAt = "bexio_synced_at"
+      case companyId = "company_id"
+      case createdAt = "created_at"
+      case createdBy = "created_by"
+      case creditorBuildingNo = "creditor_building_no"
+      case creditorCountry = "creditor_country"
+      case creditorIban = "creditor_iban"
+      case creditorMwstStatus = "creditor_mwst_status"
+      case creditorName = "creditor_name"
+      case creditorPostCode = "creditor_post_code"
+      case creditorStreet = "creditor_street"
+      case creditorTown = "creditor_town"
+      case creditorUidDigits = "creditor_uid_digits"
+      case currency = "currency"
+      case customerId = "customer_id"
+      case debtorBuildingNo = "debtor_building_no"
+      case debtorCountry = "debtor_country"
+      case debtorName = "debtor_name"
+      case debtorPostCode = "debtor_post_code"
+      case debtorStreet = "debtor_street"
+      case debtorTown = "debtor_town"
+      case dueDate = "due_date"
+      case id = "id"
+      case invoiceDate = "invoice_date"
+      case number = "number"
+      case numberText = "number_text"
+      case paidAt = "paid_at"
+      case pdfGeneratedAt = "pdf_generated_at"
+      case pdfPath = "pdf_path"
+      case pdfSha256 = "pdf_sha256"
+      case periodKey = "period_key"
+      case projectId = "project_id"
+      case qrPayload = "qr_payload"
+      case qrSpecVersion = "qr_spec_version"
+      case reference = "reference"
+      case referenceType = "reference_type"
+      case reportId = "report_id"
+      case sentAt = "sent_at"
+      case serviceDateFrom = "service_date_from"
+      case serviceDateTo = "service_date_to"
+      case status = "status"
+      case totalGrossRappen = "total_gross_rappen"
+      case totalNetRappen = "total_net_rappen"
+      case totalTaxRappen = "total_tax_rappen"
+      case updatedAt = "updated_at"
+    }
+  }
+  public struct MaterialLinesSelect: Codable, Hashable, Sendable {
+    public let companyId: UUID
+    public let createdAt: String
+    public let description: String
+    public let id: UUID
+    public let projectId: UUID
+    public let quantityMilli: Int64
+    public let recordedBy: UUID?
+    public let taskId: UUID?
+    public let unit: String
+    public let unitPriceRappen: Int64
+    public let updatedAt: String
+    public enum CodingKeys: String, CodingKey {
+      case companyId = "company_id"
+      case createdAt = "created_at"
+      case description = "description"
+      case id = "id"
+      case projectId = "project_id"
+      case quantityMilli = "quantity_milli"
+      case recordedBy = "recorded_by"
+      case taskId = "task_id"
+      case unit = "unit"
+      case unitPriceRappen = "unit_price_rappen"
+      case updatedAt = "updated_at"
+    }
+  }
+  public struct MaterialLinesInsert: Codable, Hashable, Sendable {
+    public let companyId: UUID
+    public let createdAt: String?
+    public let description: String
+    public let id: UUID?
+    public let projectId: UUID
+    public let quantityMilli: Int64
+    public let recordedBy: UUID?
+    public let taskId: UUID?
+    public let unit: String?
+    public let unitPriceRappen: Int64?
+    public let updatedAt: String?
+    public enum CodingKeys: String, CodingKey {
+      case companyId = "company_id"
+      case createdAt = "created_at"
+      case description = "description"
+      case id = "id"
+      case projectId = "project_id"
+      case quantityMilli = "quantity_milli"
+      case recordedBy = "recorded_by"
+      case taskId = "task_id"
+      case unit = "unit"
+      case unitPriceRappen = "unit_price_rappen"
+      case updatedAt = "updated_at"
+    }
+  }
+  public struct MaterialLinesUpdate: Codable, Hashable, Sendable {
+    public let companyId: UUID?
+    public let createdAt: String?
+    public let description: String?
+    public let id: UUID?
+    public let projectId: UUID?
+    public let quantityMilli: Int64?
+    public let recordedBy: UUID?
+    public let taskId: UUID?
+    public let unit: String?
+    public let unitPriceRappen: Int64?
+    public let updatedAt: String?
+    public enum CodingKeys: String, CodingKey {
+      case companyId = "company_id"
+      case createdAt = "created_at"
+      case description = "description"
+      case id = "id"
+      case projectId = "project_id"
+      case quantityMilli = "quantity_milli"
+      case recordedBy = "recorded_by"
+      case taskId = "task_id"
+      case unit = "unit"
+      case unitPriceRappen = "unit_price_rappen"
+      case updatedAt = "updated_at"
     }
   }
   public struct MediaDeletionQueueSelect: Codable, Hashable, Sendable, Identifiable {
@@ -1081,11 +1949,13 @@ public enum PublicSchema {
   }
   public struct ProjectsSelect: Codable, Hashable, Sendable {
     public let address: String?
+    public let billingMode: BillingMode
     public let companyId: UUID
     public let coverPhotoPath: String?
     public let createdAt: String
     public let createdBy: UUID?
     public let customerDisplayName: String?
+    public let customerId: UUID?
     public let description: String?
     public let id: UUID
     public let name: String
@@ -1093,11 +1963,13 @@ public enum PublicSchema {
     public let updatedAt: String
     public enum CodingKeys: String, CodingKey {
       case address = "address"
+      case billingMode = "billing_mode"
       case companyId = "company_id"
       case coverPhotoPath = "cover_photo_path"
       case createdAt = "created_at"
       case createdBy = "created_by"
       case customerDisplayName = "customer_display_name"
+      case customerId = "customer_id"
       case description = "description"
       case id = "id"
       case name = "name"
@@ -1107,11 +1979,13 @@ public enum PublicSchema {
   }
   public struct ProjectsInsert: Codable, Hashable, Sendable {
     public let address: String?
+    public let billingMode: BillingMode?
     public let companyId: UUID
     public let coverPhotoPath: String?
     public let createdAt: String?
     public let createdBy: UUID?
     public let customerDisplayName: String?
+    public let customerId: UUID?
     public let description: String?
     public let id: UUID?
     public let name: String
@@ -1119,11 +1993,13 @@ public enum PublicSchema {
     public let updatedAt: String?
     public enum CodingKeys: String, CodingKey {
       case address = "address"
+      case billingMode = "billing_mode"
       case companyId = "company_id"
       case coverPhotoPath = "cover_photo_path"
       case createdAt = "created_at"
       case createdBy = "created_by"
       case customerDisplayName = "customer_display_name"
+      case customerId = "customer_id"
       case description = "description"
       case id = "id"
       case name = "name"
@@ -1133,11 +2009,13 @@ public enum PublicSchema {
   }
   public struct ProjectsUpdate: Codable, Hashable, Sendable {
     public let address: String?
+    public let billingMode: BillingMode?
     public let companyId: UUID?
     public let coverPhotoPath: String?
     public let createdAt: String?
     public let createdBy: UUID?
     public let customerDisplayName: String?
+    public let customerId: UUID?
     public let description: String?
     public let id: UUID?
     public let name: String?
@@ -1145,15 +2023,359 @@ public enum PublicSchema {
     public let updatedAt: String?
     public enum CodingKeys: String, CodingKey {
       case address = "address"
+      case billingMode = "billing_mode"
       case companyId = "company_id"
       case coverPhotoPath = "cover_photo_path"
       case createdAt = "created_at"
       case createdBy = "created_by"
       case customerDisplayName = "customer_display_name"
+      case customerId = "customer_id"
       case description = "description"
       case id = "id"
       case name = "name"
       case status = "status"
+      case updatedAt = "updated_at"
+    }
+  }
+  public struct ReportMaterialLinesSelect: Codable, Hashable, Sendable {
+    public let description: String
+    public let id: UUID
+    public let materialLineId: UUID?
+    public let quantityMilli: Int64
+    public let reportId: UUID
+    public let sortOrder: Int32
+    public let unit: String
+    public let unitPriceRappen: Int64
+    public enum CodingKeys: String, CodingKey {
+      case description = "description"
+      case id = "id"
+      case materialLineId = "material_line_id"
+      case quantityMilli = "quantity_milli"
+      case reportId = "report_id"
+      case sortOrder = "sort_order"
+      case unit = "unit"
+      case unitPriceRappen = "unit_price_rappen"
+    }
+  }
+  public struct ReportMaterialLinesInsert: Codable, Hashable, Sendable {
+    public let description: String
+    public let id: UUID?
+    public let materialLineId: UUID?
+    public let quantityMilli: Int64
+    public let reportId: UUID
+    public let sortOrder: Int32?
+    public let unit: String?
+    public let unitPriceRappen: Int64?
+    public enum CodingKeys: String, CodingKey {
+      case description = "description"
+      case id = "id"
+      case materialLineId = "material_line_id"
+      case quantityMilli = "quantity_milli"
+      case reportId = "report_id"
+      case sortOrder = "sort_order"
+      case unit = "unit"
+      case unitPriceRappen = "unit_price_rappen"
+    }
+  }
+  public struct ReportMaterialLinesUpdate: Codable, Hashable, Sendable {
+    public let description: String?
+    public let id: UUID?
+    public let materialLineId: UUID?
+    public let quantityMilli: Int64?
+    public let reportId: UUID?
+    public let sortOrder: Int32?
+    public let unit: String?
+    public let unitPriceRappen: Int64?
+    public enum CodingKeys: String, CodingKey {
+      case description = "description"
+      case id = "id"
+      case materialLineId = "material_line_id"
+      case quantityMilli = "quantity_milli"
+      case reportId = "report_id"
+      case sortOrder = "sort_order"
+      case unit = "unit"
+      case unitPriceRappen = "unit_price_rappen"
+    }
+  }
+  public struct ReportPhotosSelect: Codable, Hashable, Sendable {
+    public let attachmentId: UUID
+    public let reportId: UUID
+    public let sortOrder: Int32
+    public enum CodingKeys: String, CodingKey {
+      case attachmentId = "attachment_id"
+      case reportId = "report_id"
+      case sortOrder = "sort_order"
+    }
+  }
+  public struct ReportPhotosInsert: Codable, Hashable, Sendable {
+    public let attachmentId: UUID
+    public let reportId: UUID
+    public let sortOrder: Int32?
+    public enum CodingKeys: String, CodingKey {
+      case attachmentId = "attachment_id"
+      case reportId = "report_id"
+      case sortOrder = "sort_order"
+    }
+  }
+  public struct ReportPhotosUpdate: Codable, Hashable, Sendable {
+    public let attachmentId: UUID?
+    public let reportId: UUID?
+    public let sortOrder: Int32?
+    public enum CodingKeys: String, CodingKey {
+      case attachmentId = "attachment_id"
+      case reportId = "report_id"
+      case sortOrder = "sort_order"
+    }
+  }
+  public struct ReportTimeLinesSelect: Codable, Hashable, Sendable {
+    public let description: String?
+    public let id: UUID
+    public let minutes: Int32
+    public let performedByName: String?
+    public let performedOn: String
+    public let profileId: UUID?
+    public let rateRappen: Int64
+    public let reportId: UUID
+    public let sortOrder: Int32
+    public let sourceRevision: Int32?
+    public let timeEntryId: UUID?
+    public enum CodingKeys: String, CodingKey {
+      case description = "description"
+      case id = "id"
+      case minutes = "minutes"
+      case performedByName = "performed_by_name"
+      case performedOn = "performed_on"
+      case profileId = "profile_id"
+      case rateRappen = "rate_rappen"
+      case reportId = "report_id"
+      case sortOrder = "sort_order"
+      case sourceRevision = "source_revision"
+      case timeEntryId = "time_entry_id"
+    }
+  }
+  public struct ReportTimeLinesInsert: Codable, Hashable, Sendable {
+    public let description: String?
+    public let id: UUID?
+    public let minutes: Int32
+    public let performedByName: String?
+    public let performedOn: String
+    public let profileId: UUID?
+    public let rateRappen: Int64?
+    public let reportId: UUID
+    public let sortOrder: Int32?
+    public let sourceRevision: Int32?
+    public let timeEntryId: UUID?
+    public enum CodingKeys: String, CodingKey {
+      case description = "description"
+      case id = "id"
+      case minutes = "minutes"
+      case performedByName = "performed_by_name"
+      case performedOn = "performed_on"
+      case profileId = "profile_id"
+      case rateRappen = "rate_rappen"
+      case reportId = "report_id"
+      case sortOrder = "sort_order"
+      case sourceRevision = "source_revision"
+      case timeEntryId = "time_entry_id"
+    }
+  }
+  public struct ReportTimeLinesUpdate: Codable, Hashable, Sendable {
+    public let description: String?
+    public let id: UUID?
+    public let minutes: Int32?
+    public let performedByName: String?
+    public let performedOn: String?
+    public let profileId: UUID?
+    public let rateRappen: Int64?
+    public let reportId: UUID?
+    public let sortOrder: Int32?
+    public let sourceRevision: Int32?
+    public let timeEntryId: UUID?
+    public enum CodingKeys: String, CodingKey {
+      case description = "description"
+      case id = "id"
+      case minutes = "minutes"
+      case performedByName = "performed_by_name"
+      case performedOn = "performed_on"
+      case profileId = "profile_id"
+      case rateRappen = "rate_rappen"
+      case reportId = "report_id"
+      case sortOrder = "sort_order"
+      case sourceRevision = "source_revision"
+      case timeEntryId = "time_entry_id"
+    }
+  }
+  public struct ReportsSelect: Codable, Hashable, Sendable {
+    public let companyId: UUID
+    public let contentHash: String?
+    public let correctsReportId: UUID?
+    public let createdAt: String
+    public let createdBy: UUID?
+    public let customerId: UUID?
+    public let docType: DocumentType
+    public let id: UUID
+    public let number: Int64?
+    public let numberText: String?
+    public let pdfGeneratedAt: String?
+    public let pdfPath: String?
+    public let pdfSha256: String?
+    public let periodFrom: String?
+    public let periodKey: String?
+    public let periodTo: String?
+    public let projectId: UUID
+    public let sentAt: String?
+    public let signaturePath: String?
+    public let signedAt: String?
+    public let signerName: String?
+    public let snapshot: AnyJSON?
+    public let status: ReportStatus
+    public let summary: String?
+    public let title: String?
+    public let totalNetRappen: Int64?
+    public let updatedAt: String
+    public enum CodingKeys: String, CodingKey {
+      case companyId = "company_id"
+      case contentHash = "content_hash"
+      case correctsReportId = "corrects_report_id"
+      case createdAt = "created_at"
+      case createdBy = "created_by"
+      case customerId = "customer_id"
+      case docType = "doc_type"
+      case id = "id"
+      case number = "number"
+      case numberText = "number_text"
+      case pdfGeneratedAt = "pdf_generated_at"
+      case pdfPath = "pdf_path"
+      case pdfSha256 = "pdf_sha256"
+      case periodFrom = "period_from"
+      case periodKey = "period_key"
+      case periodTo = "period_to"
+      case projectId = "project_id"
+      case sentAt = "sent_at"
+      case signaturePath = "signature_path"
+      case signedAt = "signed_at"
+      case signerName = "signer_name"
+      case snapshot = "snapshot"
+      case status = "status"
+      case summary = "summary"
+      case title = "title"
+      case totalNetRappen = "total_net_rappen"
+      case updatedAt = "updated_at"
+    }
+  }
+  public struct ReportsInsert: Codable, Hashable, Sendable {
+    public let companyId: UUID
+    public let contentHash: String?
+    public let correctsReportId: UUID?
+    public let createdAt: String?
+    public let createdBy: UUID?
+    public let customerId: UUID?
+    public let docType: DocumentType?
+    public let id: UUID?
+    public let number: Int64?
+    public let numberText: String?
+    public let pdfGeneratedAt: String?
+    public let pdfPath: String?
+    public let pdfSha256: String?
+    public let periodFrom: String?
+    public let periodKey: String?
+    public let periodTo: String?
+    public let projectId: UUID
+    public let sentAt: String?
+    public let signaturePath: String?
+    public let signedAt: String?
+    public let signerName: String?
+    public let snapshot: AnyJSON?
+    public let status: ReportStatus?
+    public let summary: String?
+    public let title: String?
+    public let totalNetRappen: Int64?
+    public let updatedAt: String?
+    public enum CodingKeys: String, CodingKey {
+      case companyId = "company_id"
+      case contentHash = "content_hash"
+      case correctsReportId = "corrects_report_id"
+      case createdAt = "created_at"
+      case createdBy = "created_by"
+      case customerId = "customer_id"
+      case docType = "doc_type"
+      case id = "id"
+      case number = "number"
+      case numberText = "number_text"
+      case pdfGeneratedAt = "pdf_generated_at"
+      case pdfPath = "pdf_path"
+      case pdfSha256 = "pdf_sha256"
+      case periodFrom = "period_from"
+      case periodKey = "period_key"
+      case periodTo = "period_to"
+      case projectId = "project_id"
+      case sentAt = "sent_at"
+      case signaturePath = "signature_path"
+      case signedAt = "signed_at"
+      case signerName = "signer_name"
+      case snapshot = "snapshot"
+      case status = "status"
+      case summary = "summary"
+      case title = "title"
+      case totalNetRappen = "total_net_rappen"
+      case updatedAt = "updated_at"
+    }
+  }
+  public struct ReportsUpdate: Codable, Hashable, Sendable {
+    public let companyId: UUID?
+    public let contentHash: String?
+    public let correctsReportId: UUID?
+    public let createdAt: String?
+    public let createdBy: UUID?
+    public let customerId: UUID?
+    public let docType: DocumentType?
+    public let id: UUID?
+    public let number: Int64?
+    public let numberText: String?
+    public let pdfGeneratedAt: String?
+    public let pdfPath: String?
+    public let pdfSha256: String?
+    public let periodFrom: String?
+    public let periodKey: String?
+    public let periodTo: String?
+    public let projectId: UUID?
+    public let sentAt: String?
+    public let signaturePath: String?
+    public let signedAt: String?
+    public let signerName: String?
+    public let snapshot: AnyJSON?
+    public let status: ReportStatus?
+    public let summary: String?
+    public let title: String?
+    public let totalNetRappen: Int64?
+    public let updatedAt: String?
+    public enum CodingKeys: String, CodingKey {
+      case companyId = "company_id"
+      case contentHash = "content_hash"
+      case correctsReportId = "corrects_report_id"
+      case createdAt = "created_at"
+      case createdBy = "created_by"
+      case customerId = "customer_id"
+      case docType = "doc_type"
+      case id = "id"
+      case number = "number"
+      case numberText = "number_text"
+      case pdfGeneratedAt = "pdf_generated_at"
+      case pdfPath = "pdf_path"
+      case pdfSha256 = "pdf_sha256"
+      case periodFrom = "period_from"
+      case periodKey = "period_key"
+      case periodTo = "period_to"
+      case projectId = "project_id"
+      case sentAt = "sent_at"
+      case signaturePath = "signature_path"
+      case signedAt = "signed_at"
+      case signerName = "signer_name"
+      case snapshot = "snapshot"
+      case status = "status"
+      case summary = "summary"
+      case title = "title"
+      case totalNetRappen = "total_net_rappen"
       case updatedAt = "updated_at"
     }
   }
@@ -1445,6 +2667,198 @@ public enum PublicSchema {
       case threadId = "thread_id"
     }
   }
+  public struct TimeEntriesSelect: Codable, Hashable, Sendable {
+    public let breakMinutes: Int32
+    public let companyId: UUID
+    public let createdAt: String
+    public let endedAt: String?
+    public let id: UUID
+    public let kind: TimeEntryKind
+    public let note: String?
+    public let profileId: UUID
+    public let projectId: UUID
+    public let recordedBy: UUID?
+    public let revision: Int32
+    public let startedAt: String
+    public let taskId: UUID?
+    public let updatedAt: String
+    public let voidedAt: String?
+    public let voidedReason: String?
+    public let workDate: String
+    public let workedMinutes: Int32?
+    public enum CodingKeys: String, CodingKey {
+      case breakMinutes = "break_minutes"
+      case companyId = "company_id"
+      case createdAt = "created_at"
+      case endedAt = "ended_at"
+      case id = "id"
+      case kind = "kind"
+      case note = "note"
+      case profileId = "profile_id"
+      case projectId = "project_id"
+      case recordedBy = "recorded_by"
+      case revision = "revision"
+      case startedAt = "started_at"
+      case taskId = "task_id"
+      case updatedAt = "updated_at"
+      case voidedAt = "voided_at"
+      case voidedReason = "voided_reason"
+      case workDate = "work_date"
+      case workedMinutes = "worked_minutes"
+    }
+  }
+  public struct TimeEntriesInsert: Codable, Hashable, Sendable {
+    public let breakMinutes: Int32?
+    public let companyId: UUID
+    public let createdAt: String?
+    public let endedAt: String?
+    public let id: UUID?
+    public let kind: TimeEntryKind?
+    public let note: String?
+    public let profileId: UUID
+    public let projectId: UUID
+    public let recordedBy: UUID?
+    public let revision: Int32?
+    public let startedAt: String
+    public let taskId: UUID?
+    public let updatedAt: String?
+    public let voidedAt: String?
+    public let voidedReason: String?
+    public let workDate: String
+    public let workedMinutes: Int32?
+    public enum CodingKeys: String, CodingKey {
+      case breakMinutes = "break_minutes"
+      case companyId = "company_id"
+      case createdAt = "created_at"
+      case endedAt = "ended_at"
+      case id = "id"
+      case kind = "kind"
+      case note = "note"
+      case profileId = "profile_id"
+      case projectId = "project_id"
+      case recordedBy = "recorded_by"
+      case revision = "revision"
+      case startedAt = "started_at"
+      case taskId = "task_id"
+      case updatedAt = "updated_at"
+      case voidedAt = "voided_at"
+      case voidedReason = "voided_reason"
+      case workDate = "work_date"
+      case workedMinutes = "worked_minutes"
+    }
+  }
+  public struct TimeEntriesUpdate: Codable, Hashable, Sendable {
+    public let breakMinutes: Int32?
+    public let companyId: UUID?
+    public let createdAt: String?
+    public let endedAt: String?
+    public let id: UUID?
+    public let kind: TimeEntryKind?
+    public let note: String?
+    public let profileId: UUID?
+    public let projectId: UUID?
+    public let recordedBy: UUID?
+    public let revision: Int32?
+    public let startedAt: String?
+    public let taskId: UUID?
+    public let updatedAt: String?
+    public let voidedAt: String?
+    public let voidedReason: String?
+    public let workDate: String?
+    public let workedMinutes: Int32?
+    public enum CodingKeys: String, CodingKey {
+      case breakMinutes = "break_minutes"
+      case companyId = "company_id"
+      case createdAt = "created_at"
+      case endedAt = "ended_at"
+      case id = "id"
+      case kind = "kind"
+      case note = "note"
+      case profileId = "profile_id"
+      case projectId = "project_id"
+      case recordedBy = "recorded_by"
+      case revision = "revision"
+      case startedAt = "started_at"
+      case taskId = "task_id"
+      case updatedAt = "updated_at"
+      case voidedAt = "voided_at"
+      case voidedReason = "voided_reason"
+      case workDate = "work_date"
+      case workedMinutes = "worked_minutes"
+    }
+  }
+  public struct TimeEntryRevisionsSelect: Codable, Hashable, Sendable {
+    public let after: AnyJSON?
+    public let before: AnyJSON?
+    public let changedAt: String
+    public let changedBy: UUID?
+    public let companyId: UUID
+    public let id: Int64
+    public let op: String
+    public let reason: String?
+    public let revision: Int32
+    public let timeEntryId: UUID
+    public enum CodingKeys: String, CodingKey {
+      case after = "after"
+      case before = "before"
+      case changedAt = "changed_at"
+      case changedBy = "changed_by"
+      case companyId = "company_id"
+      case id = "id"
+      case op = "op"
+      case reason = "reason"
+      case revision = "revision"
+      case timeEntryId = "time_entry_id"
+    }
+  }
+  public struct TimeEntryRevisionsInsert: Codable, Hashable, Sendable {
+    public let after: AnyJSON?
+    public let before: AnyJSON?
+    public let changedAt: String?
+    public let changedBy: UUID?
+    public let companyId: UUID
+    public let id: Int64?
+    public let op: String
+    public let reason: String?
+    public let revision: Int32
+    public let timeEntryId: UUID
+    public enum CodingKeys: String, CodingKey {
+      case after = "after"
+      case before = "before"
+      case changedAt = "changed_at"
+      case changedBy = "changed_by"
+      case companyId = "company_id"
+      case id = "id"
+      case op = "op"
+      case reason = "reason"
+      case revision = "revision"
+      case timeEntryId = "time_entry_id"
+    }
+  }
+  public struct TimeEntryRevisionsUpdate: Codable, Hashable, Sendable {
+    public let after: AnyJSON?
+    public let before: AnyJSON?
+    public let changedAt: String?
+    public let changedBy: UUID?
+    public let companyId: UUID?
+    public let id: Int64?
+    public let op: String?
+    public let reason: String?
+    public let revision: Int32?
+    public let timeEntryId: UUID?
+    public enum CodingKeys: String, CodingKey {
+      case after = "after"
+      case before = "before"
+      case changedAt = "changed_at"
+      case changedBy = "changed_by"
+      case companyId = "company_id"
+      case id = "id"
+      case op = "op"
+      case reason = "reason"
+      case revision = "revision"
+      case timeEntryId = "time_entry_id"
+    }
+  }
   public struct InboxThreadsSelect: Codable, Hashable, Sendable {
     public let hasUnread: Bool?
     public let lastKind: MessageKind?
@@ -1479,6 +2893,24 @@ public enum PublicSchema {
       case taskStatus = "task_status"
       case taskTitle = "task_title"
       case threadId = "thread_id"
+    }
+  }
+  public struct NumberSeriesAuditSelect: Codable, Hashable, Sendable {
+    public let companyId: UUID?
+    public let docType: DocumentType?
+    public let highest: Int64?
+    public let issued: Int32?
+    public let lowest: Int64?
+    public let missing: Int32?
+    public let periodKey: String?
+    public enum CodingKeys: String, CodingKey {
+      case companyId = "company_id"
+      case docType = "doc_type"
+      case highest = "highest"
+      case issued = "issued"
+      case lowest = "lowest"
+      case missing = "missing"
+      case periodKey = "period_key"
     }
   }
   public struct PersonActivitySelect: Codable, Hashable, Sendable {
@@ -1531,6 +2963,30 @@ public enum PublicSchema {
       case taskCount = "task_count"
       case todoCount = "todo_count"
       case updatedAt = "updated_at"
+    }
+  }
+  public struct ReportDivergencesSelect: Codable, Hashable, Sendable {
+    public let deltaMinutes: Int32?
+    public let hasCorrection: Bool?
+    public let isAlreadyACorrection: Bool?
+    public let minutesNow: Int32?
+    public let minutesOnPaper: Int32?
+    public let numberText: String?
+    public let projectId: UUID?
+    public let reportId: UUID?
+    public let sourceWasVoided: Bool?
+    public let timeEntryId: UUID?
+    public enum CodingKeys: String, CodingKey {
+      case deltaMinutes = "delta_minutes"
+      case hasCorrection = "has_correction"
+      case isAlreadyACorrection = "is_already_a_correction"
+      case minutesNow = "minutes_now"
+      case minutesOnPaper = "minutes_on_paper"
+      case numberText = "number_text"
+      case projectId = "project_id"
+      case reportId = "report_id"
+      case sourceWasVoided = "source_was_voided"
+      case timeEntryId = "time_entry_id"
     }
   }
 }

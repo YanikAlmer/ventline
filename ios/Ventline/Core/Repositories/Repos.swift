@@ -27,11 +27,13 @@ enum ProjectRepo {
     static func create(name: String, address: String?, description: String?, companyId: UUID) async throws {
         let row = PublicSchema.ProjectsInsert(
             address: address,
+            billingMode: nil,
             companyId: companyId,
             coverPhotoPath: nil,
             createdAt: nil,
             createdBy: nil,
             customerDisplayName: nil,
+            customerId: nil,
             description: description,
             id: nil,
             name: name,
@@ -233,6 +235,7 @@ enum TaskRepo {
             kind: media.attachmentKind,
             messageId: nil,
             mimeType: media.mimeType,
+            reportId: nil,
             storageBucket: media.bucket,
             storagePath: media.path,
             taskId: taskId,

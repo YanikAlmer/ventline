@@ -1765,4 +1765,349 @@ begin
 end;
 $$;
 
+-- ================================ Swiss QR + MWST primitives (slice 4)
+-- These reproduce SIX's and the ESTV's own published worked examples. The
+-- mod-10 matrix is distributed only as an image in the specification PDF, so
+-- it is transcribed in the migration and pinned here.
+do $$
+begin
+  assert app.mod10_recursive('21000000000313947143000901') = 7,
+    'mod-10 recursive matches SIX Annex B';
+  assert app.mod10_recursive('00000820779122585742128669') = 4,
+    'mod-10 recursive matches SIX Annex A';
+  assert app.is_valid_qrr('210000000003139471430009017'),
+    'a well-formed QR reference validates';
+  assert not app.is_valid_qrr('210000000003139471430009018'),
+    'a wrong check digit is rejected';
+  assert not app.is_valid_qrr(repeat('0', 27)),
+    'an all-zero reference is rejected';
+
+  assert app.is_valid_scor('RF18539007547034'), 'a valid Creditor Reference validates';
+  -- The specification itself contains an erratum here: RF72... does not check
+  -- out, RF24... does. Pinned so a "fix" that accepts the published typo fails.
+  assert not app.is_valid_scor('RF720191230100405JSH0438'),
+    'the SIX erratum reference is correctly rejected';
+  assert app.is_valid_scor('RF240191230100405JSH0438'),
+    'its corrected form validates';
+
+  assert app.is_qr_iban('CH4431999123000889012'), 'IID 31999 is a QR-IBAN';
+  assert not app.is_qr_iban('CH5800791123000889012'), 'IID 00791 is a normal IBAN';
+
+  -- ESTV worked examples at 8.1 %, 5-Rappen half-up. 1-Rappen rounding
+  -- reproduces none of these.
+  assert app.mwst_rappen(100155, 810) = 8115, 'MWST 1001.55 -> 81.15';
+  assert app.mwst_rappen(10375, 810)  = 840,  'MWST 103.75 -> 8.40';
+  assert app.mwst_rappen(-100155, 810) = -8115,
+    'a credit note rounds symmetrically, so a reversal cancels exactly';
+end;
+$$;
+
+-- ============================ time capture, corrections, and the audit log
+do $$
+declare
+  frank uuid := '00000000-0000-4000-8000-000000000003';
+  wanda uuid := '00000000-0000-4000-8000-000000000004';
+  maple uuid := '00000000-0000-4000-9000-000000000001';
+  v_id uuid; v_rows integer; denied boolean;
+begin
+  perform tests.impersonate(frank);
+
+  insert into public.time_entries (project_id, profile_id, started_at, ended_at, break_minutes)
+  values (maple, wanda, '2026-09-03 07:30+02', '2026-09-03 12:00+02', 30)
+  returning id into v_id;
+
+  assert (select worked_minutes from public.time_entries where id = v_id) = 240,
+    'duration derives from start, end and break';
+  assert (select work_date from public.time_entries where id = v_id) = date '2026-09-03',
+    'the work date is the local day, not the device timezone';
+  assert (select recorded_by from public.time_entries where id = v_id) = frank,
+    'who typed it in is distinguished from whose hours they are';
+
+  select count(*) into v_rows from public.time_entry_revisions where time_entry_id = v_id;
+  assert v_rows = 1, 'creating an entry writes one revision';
+
+  perform public.set_correction_reason('Pause falsch erfasst');
+  update public.time_entries set break_minutes = 45 where id = v_id;
+  assert (select reason from public.time_entry_revisions
+           where time_entry_id = v_id and revision = 2) = 'Pause falsch erfasst',
+    'a correction records its reason';
+
+  -- A no-op must not manufacture history. worked_minutes is GENERATED and so
+  -- is null in the BEFORE trigger; comparing it would make every update look
+  -- like a change.
+  update public.time_entries set break_minutes = 45 where id = v_id;
+  select count(*) into v_rows from public.time_entry_revisions where time_entry_id = v_id;
+  assert v_rows = 2, 'a no-op update writes no revision';
+
+  denied := false;
+  begin
+    insert into public.time_entry_revisions (company_id, time_entry_id, revision, op)
+    values (app.current_company_id(), v_id, 99, 'UPDATE');
+  exception when others then denied := true;
+  end;
+  assert denied, 'the revision log is not directly writable by anyone';
+
+  denied := false;
+  begin
+    delete from public.time_entries where id = v_id;
+  exception when others then denied := true;
+  end;
+  assert denied, 'time entries are voided, never deleted';
+
+  -- Two running clocks for one person cannot be reconstructed afterwards.
+  denied := false;
+  begin
+    insert into public.time_entries (project_id, profile_id, started_at)
+    values (maple, wanda, now());
+    insert into public.time_entries (project_id, profile_id, started_at)
+    values (maple, wanda, now());
+  exception when others then denied := true;
+  end;
+  assert denied, 'a second open clock for the same person is refused';
+
+  perform tests.reset();
+end;
+$$;
+
+-- ================== Rapport: gapless numbering, freeze, and divergence
+do $$
+declare
+  olivia uuid := '00000000-0000-4000-8000-000000000001';
+  frank  uuid := '00000000-0000-4000-8000-000000000003';
+  wanda  uuid := '00000000-0000-4000-8000-000000000004';
+  maple  uuid := '00000000-0000-4000-9000-000000000001';
+  r1 uuid; r2 uuid; r3 uuid; te uuid;
+  v public.reports; denied boolean;
+  v_year text := to_char(timezone('Europe/Zurich', now()), 'YYYY');
+begin
+  perform tests.impersonate(frank);
+
+  insert into public.time_entries (project_id, profile_id, started_at, ended_at, break_minutes)
+  values (maple, wanda, now() - interval '5 hours', now() - interval '1 hour', 30)
+  returning id into te;
+
+  insert into public.reports (project_id, title) values (maple, 'Rapport A') returning id into r1;
+  assert (select number from public.reports where id = r1) is null,
+    'a draft carries no number, so a deleted draft burns none';
+
+  assert public.attach_time_to_report(r1, array[te]) = 1, 'recorded time is pulled onto the draft';
+  assert public.attach_time_to_report(r1, array[te]) = 0, 'attaching the same entry twice is a no-op';
+  assert (select minutes from public.report_time_lines where report_id = r1) = 210,
+    'the line carries the recorded minutes, not a client-supplied figure';
+
+  denied := false;
+  begin
+    update public.reports set number = 9999 where id = r1;
+  exception when others then denied := true;
+  end;
+  assert denied, 'the number column is not writable from the API';
+
+  denied := false;
+  begin
+    insert into public.reports (project_id, status, number, period_key, signed_at, snapshot)
+    values (maple, 'signed', 4242, v_year, now(), '{}'::jsonb);
+  exception when others then denied := true;
+  end;
+  assert denied, 'a report cannot be born signed with a forged number';
+
+  v := public.sign_report(r1, 'H. Henderson');
+  assert v.number_text = v_year || '-0001', 'the first Rapport of the year is 0001';
+  assert public.verify_report_hash(r1), 'the content hash verifies on signing';
+
+  -- Gaplessness: a signing that fails after allocating must return the number.
+  -- A Postgres sequence would not; that is the whole reason for the counter row.
+  insert into public.reports (project_id, title) values (maple, 'Rapport B') returning id into r2;
+  insert into public.report_material_lines (report_id, description, quantity_milli, unit_price_rappen)
+  values (r2, 'Kupferrohr 15mm', 2500, 1200);
+  begin
+    perform public.sign_report(r2, 'H. Henderson');
+    raise exception 'simulated failure after allocation';
+  exception when others then null;
+  end;
+
+  insert into public.reports (project_id, title) values (maple, 'Rapport C') returning id into r3;
+  insert into public.report_material_lines (report_id, description, quantity_milli, unit_price_rappen)
+  values (r3, 'Kupferrohr 15mm', 2500, 1200);
+  v := public.sign_report(r3, 'H. Henderson');
+  assert v.number = 2,
+    format('gapless: expected 2 after a rolled-back allocation, got %s', v.number);
+  assert v.total_net_rappen = 3000, '2.5 x CHF 12.00 = CHF 30.00, in integer Rappen';
+
+  -- Signed means frozen, in all three directions.
+  denied := false;
+  begin
+    update public.report_material_lines set quantity_milli = 9999 where report_id = r3;
+  exception when others then denied := true;
+  end;
+  assert denied, 'lines of a signed Rapport cannot be edited';
+
+  denied := false;
+  begin
+    delete from public.report_material_lines where report_id = r3;
+  exception when others then denied := true;
+  end;
+  assert denied, 'lines of a signed Rapport cannot be deleted';
+
+  denied := false;
+  begin
+    insert into public.report_material_lines (report_id, description, quantity_milli, unit_price_rappen)
+    values (r3, 'nachtraeglich', 1000, 100);
+  exception when others then denied := true;
+  end;
+  assert denied, 'lines cannot be appended to a signed Rapport';
+
+  denied := false;
+  begin
+    update public.reports set status = 'draft' where id = r3;
+  exception when others then denied := true;
+  end;
+  assert denied, 'a signed Rapport cannot revert to draft';
+
+  delete from public.reports where id = r3;
+  assert (select count(*) from public.reports where id = r3) = 1,
+    'a signed Rapport cannot be deleted';
+
+  -- The crux: the source record stays correctable, the document does not move,
+  -- and the difference becomes visible work rather than a silent inconsistency.
+  perform public.set_correction_reason('Stunden korrigiert');
+  update public.time_entries set break_minutes = 60 where id = te;
+  assert (select minutes from public.report_time_lines where report_id = r1) = 210,
+    'correcting the source does not restate a signed Rapport';
+  assert exists (select 1 from public.report_divergences where report_id = r1),
+    'the divergence is surfaced for the office';
+  assert public.verify_report_hash(r1),
+    'the signed hash still verifies after the source changed';
+
+  assert (select missing from public.number_series_audit
+           where company_id = app.current_company_id() and doc_type = 'rapport') = 0,
+    'the number series has no gaps';
+
+  perform tests.reset();
+end;
+$$;
+
+-- ============================== invoice, QR payload, and the pairing rule
+do $$
+declare
+  olivia uuid := '00000000-0000-4000-8000-000000000001';
+  wanda  uuid := '00000000-0000-4000-8000-000000000004';
+  maple  uuid := '00000000-0000-4000-9000-000000000001';
+  v_alpine uuid; v_cust uuid; v_inv uuid;
+  v public.invoices; v_payload text; v_lines text[]; denied boolean;
+begin
+  select company_id into strict v_alpine from public.profiles where id = olivia;
+  perform tests.impersonate(olivia);
+
+  insert into public.company_billing_settings
+    (company_id, creditor_name, creditor_street, creditor_building_no,
+     creditor_post_code, creditor_town, iban, mwst_status, uid_digits)
+  values (v_alpine, 'Alpine Air AG', 'Industriestrasse', '12',
+          '8005', 'Zuerich', 'CH4431999123000889012', 'registered_effective', '123456789');
+
+  insert into public.customers (company_id, name, street, building_no, post_code, town, country)
+  values (v_alpine, 'Familie Henderson', 'Ahornweg', '4', '8003', 'Zuerich', 'CH')
+  returning id into v_cust;
+
+  insert into public.invoices (project_id, customer_id) values (maple, v_cust) returning id into v_inv;
+  insert into public.invoice_lines (invoice_id, description, net_rappen, mwst_rate_bp)
+  values (v_inv, 'Montagestunden', 100155, 810),
+         (v_inv, 'Material',        10375, 810);
+
+  v := public.issue_invoice(v_inv);
+  assert v.reference_type = 'QRR', 'a QR-IBAN forces a QR reference';
+  assert app.is_valid_qrr(v.reference), 'the minted reference carries a valid check digit';
+  assert v.total_net_rappen = 110530, 'net is the sum of the lines';
+  -- Tax once per rate group, not per line.
+  assert v.total_tax_rappen = app.mwst_rappen(110530, 810), 'tax is computed per rate group';
+  assert v.total_gross_rappen = v.total_net_rappen + v.total_tax_rappen, 'totals reconcile';
+
+  v_payload := public.qr_bill_payload(v_inv);
+  v_lines := string_to_array(v_payload, E'\r\n');
+  assert array_length(v_lines, 1) = 31,
+    format('a minimal CHF payload is 31 lines, got %s', array_length(v_lines, 1));
+  assert v_lines[1] = 'SPC' and v_lines[2] = '0200' and v_lines[3] = '1', 'the header block is fixed';
+  assert v_lines[31] = 'EPD', 'the trailer is present';
+  assert v_lines[5] = 'S', 'addresses are structured; v2.3 removed the combined type';
+  assert (select bool_and(v_lines[i] = '') from generate_series(12, 18) i),
+    'the seven reserved ultimate-creditor lines are present and empty';
+  assert v_lines[19] = '1194.85', format('the amount renders as %s', v_lines[19]);
+  assert v_lines[28] = 'QRR', 'the reference type line';
+  assert v_payload !~ E'[\r\n]$',
+    'no trailing newline -- the classic cause of a rejected payload';
+  assert octet_length(v_payload) <= 997, 'the payload fits the 997-byte ceiling';
+
+  -- The pairing rule, which naive code gets wrong and banks reject.
+  denied := false;
+  begin
+    insert into public.invoices
+      (project_id, customer_id, status, creditor_iban, reference_type, reference)
+    values (maple, v_cust, 'draft', 'CH5800791123000889012', 'QRR',
+            '210000000003139471430009017');
+  exception when others then denied := true;
+  end;
+  assert denied, 'a normal IBAN must not carry a QR reference';
+
+  -- Workers cannot see what the shop charges.
+  perform tests.impersonate(wanda);
+  assert (select count(*) from public.invoices) = 0, 'invoices are office-only';
+
+  perform tests.reset();
+end;
+$$;
+
+-- ================================================ magic links
+do $$
+declare
+  olivia uuid := '00000000-0000-4000-8000-000000000001';
+  frank  uuid := '00000000-0000-4000-8000-000000000003';
+  maple  uuid := '00000000-0000-4000-9000-000000000001';
+  r uuid; v_link uuid; v_token text; denied boolean;
+begin
+  perform tests.impersonate(frank);
+  insert into public.reports (project_id, title) values (maple, 'Link-Rapport') returning id into r;
+  insert into public.report_material_lines (report_id, description, quantity_milli, unit_price_rappen)
+  values (r, 'Dichtung', 1000, 500);
+
+  -- A draft has nothing to share.
+  denied := false;
+  begin
+    perform public.create_document_link('report', r, 30);
+  exception when others then denied := true;
+  end;
+  assert denied, 'an unsigned Rapport cannot be shared';
+
+  perform public.sign_report(r, 'H. Henderson');
+  select link_id, token into v_link, v_token from public.create_document_link('report', r, 30);
+  assert v_token is not null and length(v_token) > 20, 'a token is issued';
+
+  -- Stronger than "the plaintext is not stored": the hash column is not even
+  -- selectable, so an over-broad query cannot harvest link material at all.
+  denied := false;
+  begin
+    perform token_hash from public.document_links where id = v_link;
+  exception when others then denied := true;
+  end;
+  assert denied, 'the token hash column is not readable from the API';
+
+  -- The row itself is visible, so the office can see a link exists and expires.
+  assert (select count(*) from public.document_links where id = v_link) = 1,
+    'the link row itself is visible to the office';
+
+  -- authenticated must not be able to redeem: a token is a bearer credential,
+  -- and a public resolver turns a leaked URL into an oracle.
+  denied := false;
+  begin
+    perform public.resolve_document_link(v_token, 'test');
+  exception when others then denied := true;
+  end;
+  assert denied, 'resolve_document_link is service_role only';
+
+  perform public.revoke_document_link(v_link);
+  assert (select revoked_at from public.document_links where id = v_link) is not null,
+    'a link can be revoked';
+
+  perform tests.reset();
+end;
+$$;
+
 select 'RLS TESTS PASSED' as result;
