@@ -919,4 +919,132 @@ begin
 end;
 $$;
 
+-- ================================= chat read model (20260726100000) regression
+do $$
+declare
+  marcus uuid := '00000000-0000-4000-8000-000000000002';
+  frank  uuid := '00000000-0000-4000-8000-000000000003';
+  wanda  uuid := '00000000-0000-4000-8000-000000000004';
+  miguel uuid := '00000000-0000-4000-8000-000000000005';
+  carla  uuid := '00000000-0000-4000-8000-000000000006';
+  boris  uuid := '00000000-0000-4000-8000-000000000007';
+  maple  uuid := '00000000-0000-4000-9000-000000000001';
+  t_filter uuid := '00000000-0000-4000-a000-000000000001';
+  v_secret uuid;
+  v_shared uuid;
+  v_hit uuid;
+  v_count int;
+begin
+  -- Fixtures: one internal message and one shared with the customer.
+  perform tests.impersonate(wanda);
+  v_secret := public.send_message(maple, null, 'text',
+    'Interner Hinweis Kompressor defekt', '[]', false);
+  v_shared := public.send_message(maple, null, 'text',
+    'Guten Tag, die Lüftung ist fertig montiert', '[]', true);
+  perform tests.reset();
+
+  -- ---------------------------------------------------------------- inbox
+  perform tests.impersonate(wanda);
+  select count(*) into v_count from public.inbox_page();
+  assert v_count >= 1, 'inbox_page returns threads for a project member';
+
+  -- Own messages never count as unread.
+  select unread_count into v_count from public.inbox_page() where thread_id = maple;
+  assert v_count = 0, 'a member does not see their own messages as unread';
+
+  -- Frank has not read the project thread, so Wanda''s messages are unread for him.
+  perform tests.impersonate(frank);
+  select unread_count into v_count from public.inbox_page() where thread_id = maple;
+  assert v_count >= 2, 'unread_count reflects messages from others';
+  perform public.mark_thread_read(maple);
+  select unread_count into v_count from public.inbox_page() where thread_id = maple;
+  assert v_count = 0, 'marking the thread read clears the unread count';
+
+  -- A worker on another project sees no Maple threads.
+  perform tests.impersonate(miguel);
+  select count(*) into v_count from public.inbox_page() where project_id = maple;
+  assert v_count = 0, 'inbox_page hides projects the caller is not a member of';
+
+  -- Customers are excluded from thread_state, so the inbox is empty for them.
+  perform tests.impersonate(carla);
+  select count(*) into v_count from public.inbox_page();
+  assert v_count = 0, 'customer gets no inbox rows (previews would leak)';
+
+  -- Cross-tenant.
+  perform tests.impersonate(boris);
+  select count(*) into v_count from public.inbox_page();
+  assert v_count = 0, 'other-company owner gets no inbox rows';
+
+  -- --------------------------------------------------------------- search
+  perform tests.impersonate(wanda);
+  select count(*) into v_count from public.search_messages('Kompressor');
+  assert v_count = 1, 'search finds an internal message for a member';
+
+  -- THE security case: the customer must not find the internal message, but
+  -- must find the one shared with them.
+  perform tests.impersonate(carla);
+  select count(*) into v_count from public.search_messages('Kompressor');
+  assert v_count = 0, 'customer must NOT find an unshared message via search';
+  select count(*) into v_count from public.search_messages('montiert');
+  assert v_count = 1, 'customer finds a message shared with them';
+
+  -- Cross-tenant search finds nothing.
+  perform tests.impersonate(boris);
+  select count(*) into v_count from public.search_messages('Kompressor');
+  assert v_count = 0, 'other-company owner finds nothing via search';
+
+  -- ue-transliteration: "lueftung" must match "Lüftung" (unaccent alone folds
+  -- ue->u only in the fold helper, not in the index).
+  perform tests.impersonate(wanda);
+  select count(*) into v_count from public.search_messages('lueftung');
+  assert v_count >= 1, 'search compensates for the ue transliteration';
+  select count(*) into v_count from public.search_messages('Lüftung');
+  assert v_count >= 1, 'search matches when the umlaut is typed';
+
+  -- A word genuinely containing "ue" still matches (the fold only ADDS recall).
+  v_hit := public.send_message(maple, null, 'text', 'Die Steuerung neu parametriert');
+  perform tests.reset();
+  perform tests.impersonate(wanda);
+  select count(*) into v_count from public.search_messages('Steuerung');
+  assert v_count = 1, 'folding ue does not break words that really contain ue';
+
+  -- Filters.
+  select count(*) into v_count from public.search_messages(null, array[maple], array[wanda]);
+  assert v_count >= 3, 'search filters by project and sender without a query';
+  select count(*) into v_count from public.search_messages(null, null, null, null, null, null, true);
+  assert v_count >= 0, 'has_photo filter is accepted';
+
+  -- --------------------------------------------------------------- person
+  perform tests.impersonate(frank);
+  select count(*) into v_count from public.person_messages(wanda, maple, 'from');
+  assert v_count >= 3, 'person_messages returns what that person wrote in a project';
+
+  -- Scoping by project is what keeps people straight across projects.
+  select count(*) into v_count from public.person_messages(miguel, maple, 'from');
+  assert v_count = 0, 'person_messages is scoped to the requested project';
+
+  -- A customer must not be able to mine another person's internal messages.
+  -- (The seed already contains one shared message from Wanda, so assert on
+  -- content rather than a bare count.)
+  perform tests.impersonate(carla);
+  select count(*) into v_count from public.person_messages(wanda, maple, 'from')
+   where body like 'Interner Hinweis%';
+  assert v_count = 0, 'customer must NOT see internal messages in the person lens';
+  select count(*) into v_count from public.person_messages(wanda, maple, 'from')
+   where body like 'Guten Tag%';
+  assert v_count = 1, 'customer does see the message shared with them';
+
+  -- ------------------------------------------------------- jump to context
+  perform tests.impersonate(wanda);
+  select count(*) into v_count from public.messages_around(v_secret, 5);
+  assert v_count >= 1, 'messages_around returns the anchor and its neighbours';
+
+  perform tests.impersonate(carla);
+  select count(*) into v_count from public.messages_around(v_secret, 5);
+  assert v_count = 0, 'customer cannot pull context around a message they cannot read';
+
+  perform tests.reset();
+end;
+$$;
+
 select 'RLS TESTS PASSED' as result;
