@@ -1061,6 +1061,7 @@ declare
   t_filter uuid := '00000000-0000-4000-a000-000000000001';
   v_install uuid := '00000000-0000-4000-e000-000000000001';
   v_msg uuid;
+  v_plain uuid;
   v_batch jsonb;
   v_count int;
   denied boolean;
@@ -1131,12 +1132,30 @@ begin
   where profile_id = carla;
   assert v_count = 0, 'a customer is NEVER an internal notification recipient';
 
-  -- A member of the project does get it.
+  -- A member of the project does get plain chat. Use a message WITHOUT a
+  -- mention: someone who was mentioned is deliberately dropped from the chat
+  -- audience so the same message does not arrive twice (see below).
+  perform tests.impersonate(wanda);
+  v_plain := public.send_message(maple, null, 'text', 'Ganz normale Nachricht');
+  perform tests.reset();
+  select count(*) into v_count
+  from app.notification_recipients('chat_message', (select company_id from public.profiles where id = wanda),
+                                   maple, null, v_plain, wanda, null)
+  where profile_id = frank;
+  assert v_count = 1, 'a project member receives project chat';
+
+  -- A mention must not produce two pushes: the mention row carries it, so the
+  -- chat_message row drops that person from its audience.
   select count(*) into v_count
   from app.notification_recipients('chat_message', (select company_id from public.profiles where id = wanda),
                                    maple, null, v_msg, wanda, null)
   where profile_id = frank;
-  assert v_count = 1, 'a project member receives project chat';
+  assert v_count = 0, 'a mentioned person is dropped from the chat audience';
+  select count(*) into v_count
+  from app.notification_recipients('mention', (select company_id from public.profiles where id = wanda),
+                                   maple, null, v_msg, wanda, frank)
+  where profile_id = frank;
+  assert v_count = 1, 'the mention itself still reaches them exactly once';
 
   -- Someone from another company never appears.
   select count(*) into v_count
@@ -1150,7 +1169,7 @@ begin
   values (frank, maple);
   select count(*) into v_count
   from app.notification_recipients('chat_message', (select company_id from public.profiles where id = wanda),
-                                   maple, null, v_msg, wanda, null)
+                                   maple, null, v_plain, wanda, null)
   where profile_id = frank;
   assert v_count = 0, 'muting a project removes you from its audience';
   delete from public.project_notification_mutes where profile_id = frank;
@@ -1159,7 +1178,7 @@ begin
   update public.notification_prefs set chat_enabled = false where profile_id = frank;
   select count(*) into v_count
   from app.notification_recipients('chat_message', (select company_id from public.profiles where id = wanda),
-                                   maple, null, v_msg, wanda, null)
+                                   maple, null, v_plain, wanda, null)
   where profile_id = frank;
   assert v_count = 0, 'chat_enabled = false silences chat pushes';
   select count(*) into v_count
@@ -1176,7 +1195,7 @@ begin
    where profile_id = frank;
   select count(*) into v_count
   from app.notification_recipients('chat_message', (select company_id from public.profiles where id = wanda),
-                                   maple, null, v_msg, wanda, null)
+                                   maple, null, v_plain, wanda, null)
   where profile_id = frank and passive;
   assert v_count = 1, 'quiet hours mark a recipient passive rather than removing them';
   update public.notification_prefs
@@ -1186,7 +1205,7 @@ begin
   delete from public.devices where profile_id = frank;
   select count(*) into v_count
   from app.notification_recipients('chat_message', (select company_id from public.profiles where id = wanda),
-                                   maple, null, v_msg, wanda, null)
+                                   maple, null, v_plain, wanda, null)
   where profile_id = frank;
   assert v_count = 0, 'a profile with no device is not a recipient';
   insert into public.devices (profile_id, install_id, platform, push_token)
@@ -1234,6 +1253,182 @@ begin
   exception when others then denied := true;
   end;
   assert denied, 'even an owner cannot read the notification outbox';
+
+  perform tests.reset();
+end;
+$$;
+
+-- ============================== push hardening (20260727120000) regressions
+do $$
+declare
+  olivia uuid := '00000000-0000-4000-8000-000000000001';
+  frank  uuid := '00000000-0000-4000-8000-000000000003';
+  wanda  uuid := '00000000-0000-4000-8000-000000000004';
+  miguel uuid := '00000000-0000-4000-8000-000000000005';
+  maple  uuid := '00000000-0000-4000-9000-000000000001';
+  t_duct uuid := '00000000-0000-4000-a000-000000000002';
+  v_alpine uuid;
+  v_install uuid := '00000000-0000-4000-e000-000000000009';
+  v_msg uuid;
+  v_count int;
+  denied boolean;
+begin
+  select company_id into strict v_alpine from public.profiles where id = wanda;
+
+  -- ---------------------------------------------------- timezone poisoning
+  -- One bad string used to abort claim_notification_batch for EVERY tenant,
+  -- because `at time zone` raises on an unknown identifier.
+  assert app.in_quiet_hours('Europe/Zuerich', '21:00', '06:00') is not null,
+    'an unknown timezone must fall back rather than throw';
+  assert app.in_quiet_hours('', '21:00', '06:00') is not null,
+    'an empty timezone must fall back rather than throw';
+
+  -- ...and it can no longer be stored in the first place.
+  perform tests.impersonate(frank);
+  denied := false;
+  begin
+    update public.notification_prefs set time_zone = 'Europe/Zuerich' where profile_id = frank;
+  exception when others then denied := true;
+  end;
+  assert denied, 'an invalid timezone is rejected at write time';
+  perform tests.reset();
+
+  -- Defence in depth: a row written BEFORE the validation trigger existed
+  -- would still be poisoned, so the drain must survive one regardless. Bypass
+  -- the trigger to simulate exactly that legacy row.
+  alter table public.notification_prefs disable trigger validate_notification_prefs;
+  update public.notification_prefs set time_zone = 'Nowhere/Atlantis' where profile_id = frank;
+  alter table public.notification_prefs enable trigger validate_notification_prefs;
+  perform tests.impersonate(wanda);
+  v_msg := public.send_message(maple, null, 'text', 'Drain trotz kaputter Zeitzone');
+  perform tests.reset();
+  assert public.claim_notification_batch(100) is not null,
+    'the drain survives a profile carrying an unusable timezone';
+  alter table public.notification_prefs disable trigger validate_notification_prefs;
+  update public.notification_prefs set time_zone = 'Europe/Zurich' where profile_id = frank;
+  alter table public.notification_prefs enable trigger validate_notification_prefs;
+
+  -- --------------------------------------------- task visibility (leak fix)
+  -- Removing somebody from a project leaves their task_assignments row behind.
+  -- Task notifications carry no message_id, so the membership check used to be
+  -- skipped entirely and the task title reached a lock screen anyway.
+  insert into public.devices (profile_id, install_id, platform, push_token)
+  values (miguel, gen_random_uuid(), 'ios', 'tok-miguel-leak')
+  on conflict do nothing;
+  insert into public.task_assignments (task_id, profile_id) values (t_duct, miguel)
+  on conflict do nothing;
+
+  -- Miguel is on Depot, not Maple; t_duct is a Maple task.
+  assert not app.can_profile_read_task(miguel, t_duct),
+    'a non-member cannot read a task on a project they are not on';
+  select count(*) into v_count
+  from app.notification_recipients('task_status', v_alpine, maple, t_duct, null, wanda, null)
+  where profile_id = miguel;
+  assert v_count = 0,
+    'a stale task assignment does not leak the task to a non-member';
+
+  -- A real member of the project does still get it.
+  select count(*) into v_count
+  from app.notification_recipients('task_status', v_alpine, maple, t_duct, null, wanda, null)
+  where profile_id = frank;
+  assert v_count = 1, 'a project member still receives task notifications';
+
+  delete from public.task_assignments where task_id = t_duct and profile_id = miguel;
+  delete from public.devices where push_token = 'tok-miguel-leak';
+
+  -- ----------------------------------------------------------- attribution
+  -- assigned_by is client-writable and became the push actor, so it could be
+  -- used to put someone else's name on a lock screen, or to silence the push
+  -- entirely by naming the recipient (the actor is never notified).
+  perform tests.impersonate(frank);
+  insert into public.task_assignments (task_id, profile_id, assigned_by)
+  values (t_duct, miguel, miguel);
+  perform tests.reset();
+  assert (select assigned_by from public.task_assignments
+           where task_id = t_duct and profile_id = miguel) = frank,
+    'assigned_by is forced to the actual actor, not the client value';
+  delete from public.task_assignments where task_id = t_duct and profile_id = miguel;
+
+  -- ------------------------------------------------------------ thread mute
+  insert into public.devices (profile_id, install_id, platform, push_token)
+  values (frank, gen_random_uuid(), 'ios', 'tok-frank-mute')
+  on conflict do nothing;
+  insert into public.thread_read_state (profile_id, thread_id, muted)
+  values (frank, maple, true)
+  on conflict (profile_id, thread_id) do update set muted = true;
+
+  perform tests.impersonate(wanda);
+  v_msg := public.send_message(maple, null, 'text', 'In stummem Thread');
+  perform tests.reset();
+  select count(*) into v_count
+  from app.notification_recipients('chat_message', v_alpine, maple, null, v_msg, wanda, null)
+  where profile_id = frank;
+  assert v_count = 0, 'muting a thread silences its chat pushes';
+
+  -- ...but a task assignment still breaks through: it is directed at you.
+  select count(*) into v_count
+  from app.notification_recipients('task_assigned', v_alpine, maple, t_duct, null, wanda, frank)
+  where profile_id = frank;
+  assert v_count = 1, 'a direct assignment still reaches a muted thread';
+
+  update public.thread_read_state set muted = false
+   where profile_id = frank and thread_id = maple;
+
+  -- ------------------------------------------------------------ badge count
+  -- Owners read every project through their role, not a project_members row.
+  -- The old inner join returned 0 for them, wiping the app icon badge.
+  perform tests.impersonate(wanda);
+  perform public.send_message(maple, null, 'text', 'Zaehlt fuer den Inhaber');
+  perform tests.reset();
+  assert app.unread_count(olivia) > 0,
+    'an owner without an explicit membership row still gets a real badge';
+
+  -- ------------------------------------------------- device re-registration
+  -- A reinstall produces a new install_id for an unchanged token; that used to
+  -- raise a unique violation on the legacy (profile_id, push_token) key.
+  perform tests.impersonate(wanda);
+  perform public.register_device(v_install, 'ios', 'tok-reinstall', 'sandbox', 'de', '0.1.0');
+  perform public.register_device(gen_random_uuid(), 'ios', 'tok-reinstall', 'sandbox', 'de', '0.2.0');
+  perform tests.reset();
+  assert (select count(*) from public.devices where push_token = 'tok-reinstall') = 1,
+    'reinstalling with the same token leaves exactly one device row';
+  delete from public.devices where push_token = 'tok-reinstall';
+
+  -- ------------------------------------------------ per-device retry safety
+  -- A retryable failure on one handset must not re-push to handsets that
+  -- already received it.
+  perform tests.reset();
+  delete from public.notification_deliveries;
+  update public.notification_outbox set status = 'skipped', processed_at = now()
+   where status in ('pending', 'sending');
+
+  perform tests.impersonate(wanda);
+  v_msg := public.send_message(maple, null, 'text', 'Teilweiser Fehlschlag');
+  perform tests.reset();
+
+  declare v_batch jsonb; v_first jsonb;
+  begin
+    v_batch := public.claim_notification_batch(100);
+    assert jsonb_array_length(v_batch) >= 1, 'the batch has at least one device';
+    v_first := v_batch -> 0;
+    -- One device succeeded, and the row is marked retryable overall.
+    perform public.settle_notification_batch(jsonb_build_array(
+      jsonb_build_object('id', v_first -> 'id', 'device_id', v_first -> 'device_id',
+                         'ok', true, 'retryable', false),
+      jsonb_build_object('id', v_first -> 'id', 'device_id', v_first -> 'device_id',
+                         'ok', false, 'retryable', true, 'error', 'simulated 503')));
+    assert (select count(*) from public.notification_deliveries
+             where device_id = (v_first ->> 'device_id')::uuid) = 1,
+      'a successful delivery is recorded per device';
+
+    -- The retry must now exclude that handset.
+    update public.notification_outbox set status = 'pending', next_attempt_at = now()
+     where id = (v_first ->> 'id')::uuid;
+    v_batch := public.claim_notification_batch(100);
+    select count(*) into v_count from jsonb_array_elements(v_batch) e
+     where (e ->> 'device_id')::uuid = (v_first ->> 'device_id')::uuid;
+    assert v_count = 0, 'a retry does not re-push to a handset that already got it';
+  end;
 
   perform tests.reset();
 end;

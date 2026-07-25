@@ -164,17 +164,19 @@ export async function sendPush(
 
     if (res.status === 200) return classify(200, undefined);
 
-    let reason: string | undefined;
+    // Apple sends {"reason": "...", "timestamp": <epoch millis>} on 410. The
+    // timestamp is when the token became invalid, which is the whole point of
+    // the guard: a handset that re-registered AFTER that moment must not be
+    // deleted. Falling back to "now" would delete it.
+    let body: { reason?: string; timestamp?: number } | null = null;
     try {
-      reason = (await res.json())?.reason;
+      body = await res.json();
     } catch {
-      // Apple always sends JSON on error, but never trust that.
+      // Apple always sends JSON on error, but never rely on that.
     }
-    const result = classify(res.status, reason);
-    if (result.prune) {
-      result.invalidSince = res.headers.get("apns-unique-id")
-        ? new Date().toISOString()
-        : new Date().toISOString();
+    const result = classify(res.status, body?.reason);
+    if (result.prune && body?.timestamp) {
+      result.invalidSince = new Date(Number(body.timestamp)).toISOString();
     }
     return result;
   } catch (error) {
