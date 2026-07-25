@@ -40,6 +40,7 @@ final class ChatViewModel {
 
     private(set) var items: [Item] = []
     private(set) var isLoading = false
+    private(set) var isLoadingOlder = false
     private(set) var canLoadOlder = false
     var errorMessage: String?
 
@@ -75,14 +76,23 @@ final class ChatViewModel {
     }
 
     func loadOlder() async {
+        // Guard against overlapping loads: a second tap before the first
+        // returns would re-fetch the same page and insert duplicate items
+        // (duplicate SwiftUI ids).
+        guard !isLoadingOlder else { return }
         guard let oldest = items.first(where: {
             if case .sent = $0.state { return true } else { return false }
         })?.createdAt else { return }
+        isLoadingOlder = true
+        defer { isLoadingOlder = false }
         do {
             let older = try await MessageRepo.page(projectId: projectId, taskId: taskId, before: oldest)
             canLoadOlder = older.count >= MessageRepo.pageSize
             let hydrated = try await hydrate(older)
-            items.insert(contentsOf: hydrated, at: 0)
+            // Defensive dedup in case a realtime insert already added one.
+            let existingIds = Set(items.map(\.id))
+            let fresh = hydrated.filter { !existingIds.contains($0.id) }
+            items.insert(contentsOf: fresh, at: 0)
             await loadSenders()
         } catch {
             errorMessage = error.localizedDescription
@@ -148,7 +158,14 @@ final class ChatViewModel {
         )
 
         realtimeTask = Task {
-            await channel.subscribe()
+            do {
+                try await channel.subscribeWithError()
+            } catch {
+                // Realtime unavailable: paged history still works, so fail
+                // quietly rather than surfacing an error for a non-critical
+                // live-update path.
+                return
+            }
             for await insert in inserts {
                 guard let message = try? insert.decodeRecord(as: Message.self, decoder: JSONDecoder()) else {
                     continue
@@ -260,10 +277,16 @@ final class ChatViewModel {
 
         let attempt: () -> Void = { [weak self] in
             guard let self else { return }
+            // Ignore a retry while a send for this localId is already running,
+            // so rapid taps can't fire duplicate uploads / send_message RPCs.
+            guard !self.inFlightSends.contains(localId) else { return }
+            self.inFlightSends.insert(localId)
             Task {
+                defer { self.inFlightSends.remove(localId) }
                 do {
                     let messageId = try await operation()
                     self.items.removeAll { $0.id == localId }
+                    self.retryClosures[localId] = nil
                     // Merge the confirmed message directly; the realtime
                     // insert (if it also arrives) dedupes by id.
                     if let sent = try? await MessageRepo.message(id: messageId) {
@@ -287,4 +310,5 @@ final class ChatViewModel {
     }
 
     private var retryClosures: [UUID: () -> Void] = [:]
+    private var inFlightSends: Set<UUID> = []
 }

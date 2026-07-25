@@ -27,6 +27,13 @@ struct VoiceRecorderSheet: View {
                 .font(.system(.title3, design: .monospaced))
                 .foregroundStyle(.secondary)
 
+            if recorder.permissionDenied {
+                Text("Microphone access is off. Enable it in Settings › Ventline to record voice messages.")
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+                    .multilineTextAlignment(.center)
+            }
+
             HStack(spacing: 24) {
                 Button("Cancel", role: .cancel) {
                     recorder.cancel()
@@ -67,6 +74,7 @@ final class VoiceRecorder {
     private(set) var isRecording = false
     private(set) var level: Float = 0
     private(set) var duration: TimeInterval = 0
+    private(set) var permissionDenied = false
 
     private var recorder: AVAudioRecorder?
     private var meterTimer: Timer?
@@ -78,6 +86,19 @@ final class VoiceRecorder {
     }
 
     func start() {
+        Task { await startRecording() }
+    }
+
+    private func startRecording() async {
+        // Ask for microphone access before touching the audio session, and
+        // surface a clear denied state instead of silently capturing nothing.
+        guard await requestMicPermission() else {
+            permissionDenied = true
+            isRecording = false
+            return
+        }
+        permissionDenied = false
+
         let session = AVAudioSession.sharedInstance()
         do {
             try session.setCategory(.playAndRecord, mode: .default)
@@ -93,7 +114,13 @@ final class VoiceRecorder {
             ]
             let recorder = try AVAudioRecorder(url: url, settings: settings)
             recorder.isMeteringEnabled = true
-            recorder.record()
+            // record() returns false if the engine could not start; don't
+            // pretend we're recording in that case.
+            guard recorder.record() else {
+                isRecording = false
+                permissionDenied = true
+                return
+            }
 
             self.recorder = recorder
             self.fileURL = url
@@ -107,6 +134,15 @@ final class VoiceRecorder {
             }
         } catch {
             isRecording = false
+        }
+    }
+
+    private func requestMicPermission() async -> Bool {
+        if AVAudioApplication.shared.recordPermission == .granted { return true }
+        return await withCheckedContinuation { continuation in
+            AVAudioApplication.requestRecordPermission { granted in
+                continuation.resume(returning: granted)
+            }
         }
     }
 

@@ -11,9 +11,40 @@ struct RootView: View {
             AuthView()
         case .onboarding:
             OnboardingView()
+        case .loadFailed:
+            ProfileLoadErrorView()
         case .ready(let profile):
             MainTabView(profile: profile)
         }
+    }
+}
+
+/// Shown when the profile load fails for a signed-in user (transient error).
+/// Offers a retry rather than dropping them into onboarding.
+struct ProfileLoadErrorView: View {
+    @Environment(AppState.self) private var appState
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "wifi.exclamationmark")
+                .font(.largeTitle)
+                .foregroundStyle(.secondary)
+            Text("Couldn't load your account")
+                .font(.headline)
+            Text("Check your connection and try again.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            Button("Retry") {
+                Task { await appState.refreshProfile() }
+            }
+            .buttonStyle(.borderedProminent)
+            Button("Sign out") {
+                Task { await appState.signOut() }
+            }
+            .font(.footnote)
+        }
+        .padding(32)
     }
 }
 

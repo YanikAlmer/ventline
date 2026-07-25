@@ -26,6 +26,9 @@ struct AudioPlayerView: View {
                 .foregroundStyle(.secondary)
         }
         .frame(minWidth: 180)
+        // Leaving the thread mid-playback must not leak the repeating timer or
+        // leave the playback audio session active.
+        .onDisappear { player.stop() }
     }
 
     private var waveform: some View {
@@ -74,6 +77,7 @@ final class AudioPlayer: NSObject, AVAudioPlayerDelegate {
             player?.pause()
             isPlaying = false
             progressTimer?.invalidate()
+            progressTimer = nil
             return
         }
 
@@ -102,11 +106,23 @@ final class AudioPlayer: NSObject, AVAudioPlayerDelegate {
         }
     }
 
+    /// Stop playback and release the timer + audio session. Called from
+    /// onDisappear so navigating away mid-playback doesn't leak either.
+    func stop() {
+        player?.pause()
+        isPlaying = false
+        progress = 0
+        progressTimer?.invalidate()
+        progressTimer = nil
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+    }
+
     nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
         Task { @MainActor in
             self.isPlaying = false
             self.progress = 0
             self.progressTimer?.invalidate()
+            self.progressTimer = nil
         }
     }
 }

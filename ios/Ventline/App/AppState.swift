@@ -11,6 +11,10 @@ final class AppState {
         case signedOut
         /// Authenticated but no profile yet: create a company or redeem an invite.
         case onboarding
+        /// Authenticated, but loading the profile failed (transient). Offer retry
+        /// instead of falling through to onboarding, which would strand an
+        /// existing member on a first-run screen.
+        case loadFailed
         case ready(Profile)
     }
 
@@ -47,9 +51,10 @@ final class AppState {
         }
     }
 
-    /// Re-check after onboarding (create company / redeem invite).
+    /// Re-check after onboarding (create company / redeem invite) or a retry.
     func refreshProfile() async {
         if let userId {
+            phase = .loading
             await loadProfile(userId: userId)
         }
     }
@@ -72,9 +77,14 @@ final class AppState {
                 phase = .onboarding
             }
         } catch {
-            // Network hiccup: keep the user signed in, let onboarding retry.
-            if case .loading = phase {
-                phase = .onboarding
+            // A load failure must NOT be treated as "no profile" — that would
+            // route an established member into onboarding. Keep a working
+            // session as-is (e.g. a background token-refresh blip); otherwise
+            // surface a retryable error.
+            if case .ready = phase {
+                // established session — leave it intact
+            } else {
+                phase = .loadFailed
             }
         }
     }
