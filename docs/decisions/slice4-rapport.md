@@ -154,3 +154,73 @@ defaulted conservatively, so answering later is a config change, not a migration
 - The official SIX Swiss cross artwork file (it is a file, not a question).
 - **SIX's public QR-bill validator belongs in CI** — the cheapest correctness
   win available.
+
+---
+
+## QR-bill geometry — resolved 2026-07-26
+
+The SIX **Style Guide QR-bill v1.1** (effective 01.01.2026) turned out to be
+fetchable and machine-readable, so the layout is no longer guesswork. Every
+constant in `supabase/functions/render-document/qrbill.ts` comes from it.
+
+The two things most often got wrong, now settled:
+
+- **The 46 × 46 mm QR size EXCLUDES the quiet zone.** The zone is an additional
+  5 mm on every side, so **56 × 56 mm** must be kept clear. This was the "10 mm
+  error waiting to happen" flagged earlier.
+- **There are no fixed y positions for text blocks.** The Style Guide is
+  explicit: "if any are omitted the rest all move up." The information block is
+  a top-anchored flow, not a coordinate table. Only the section rectangles are
+  fixed. A renderer built from a coordinate table would misplace every bill
+  that omits a reference or a message.
+
+Other findings worth keeping:
+
+- The payment part's information block starts at the **top margin (y = 5)**,
+  level with the title — the receipt's starts **below** its title (y = 12).
+  Easy to get wrong, and the two differ.
+- The official Swiss cross artwork is 878 bytes of SVG containing four shapes
+  and no `<path>`, so it is reproduced directly with no SVG parser. It is very
+  slightly off-centre (~0.13 mm); that is reproduced faithfully, because it is
+  the mark banks are calibrated against.
+- **Standard-14 Helvetica cannot be used.** pdf-lib encodes it as WinAnsi and
+  throws on Latin Extended A, which SIX explicitly permits in names. Verified:
+  `WinAnsi cannot encode "ś"`. So Liberation Sans (SIL OFL 1.1) is embedded and
+  subsetted — 30 KB in the PDF versus 443 KB unsubsetted.
+
+### Correction to an earlier claim
+
+I previously said SIX's QR-bill validator "belongs in CI". **It cannot be put in
+CI.** It is a browser form requiring manual account activation, with no public
+API, and it validates only the payload or a QR image — never the layout. Plan
+for a "no" if you ask them for machine access.
+
+What replaces it, and is arguably better for the encoder:
+
+- **SIX's 18 official sample payloads** are now permanent assertions in
+  `scripts/rls-tests.sql`. If our check-digit or IBAN-pairing rules reject one
+  of SIX's own samples, the rules are wrong. All 18 pass.
+  **Caveat recorded in the test:** those samples date from 2021 and **nine of
+  them still use address type `K`**, the combined form v2.3 removed. Anyone
+  treating all eighteen as current would "fix" their encoder to emit an invalid
+  address type.
+- **A decode round trip** in `qrbill_test.ts`: the rendered bill is decoded back
+  and compared byte-for-byte. This is the assertion that matters, because the
+  Swiss cross physically covers modules in the centre of the code — if error
+  correction cannot recover them the bill is unscannable, and that failure is
+  completely invisible in a visual review.
+
+### Still unverified
+
+- No pixel-exact golden image exists. SIX's only rendered samples are JPEGs
+  from 2021 that predate Style Guide v1.1, so layout regression has no ground
+  truth beyond our own baseline.
+- The separation line's weight, dash pattern and scissors placement are **not
+  specified anywhere**. Current choice (0.5 pt, 2 mm dashes, text instruction
+  instead of a glyph) is convention, not spec.
+- IG **3.6 says the acceptance point section should be ≥ 20 mm; the Style Guide
+  drawing shows 18 mm.** We use 18. If a bank validator checks for 20, this is
+  the first place to look.
+- The Swiss cross artwork is licensed by conformance, not by a grant — using it
+  is permitted only while output conforms to the IG. Worth a short counsel
+  review before commercial launch.

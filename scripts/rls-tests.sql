@@ -2110,4 +2110,64 @@ begin
 end;
 $$;
 
+-- ================= official SIX sample payloads (golden fixtures)
+-- The (IBAN, reference type, reference) triples from SIX's own 18 published
+-- sample QR-bills. If our check-digit or IBAN-pairing rules reject one of
+-- these, the rules are wrong -- not the sample.
+--
+-- Extracted rather than vendored, and deliberately only the fields our
+-- constraints govern. Note the samples date from 2021: nine of them still use
+-- address type 'K', the combined form that v2.3 REMOVED. Anyone treating all
+-- eighteen as current would "fix" their encoder to emit an invalid address
+-- type, so the address type is not asserted here.
+do $$
+declare
+  r record;
+  v_checked integer := 0;
+begin
+  for r in
+    select * from (values
+    ('Nr. 1', 'CH6431961000004421557', 'QRR', '000008207791225857421286694'),
+    ('Nr. 13', 'CH7331955000007324129', 'QRR', '000003983456426900478123999'),
+    ('Nr. 14', 'CH2031975000007781535', 'QRR', '000009003770120603761188776'),
+    ('Nr. 17', 'CH5800791123000889012', 'SCOR', 'RF240191230100405JSH0438'),
+    ('Nr. 18', 'CH5204835012345671000', 'SCOR', 'RF8420191230100503QYP0627'),
+    ('Nr. 2', 'CH6631996000002544373', 'QRR', '000006317171245565959226487'),
+    ('Nr. 21', 'CH5800791123000889012', 'SCOR', 'RF7420191230100521UPV0857'),
+    ('Nr. 22', 'CH5204835012345671000', 'SCOR', 'RF9120191230100533PYZ0768'),
+    ('Nr. 29', 'CH5800791123000889012', 'SCOR', 'RF8720191230100610TBL0982'),
+    ('Nr. 30', 'CH5204835012345671000', 'SCOR', 'RF4520191230100622HHM0593'),
+    ('Nr. 33', 'CH5800791123000889012', 'NON', null),
+    ('Nr. 34', 'CH5204835012345671000', 'NON', null),
+    ('Nr. 37', 'CH5800791123000889012', 'NON', null),
+    ('Nr. 38', 'CH5204835012345671000', 'NON', null),
+    ('Nr. 45', 'CH5800791123000889012', 'NON', null),
+    ('Nr. 46', 'CH5204835012345671000', 'NON', null),
+    ('Nr. 5', 'CH2231989000007611146', 'QRR', '000003701588132583136809972'),
+    ('Nr. 6', 'CH4831988000006669440', 'QRR', '000008639361539912849842165')
+    ) as t(name, iban, ref_type, reference)
+  loop
+    if r.ref_type = 'QRR' then
+      assert app.is_qr_iban(r.iban),
+        format('%s: a QRR sample must carry a QR-IBAN', r.name);
+      assert app.is_valid_qrr(r.reference),
+        format('%s: official QR reference %s must validate', r.name, r.reference);
+    elsif r.ref_type = 'SCOR' then
+      assert not app.is_qr_iban(r.iban),
+        format('%s: a SCOR sample must not carry a QR-IBAN', r.name);
+      assert app.is_valid_scor(r.reference),
+        format('%s: official Creditor Reference %s must validate', r.name, r.reference);
+    else
+      assert not app.is_qr_iban(r.iban),
+        format('%s: a NON sample must not carry a QR-IBAN', r.name);
+      assert r.reference is null,
+        format('%s: a NON sample carries no reference', r.name);
+    end if;
+    v_checked := v_checked + 1;
+  end loop;
+
+  assert v_checked = 18, format('expected 18 official samples, checked %s', v_checked);
+end;
+$$;
+
 select 'RLS TESTS PASSED' as result;
