@@ -2502,4 +2502,60 @@ end;
 $$;
 
 
+-- ================================ Treuhänder export (20260731092000)
+-- One row per invoice per rate group, because the accountant's job is to
+-- total each MWST rate separately and a row-per-invoice shape makes them
+-- unpick that by hand.
+do $$
+declare
+  olivia uuid := '00000000-0000-4000-8000-000000000001';
+  wanda  uuid := '00000000-0000-4000-8000-000000000004';
+  maple  uuid := '00000000-0000-4000-9000-000000000001';
+  cust uuid; inv uuid; rows_out integer; denied boolean := false;
+begin
+  perform tests.impersonate(olivia);
+  insert into public.customers (company_id, name, post_code, town, country)
+  values ((select company_id from public.profiles where id = olivia),
+          'Zwei Saetze AG', '8005', 'Zuerich', 'CH')
+  returning id into cust;
+  insert into public.invoices (project_id, customer_id) values (maple, cust)
+  returning id into inv;
+  -- Two rates on one invoice: the case the export shape exists for.
+  insert into public.invoice_lines (invoice_id, description, net_rappen, mwst_rate_bp)
+  values (inv, 'Montage', 100000, 810),
+         (inv, 'Beherbergung', 50000, 380);
+  perform public.issue_invoice(inv);
+
+  select count(*) into rows_out from public.invoice_export(current_date, current_date)
+   where rechnungsnummer = (select number_text from public.invoices where id = inv);
+  assert rows_out = 2,
+    format('an invoice with two rates exports as two rows, got %s', rows_out);
+
+  -- The rule the column set is built around: every numeric column sums, so no
+  -- figure is repeated across the rows of one invoice.
+  assert (select sum(brutto) from public.invoice_export(current_date, current_date)
+           where rechnungsnummer = (select number_text from public.invoices where id = inv))
+         = (select total_gross_rappen / 100.0 from public.invoices where id = inv),
+    'summing brutto over an invoice''s rows reproduces its gross total exactly';
+
+  -- Outside the window it is simply absent rather than partially included.
+  assert not exists (
+    select 1 from public.invoice_export(current_date + 1, current_date + 30)
+     where rechnungsnummer = (select number_text from public.invoices where id = inv)),
+    'the date range filters on the invoice date';
+  perform tests.reset();
+
+  -- A worker has no business knowing what the shop charges.
+  perform tests.impersonate(wanda);
+  begin
+    perform public.invoice_export(current_date - 365, current_date);
+  exception when others then denied := true;
+  end;
+  assert denied,
+    'the export raises for a worker rather than handing back an empty file -- '
+    '"nothing to export" and "not allowed" must not look identical';
+  perform tests.reset();
+end;
+$$;
+
 select 'RLS TESTS PASSED' as result;

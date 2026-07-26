@@ -15,6 +15,7 @@ const NAV = [
   { href: "/inbox", labelKey: "nav.inbox", icon: "💬" },
   { href: "/customers", labelKey: "nav.customers", icon: "🏠" },
   { href: "/people", labelKey: "nav.people", icon: "👥" },
+  { href: "/export", labelKey: "nav.export", icon: "⤓" },
   { href: "/settings", labelKey: "nav.settings", icon: "⚙" },
 ] as const;
 

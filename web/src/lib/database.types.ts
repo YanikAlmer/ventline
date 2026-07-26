@@ -2663,6 +2663,32 @@ export type Database = {
           unread_mention_count: number
         }[]
       }
+      invoice_export: {
+        Args: { p_from: string; p_to: string }
+        Returns: {
+          bexio_kontakt_id: number
+          bezahlt_am: string
+          brutto: number
+          faelligkeit: string
+          kunde: string
+          kunde_id: string
+          kunde_land: string
+          kunde_ort: string
+          kunde_plz: string
+          mwst: number
+          mwst_satz: number
+          mwst_verfahren: string
+          netto: number
+          projekt: string
+          rapport: string
+          rechnungsdatum: string
+          rechnungsnummer: string
+          referenz: string
+          referenz_typ: string
+          status: string
+          waehrung: string
+        }[]
+      }
       invoice_render_payload: { Args: { p_invoice_id: string }; Returns: Json }
       issue_invoice: {
         Args: { p_invoice_id: string }
