@@ -523,6 +523,97 @@ enum RapportRepo {
         return link
     }
 
+    // MARK: - Photos
+
+    /// The site photos on a Rapport, which the renderer prints and the
+    /// canonical text already covers: their storage paths are part of what the
+    /// customer's signature attests to, so a photo swapped afterwards would
+    /// fail verify_report_hash even before the freeze refused the write.
+    static func photos(reportId: UUID) async throws -> [Attachment] {
+        try await Supa.client
+            .from("attachments")
+            .select()
+            .eq("report_id", value: reportId)
+            .order("created_at")
+            .execute()
+            .value
+    }
+
+    /// Two rows, in this order. The attachment is *owned by the report* rather
+    /// than borrowed from a chat message: a message can be purged and its
+    /// attachments cascade, which would delete a photo out from under a signed
+    /// document. report_photos then carries the ordering.
+    static func addPhoto(
+        reportId: UUID, media: MediaUploader.Uploaded, sortOrder: Int
+    ) async throws -> Attachment {
+        let attachment = PublicSchema.AttachmentsInsert(
+            byteSize: Int64(media.byteSize),
+            caption: nil,
+            createdAt: nil,
+            durationSeconds: nil,
+            height: media.height.map(Int32.init),
+            id: nil,
+            kind: .photo,
+            messageId: nil,
+            mimeType: media.mimeType,
+            reportId: reportId,
+            storageBucket: media.bucket,
+            storagePath: media.path,
+            taskId: nil,
+            uploadedBy: nil,
+            waveform: nil,
+            width: media.width.map(Int32.init)
+        )
+        let row: Attachment = try await Supa.client
+            .from("attachments").insert(attachment).select().single().execute().value
+
+        try await Supa.client
+            .from("report_photos")
+            .insert(PublicSchema.ReportPhotosInsert(
+                attachmentId: row.id, reportId: reportId, sortOrder: Int32(sortOrder)))
+            .execute()
+        return row
+    }
+
+    /// Unlink first, then delete. report_photos references the attachment with
+    /// ON DELETE RESTRICT — deliberately, so a photo cannot be deleted out from
+    /// under a Rapport that cites it — which means deleting the attachment
+    /// first fails on the foreign key even while the Rapport is still a draft.
+    ///
+    /// Two different refusals are possible and they are not interchangeable:
+    /// a signed Rapport *raises* from the freeze trigger, while another
+    /// company's row is simply invisible and deletes zero rows. Only the second
+    /// is reported here; the first arrives as a thrown error carrying the
+    /// database's own explanation, which is better than anything invented here.
+    static func removePhoto(reportId: UUID, attachmentId: UUID) async throws -> Bool {
+        let unlinked: [PublicSchema.ReportPhotosSelect] = try await Supa.client
+            .from("report_photos")
+            .delete()
+            .eq("report_id", value: reportId)
+            .eq("attachment_id", value: attachmentId)
+            .select()
+            .execute()
+            .value
+        guard !unlinked.isEmpty else { return false }
+
+        let removed: [Attachment] = try await Supa.client
+            .from("attachments")
+            .delete()
+            .eq("id", value: attachmentId)
+            .select()
+            .execute()
+            .value
+
+        // Best effort. Storage has no foreign keys, so a failure here leaves an
+        // unreferenced object rather than a broken Rapport — worth attempting,
+        // not worth failing the removal over.
+        if let gone = removed.first {
+            _ = try? await Supa.client.storage
+                .from(gone.storageBucket).remove(paths: [gone.storagePath])
+        }
+        return true
+    }
+
     /// Uploads the captured signature into the private signatures bucket. The
     /// path convention matches every other bucket: {company}/{project}/...
     static func uploadSignature(

@@ -168,6 +168,7 @@ struct RapportDetailView: View {
     @State private var report: Report?
     @State private var timeLines: [ReportTimeLine] = []
     @State private var materialLines: [ReportMaterialLine] = []
+    @State private var photos: [Attachment] = []
     @State private var available: [TimeEntry] = []
     @State private var selected: Set<UUID> = []
     @State private var showSignature = false
@@ -255,6 +256,19 @@ struct RapportDetailView: View {
                             }
                         }
                     }
+                }
+
+                // Below the work, above the signature: photos are evidence for
+                // what the lines above claim, and the customer should have seen
+                // them before the pad comes out.
+                if isDraft || !photos.isEmpty {
+                    RapportPhotosSection(
+                        reportId: reportId,
+                        projectId: report.projectId,
+                        profile: profile,
+                        isDraft: isDraft,
+                        photos: $photos
+                    )
                 }
 
                 if signedLocally, report.status == .draft {
@@ -392,6 +406,7 @@ struct RapportDetailView: View {
         report = try? await RapportRepo.report(id: reportId)
         timeLines = (try? await RapportRepo.timeLines(reportId: reportId)) ?? []
         materialLines = (try? await RapportRepo.materialLines(reportId: reportId)) ?? []
+        photos = (try? await RapportRepo.photos(reportId: reportId)) ?? []
         // Refreshed on every load, so it always describes the content currently
         // on screen. A stale hash would fail the sync for the right reason but
         // at the worst moment — after the customer has already signed.

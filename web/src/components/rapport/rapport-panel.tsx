@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import { ErrorNote, primaryButtonClass, secondaryButtonClass } from "@/components/form";
 import { Modal } from "@/components/modal";
+import { RapportPhotos } from "@/components/rapport/rapport-photos";
 import { useTranslator } from "@/i18n/client";
 import type {
   Customer,
@@ -354,6 +355,16 @@ function ReportModal({
                 </ul>
               </div>
             )}
+
+            {/* After the work, before the link: the photos are evidence for
+                what the lines above claim. Editable only while the Rapport is
+                a draft, because the database freezes them at signature. */}
+            <RapportPhotos
+              reportId={report.id}
+              projectId={report.project_id}
+              companyId={report.company_id}
+              canEdit={report.status === "draft"}
+            />
           </>
         )}
 

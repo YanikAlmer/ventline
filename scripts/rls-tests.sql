@@ -2558,4 +2558,104 @@ begin
 end;
 $$;
 
+-- ============================ Rapport photos (slice 4 UI, 20260731)
+-- report_photos existed from the reports migration and the renderer printed
+-- them; nothing ever wrote a row. These pin the two properties the UI on both
+-- clients is built around.
+do $$
+declare
+  frank uuid := '00000000-0000-4000-8000-000000000003';
+  maple uuid := '00000000-0000-4000-9000-000000000001';
+  r uuid := gen_random_uuid();
+  att uuid; att2 uuid; hash_before text; hash_after text; denied boolean := false;
+begin
+  perform tests.impersonate(frank);
+  perform public.sync_report_draft(r, maple, 'Mit Fotos', 'Filter ersetzt');
+  insert into public.report_material_lines (report_id, description, quantity_milli, unit_price_rappen)
+  values (r, 'Filterset F7', 2000, 4250);
+
+  hash_before := public.report_canonical_text(r);
+
+  -- The attachment is owned by the report, not by a message: a message can be
+  -- purged and its attachments cascade, which would delete a photo out from
+  -- under a signed document.
+  insert into public.attachments (report_id, kind, storage_bucket, storage_path, mime_type)
+  values (r, 'photo', 'photos', 'co/pr/aaa/photo.jpg', 'image/jpeg')
+  returning id into att;
+  insert into public.report_photos (report_id, attachment_id, sort_order) values (r, att, 0);
+
+  hash_after := public.report_canonical_text(r);
+  assert hash_before <> hash_after,
+    'adding a photo changes the canonical text -- the signature has to cover '
+    'the photos, or a Rapport could be re-illustrated after it was signed';
+  assert hash_after like '%co/pr/aaa/photo.jpg%',
+    'and it is the storage path that is covered';
+
+  perform public.sign_report(r, 'H. Henderson');
+
+  -- Frozen: the photos are part of what was signed.
+  begin
+    insert into public.attachments (report_id, kind, storage_bucket, storage_path, mime_type)
+    values (r, 'photo', 'photos', 'co/pr/bbb/photo.jpg', 'image/jpeg')
+    returning id into att2;
+    insert into public.report_photos (report_id, attachment_id) values (r, att2);
+  exception when others then denied := true;
+  end;
+  assert denied, 'no photo can be added to a signed Rapport';
+
+  -- Removing one raises rather than silently deleting nothing: the freeze
+  -- trigger fires after RLS has allowed the row through, because frank may
+  -- legitimately write this Rapport — it is the signature that forbids it, not
+  -- the tenancy. Both clients surface the database's own message here.
+  denied := false;
+  begin
+    delete from public.report_photos where report_id = r and attachment_id = att;
+  exception when others then denied := true;
+  end;
+  assert denied, 'and none can be removed from one either';
+  assert exists (select 1 from public.report_photos where report_id = r and attachment_id = att),
+    'the row is still there afterwards';
+
+  -- The attachment beneath it is protected too, or the freeze would hold in
+  -- one place and not the other. RLS refuses by deleting nothing rather than
+  -- by raising, which is exactly how this went unnoticed until a UI existed.
+  delete from public.attachments where id = att;
+  assert exists (select 1 from public.attachments where id = att),
+    'the attachment under a signed Rapport''s photo cannot be deleted either';
+
+  assert public.verify_report_hash(r),
+    'the signed Rapport still verifies against the photo it was signed with';
+  perform tests.reset();
+end;
+$$;
+
+-- The other half: on a *draft* a photo must actually come off again. Both
+-- clients unlink first and delete the attachment second, because
+-- report_photos.attachment_id is ON DELETE RESTRICT.
+do $$
+declare
+  frank uuid := '00000000-0000-4000-8000-000000000003';
+  maple uuid := '00000000-0000-4000-9000-000000000001';
+  r uuid := gen_random_uuid();
+  att uuid;
+begin
+  perform tests.impersonate(frank);
+  perform public.sync_report_draft(r, maple, 'Fotos entfernen', null);
+  insert into public.attachments (report_id, kind, storage_bucket, storage_path, mime_type)
+  values (r, 'photo', 'photos', 'co/pr/ccc/photo.jpg', 'image/jpeg')
+  returning id into att;
+  insert into public.report_photos (report_id, attachment_id) values (r, att);
+
+  -- Attachment first would fail on the foreign key, which is the whole reason
+  -- the clients do it in this order.
+  delete from public.report_photos where report_id = r and attachment_id = att;
+  delete from public.attachments where id = att;
+
+  assert not exists (select 1 from public.attachments where id = att),
+    'a photo on a draft can be removed -- attachments_delete covered task rows '
+    'only, so a report photo silently could not be deleted at all';
+  perform tests.reset();
+end;
+$$;
+
 select 'RLS TESTS PASSED' as result;
