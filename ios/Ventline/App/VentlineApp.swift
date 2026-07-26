@@ -21,6 +21,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 @main
 struct VentlineApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+    @Environment(\.scenePhase) private var scenePhase
     @State private var appState = AppState()
 
     var body: some Scene {
@@ -28,6 +29,12 @@ struct VentlineApp: App {
             RootView()
                 .environment(appState)
                 .task { appState.start() }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            // Work recorded in a plant room should reach the office as soon as
+            // the phone is useful again — which is usually the moment somebody
+            // picks it up, not a network event.
+            if phase == .active { OfflineQueue.shared.resume() }
         }
     }
 }

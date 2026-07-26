@@ -174,8 +174,12 @@ struct RapportDetailView: View {
     @State private var shareLink: URL?
     @State private var isWorking = false
     @State private var errorMessage: String?
+    /// Taken while there is signal, so the signature can be attested offline.
+    @State private var canonicalHash: String?
+    /// Signed on this device but not yet acknowledged by the server.
+    @State private var signedLocally = false
 
-    private var isDraft: Bool { report?.status == .draft }
+    private var isDraft: Bool { report?.status == .draft && !signedLocally }
 
     var body: some View {
         List {
@@ -253,6 +257,16 @@ struct RapportDetailView: View {
                     }
                 }
 
+                if signedLocally, report.status == .draft {
+                    Section {
+                        Label("Signed — waiting to sync", systemImage: "checkmark.circle")
+                            .font(.subheadline)
+                            .foregroundStyle(.orange)
+                    } footer: {
+                        Text("The Rapport number is assigned as soon as this reaches the office.")
+                    }
+                }
+
                 if isDraft {
                     Section {
                         Button {
@@ -292,6 +306,7 @@ struct RapportDetailView: View {
         }
         .navigationTitle(report?.title ?? String(localized: "Rapport"))
         .navigationBarTitleDisplayMode(.inline)
+        .safeAreaInset(edge: .top) { SyncBanner() }
         .sheet(isPresented: $showSignature) {
             SignaturePadView(
                 reportTitle: report?.title ?? String(localized: "Rapport"),
@@ -324,11 +339,34 @@ struct RapportDetailView: View {
         guard let report else { return }
         isWorking = true
         defer { isWorking = false; showSignature = false }
+
+        // The hash is taken when the pad is signed, over the canonical text the
+        // customer was shown. It travels with the queued signature, and the
+        // server refuses the sync if the content has moved since — which is
+        // what makes an offline signature mean the same thing as an online one.
+        //
+        // Without it, `canonicalHash` is nil: the Rapport was never fetched
+        // while online, so there is nothing to attest to and the sign must wait
+        // rather than assert something unverified.
+        guard let hash = canonicalHash else {
+            errorMessage = String(localized: "This Rapport has to be opened once with a connection before it can be signed.")
+            return
+        }
+
         do {
-            let path = try await RapportRepo.uploadSignature(
-                png: png, companyId: profile.companyId, projectId: report.projectId)
-            _ = try await RapportRepo.sign(
-                reportId: reportId, signerName: name, signaturePath: path)
+            OfflineQueue.shared.enqueue(try PendingOperation(
+                kind: .signReport,
+                payload: SignPayload(
+                    reportId: reportId,
+                    signerName: name,
+                    signedAtDevice: Date(),
+                    contentHashHex: hash,
+                    companyId: profile.companyId,
+                    projectId: report.projectId,
+                    signaturePNG: png
+                )
+            ))
+            signedLocally = true
             await reload()
         } catch {
             errorMessage = FriendlyError.message(error)
@@ -354,6 +392,12 @@ struct RapportDetailView: View {
         report = try? await RapportRepo.report(id: reportId)
         timeLines = (try? await RapportRepo.timeLines(reportId: reportId)) ?? []
         materialLines = (try? await RapportRepo.materialLines(reportId: reportId)) ?? []
+        // Refreshed on every load, so it always describes the content currently
+        // on screen. A stale hash would fail the sync for the right reason but
+        // at the worst moment — after the customer has already signed.
+        if report?.status == .draft {
+            canonicalHash = try? await RapportRepo.contentHashHex(reportId: reportId)
+        }
         if let report, report.status == .draft {
             let all = (try? await TimeRepo.entries(projectId: report.projectId)) ?? []
             let used = Set(timeLines.compactMap(\.timeEntryId))

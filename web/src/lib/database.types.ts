@@ -1761,6 +1761,7 @@ export type Database = {
       }
       reports: {
         Row: {
+          client_content_hash: string | null
           company_id: string
           content_hash: string | null
           corrects_report_id: string | null
@@ -1781,6 +1782,8 @@ export type Database = {
           sent_at: string | null
           signature_path: string | null
           signed_at: string | null
+          signed_at_device: string | null
+          signed_offline: boolean
           signer_name: string | null
           snapshot: Json | null
           status: Database["public"]["Enums"]["report_status"]
@@ -1790,6 +1793,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          client_content_hash?: string | null
           company_id: string
           content_hash?: string | null
           corrects_report_id?: string | null
@@ -1810,6 +1814,8 @@ export type Database = {
           sent_at?: string | null
           signature_path?: string | null
           signed_at?: string | null
+          signed_at_device?: string | null
+          signed_offline?: boolean
           signer_name?: string | null
           snapshot?: Json | null
           status?: Database["public"]["Enums"]["report_status"]
@@ -1819,6 +1825,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          client_content_hash?: string | null
           company_id?: string
           content_hash?: string | null
           corrects_report_id?: string | null
@@ -1839,6 +1846,8 @@ export type Database = {
           sent_at?: string | null
           signature_path?: string | null
           signed_at?: string | null
+          signed_at_device?: string | null
+          signed_offline?: boolean
           signer_name?: string | null
           snapshot?: Json | null
           status?: Database["public"]["Enums"]["report_status"]
@@ -1898,6 +1907,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      retention_runs: {
+        Row: {
+          cutoff: string
+          entries_deleted: number
+          id: number
+          ran_at: string
+          report_lines_detached: number
+          revisions_deleted: number
+        }
+        Insert: {
+          cutoff: string
+          entries_deleted: number
+          id?: number
+          ran_at?: string
+          report_lines_detached: number
+          revisions_deleted: number
+        }
+        Update: {
+          cutoff?: string
+          entries_deleted?: number
+          id?: number
+          ran_at?: string
+          report_lines_detached?: number
+          revisions_deleted?: number
+        }
+        Relationships: []
       }
       task_assignments: {
         Row: {
@@ -2197,6 +2233,7 @@ export type Database = {
           profile_id: string
           project_id: string
           recorded_by: string | null
+          retain_until: string | null
           revision: number
           started_at: string
           task_id: string | null
@@ -2217,6 +2254,7 @@ export type Database = {
           profile_id: string
           project_id: string
           recorded_by?: string | null
+          retain_until?: string | null
           revision?: number
           started_at: string
           task_id?: string | null
@@ -2237,6 +2275,7 @@ export type Database = {
           profile_id?: string
           project_id?: string
           recorded_by?: string | null
+          retain_until?: string | null
           revision?: number
           started_at?: string
           task_id?: string | null
@@ -2720,6 +2759,7 @@ export type Database = {
         }[]
       }
       purge_expired_messages: { Args: never; Returns: number }
+      purge_expired_time_entries: { Args: never; Returns: number }
       qr_bill_payload: { Args: { p_invoice_id: string }; Returns: string }
       redeem_invite: {
         Args: { p_code: string; p_full_name?: string }
@@ -2736,6 +2776,7 @@ export type Database = {
         }
         Returns: string
       }
+      report_canonical_text: { Args: { p_report_id: string }; Returns: string }
       resolve_document_link: {
         Args: { p_token: string; p_user_agent_family?: string }
         Returns: Json
@@ -2791,11 +2832,14 @@ export type Database = {
       }
       sign_report: {
         Args: {
+          p_client_content_hash?: string
           p_report_id: string
           p_signature_path?: string
+          p_signed_at_device?: string
           p_signer_name: string
         }
         Returns: {
+          client_content_hash: string | null
           company_id: string
           content_hash: string | null
           corrects_report_id: string | null
@@ -2816,6 +2860,8 @@ export type Database = {
           sent_at: string | null
           signature_path: string | null
           signed_at: string | null
+          signed_at_device: string | null
+          signed_offline: boolean
           signer_name: string | null
           snapshot: Json | null
           status: Database["public"]["Enums"]["report_status"]
@@ -2827,6 +2873,122 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "reports"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      sync_material_line: {
+        Args: {
+          p_description: string
+          p_id: string
+          p_project_id: string
+          p_quantity_milli: number
+          p_task_id?: string
+          p_unit?: string
+          p_unit_price_rappen?: number
+        }
+        Returns: {
+          company_id: string
+          created_at: string
+          description: string
+          id: string
+          project_id: string
+          quantity_milli: number
+          recorded_by: string | null
+          task_id: string | null
+          unit: string
+          unit_price_rappen: number
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "material_lines"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      sync_report_draft: {
+        Args: {
+          p_id: string
+          p_project_id: string
+          p_summary?: string
+          p_title?: string
+        }
+        Returns: {
+          client_content_hash: string | null
+          company_id: string
+          content_hash: string | null
+          corrects_report_id: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          doc_type: Database["public"]["Enums"]["document_type"]
+          id: string
+          number: number | null
+          number_text: string | null
+          pdf_generated_at: string | null
+          pdf_path: string | null
+          pdf_sha256: string | null
+          period_from: string | null
+          period_key: string | null
+          period_to: string | null
+          project_id: string
+          sent_at: string | null
+          signature_path: string | null
+          signed_at: string | null
+          signed_at_device: string | null
+          signed_offline: boolean
+          signer_name: string | null
+          snapshot: Json | null
+          status: Database["public"]["Enums"]["report_status"]
+          summary: string | null
+          title: string | null
+          total_net_rappen: number | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "reports"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      sync_time_entry: {
+        Args: {
+          p_break_minutes?: number
+          p_ended_at?: string
+          p_id: string
+          p_kind?: Database["public"]["Enums"]["time_entry_kind"]
+          p_note?: string
+          p_profile_id: string
+          p_project_id: string
+          p_started_at: string
+          p_task_id?: string
+        }
+        Returns: {
+          break_minutes: number
+          company_id: string
+          created_at: string
+          ended_at: string | null
+          id: string
+          kind: Database["public"]["Enums"]["time_entry_kind"]
+          note: string | null
+          profile_id: string
+          project_id: string
+          recorded_by: string | null
+          retain_until: string | null
+          revision: number
+          started_at: string
+          task_id: string | null
+          updated_at: string
+          voided_at: string | null
+          voided_reason: string | null
+          work_date: string
+          worked_minutes: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "time_entries"
           isOneToOne: true
           isSetofReturn: false
         }

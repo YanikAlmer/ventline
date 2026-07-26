@@ -50,6 +50,8 @@ struct TimeTrackerView: View {
                 }
             }
 
+            SyncStatusSection()
+
             if let errorMessage {
                 Section { Text(errorMessage).foregroundStyle(.red).font(.footnote) }
             }
@@ -288,13 +290,24 @@ struct ManualTimeSheet: View {
                     c.hour = t.hour; c.minute = t.minute
                     return cal.date(from: c) ?? time
                 }
-                _ = try await TimeRepo.logManual(
-                    projectId: projectId, profileId: profile.id, taskId: taskId,
-                    start: combine(start), end: combine(end),
-                    breakMinutes: breakMinutes,
-                    note: note.trimmingCharacters(in: .whitespaces),
-                    kind: kind
-                )
+                // Queued rather than sent. A complete entry is a
+                // self-contained operation, so this path behaves identically
+                // in a plant room and in the office — the difference is only
+                // how long it sits in the outbox.
+                let trimmed = note.trimmingCharacters(in: .whitespaces)
+                OfflineQueue.shared.enqueue(try PendingOperation(
+                    kind: .timeEntry,
+                    payload: TimeEntryPayload(
+                        projectId: projectId,
+                        profileId: profile.id,
+                        taskId: taskId,
+                        startedAt: combine(start),
+                        endedAt: combine(end),
+                        breakMinutes: breakMinutes,
+                        note: trimmed.isEmpty ? nil : trimmed,
+                        kind: kind.rawValue
+                    )
+                ))
                 await onSaved()
                 dismiss()
             } catch {

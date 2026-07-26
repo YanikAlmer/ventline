@@ -110,24 +110,72 @@ defaulted conservatively, so answering later is a config change, not a migration
    everything else placeheld.
 3. **Is the customer with no email in scope?** Magic link covers WhatsApp/SMS
    sharing. Print-and-post is real work and is not built.
-4. **Offline capture in a Heizungskeller.** v1 is online-only, and the
-   consequence is owned out loud: a Rapport cannot be completed where there is
-   no signal, because the number, the render and the hash are all server-side.
-   The alternative — a client-side provisional identity numbered at sync —
-   breaks "the customer signed *this* document". Needs a product decision
-   before it is engineered.
+4. **Offline capture — DECIDED: supported.** Implemented in `20260730091000`
+   and `ios/Ventline/Core/Offline/`.
+
+   The objection was never the plumbing, it was that a Rapport signed offline
+   has no number yet, so "the customer signed *this* document" stops being
+   provable. The resolution is that **the number was never what the customer
+   signs.** They sign a statement of work performed; the number is bookkeeping
+   the issuer assigns, and on paper it is pre-printed purely as an artefact of
+   paper.
+
+   So the device computes the same canonical hash the server would, at the
+   moment the pad is signed, and sends it at sync. The server recomputes and
+   compares. Match → the stored document is provably the one the customer saw.
+   Mismatch → the sync is refused and the Rapport stays a draft.
+
+   That is **stronger** than the online path, not weaker: it produces a
+   device-side attestation of what was on screen, which the online flow never
+   had.
+
+   Design notes worth keeping:
+   - An **outbox of intents**, not a local replica. Reads still want the
+     network; writes never fail. The crew needs to record, not to browse.
+   - Every operation carries a **device-generated id**, and the `sync_*` RPCs
+     return the existing row rather than raising. A replay is a no-op — and
+     deliberately not an update, so a retry cannot clobber a correction made in
+     between.
+   - The queue is **strictly FIFO and stops at the first failure**: a Rapport
+     must not be signed before its lines arrive.
+   - `created_at` is **not** a valid floor for clamping an offline signing
+     time. For a draft built offline it records when the row reached the
+     server, so clamping against it would drag every offline signature forward
+     to its own sync time. A 30-day plausibility window is used instead, and
+     the raw device claim is preserved verbatim in `signed_at_device`.
+   - A Rapport must be opened once **with a connection** before it can be
+     signed, because the attestation needs the canonical text. Stated in the UI
+     rather than failing at the pad.
 5. **Night / Sunday / Pikett work.** Common in HLKS service. If yes, a whole
    surcharge subsystem becomes mandatory rather than optional.
 6. **Unregistered and Saldosteuersatz tenants.** Both are modelled
    (`mwst_status`), because getting the unregistered case wrong is an Art. 27
    liability trap — a business that shows MWST it is not entitled to charge
    owes it anyway.
-7. **Retention.** Genuinely conflicting: ArGV 1 Art. 73 says 5 years for the
-   labour record; OR 958f says 10 for a Buchungsbeleg; MWSTG Art. 70 Abs. 3
-   says 20 where immovable property is involved, which for HLKS is routine.
-   Running a 5-year purge over data that is also an accounting record destroys
-   books. → two separate clocks, `retain_until` on each table, and **no purge
-   job ships** until a Treuhänder confirms the rule.
+7. **Retention — DECIDED: 5 years.** Implemented in `20260730090000`.
+
+   The conflict was real, so the decision is applied to the thing it actually
+   governs. ArGV 1 Art. 73 Abs. 2's five years is a rule about the *working-time
+   record*, and that is what the purge deletes. A time entry frozen onto a
+   signed Rapport has also become part of an *accounting* record, which carries
+   its own floors (OR 958f: ten years; MWSTG Art. 70 Abs. 3: twenty where
+   immovable property is involved — routine for HLKS). Those attach to two
+   different things, so they are satisfied separately: the labour record goes
+   at five years, the signed Rapport does not.
+
+   Nothing a Rapport states is lost. What is lost is the separate live
+   per-employee record behind it, which is exactly what ArGV 1 Art. 73 is about.
+
+   Making that work needed one narrow exemption to the freeze: the purge clears
+   a signed line's pointer to the record it deletes. That is safe because
+   `report_canonical_text` covers the date, name, description, minutes and rate
+   and never the provenance columns — so clearing them cannot change the hash.
+   The regression test asserts the Rapport **still verifies** afterwards, which
+   makes the claim checkable rather than merely argued.
+
+   Still worth a Treuhänder's eye: whether deleting signed Rapporte at any
+   horizon is ever wanted. This job does not, and that stays a separate
+   deliberate decision.
 8. **Qualified timestamp / company seal certificate.** Not legally required for
    a Rapport. Cost and per-tenant provisioning versus credibility.
 9. **Location at signature.** Default off, and **no coordinate column exists** —

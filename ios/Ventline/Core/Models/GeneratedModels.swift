@@ -2206,6 +2206,7 @@ public enum PublicSchema {
     }
   }
   public struct ReportsSelect: Codable, Hashable, Sendable {
+    public let clientContentHash: String?
     public let companyId: UUID
     public let contentHash: String?
     public let correctsReportId: UUID?
@@ -2226,6 +2227,8 @@ public enum PublicSchema {
     public let sentAt: String?
     public let signaturePath: String?
     public let signedAt: String?
+    public let signedAtDevice: String?
+    public let signedOffline: Bool
     public let signerName: String?
     public let snapshot: AnyJSON?
     public let status: ReportStatus
@@ -2234,6 +2237,7 @@ public enum PublicSchema {
     public let totalNetRappen: Int64?
     public let updatedAt: String
     public enum CodingKeys: String, CodingKey {
+      case clientContentHash = "client_content_hash"
       case companyId = "company_id"
       case contentHash = "content_hash"
       case correctsReportId = "corrects_report_id"
@@ -2254,6 +2258,8 @@ public enum PublicSchema {
       case sentAt = "sent_at"
       case signaturePath = "signature_path"
       case signedAt = "signed_at"
+      case signedAtDevice = "signed_at_device"
+      case signedOffline = "signed_offline"
       case signerName = "signer_name"
       case snapshot = "snapshot"
       case status = "status"
@@ -2264,6 +2270,7 @@ public enum PublicSchema {
     }
   }
   public struct ReportsInsert: Codable, Hashable, Sendable {
+    public let clientContentHash: String?
     public let companyId: UUID
     public let contentHash: String?
     public let correctsReportId: UUID?
@@ -2284,6 +2291,8 @@ public enum PublicSchema {
     public let sentAt: String?
     public let signaturePath: String?
     public let signedAt: String?
+    public let signedAtDevice: String?
+    public let signedOffline: Bool?
     public let signerName: String?
     public let snapshot: AnyJSON?
     public let status: ReportStatus?
@@ -2292,6 +2301,7 @@ public enum PublicSchema {
     public let totalNetRappen: Int64?
     public let updatedAt: String?
     public enum CodingKeys: String, CodingKey {
+      case clientContentHash = "client_content_hash"
       case companyId = "company_id"
       case contentHash = "content_hash"
       case correctsReportId = "corrects_report_id"
@@ -2312,6 +2322,8 @@ public enum PublicSchema {
       case sentAt = "sent_at"
       case signaturePath = "signature_path"
       case signedAt = "signed_at"
+      case signedAtDevice = "signed_at_device"
+      case signedOffline = "signed_offline"
       case signerName = "signer_name"
       case snapshot = "snapshot"
       case status = "status"
@@ -2322,6 +2334,7 @@ public enum PublicSchema {
     }
   }
   public struct ReportsUpdate: Codable, Hashable, Sendable {
+    public let clientContentHash: String?
     public let companyId: UUID?
     public let contentHash: String?
     public let correctsReportId: UUID?
@@ -2342,6 +2355,8 @@ public enum PublicSchema {
     public let sentAt: String?
     public let signaturePath: String?
     public let signedAt: String?
+    public let signedAtDevice: String?
+    public let signedOffline: Bool?
     public let signerName: String?
     public let snapshot: AnyJSON?
     public let status: ReportStatus?
@@ -2350,6 +2365,7 @@ public enum PublicSchema {
     public let totalNetRappen: Int64?
     public let updatedAt: String?
     public enum CodingKeys: String, CodingKey {
+      case clientContentHash = "client_content_hash"
       case companyId = "company_id"
       case contentHash = "content_hash"
       case correctsReportId = "corrects_report_id"
@@ -2370,6 +2386,8 @@ public enum PublicSchema {
       case sentAt = "sent_at"
       case signaturePath = "signature_path"
       case signedAt = "signed_at"
+      case signedAtDevice = "signed_at_device"
+      case signedOffline = "signed_offline"
       case signerName = "signer_name"
       case snapshot = "snapshot"
       case status = "status"
@@ -2377,6 +2395,54 @@ public enum PublicSchema {
       case title = "title"
       case totalNetRappen = "total_net_rappen"
       case updatedAt = "updated_at"
+    }
+  }
+  public struct RetentionRunsSelect: Codable, Hashable, Sendable {
+    public let cutoff: String
+    public let entriesDeleted: Int32
+    public let id: Int64
+    public let ranAt: String
+    public let reportLinesDetached: Int32
+    public let revisionsDeleted: Int32
+    public enum CodingKeys: String, CodingKey {
+      case cutoff = "cutoff"
+      case entriesDeleted = "entries_deleted"
+      case id = "id"
+      case ranAt = "ran_at"
+      case reportLinesDetached = "report_lines_detached"
+      case revisionsDeleted = "revisions_deleted"
+    }
+  }
+  public struct RetentionRunsInsert: Codable, Hashable, Sendable {
+    public let cutoff: String
+    public let entriesDeleted: Int32
+    public let id: Int64?
+    public let ranAt: String?
+    public let reportLinesDetached: Int32
+    public let revisionsDeleted: Int32
+    public enum CodingKeys: String, CodingKey {
+      case cutoff = "cutoff"
+      case entriesDeleted = "entries_deleted"
+      case id = "id"
+      case ranAt = "ran_at"
+      case reportLinesDetached = "report_lines_detached"
+      case revisionsDeleted = "revisions_deleted"
+    }
+  }
+  public struct RetentionRunsUpdate: Codable, Hashable, Sendable {
+    public let cutoff: String?
+    public let entriesDeleted: Int32?
+    public let id: Int64?
+    public let ranAt: String?
+    public let reportLinesDetached: Int32?
+    public let revisionsDeleted: Int32?
+    public enum CodingKeys: String, CodingKey {
+      case cutoff = "cutoff"
+      case entriesDeleted = "entries_deleted"
+      case id = "id"
+      case ranAt = "ran_at"
+      case reportLinesDetached = "report_lines_detached"
+      case revisionsDeleted = "revisions_deleted"
     }
   }
   public struct TaskAssignmentsSelect: Codable, Hashable, Sendable {
@@ -2678,6 +2744,7 @@ public enum PublicSchema {
     public let profileId: UUID
     public let projectId: UUID
     public let recordedBy: UUID?
+    public let retainUntil: String?
     public let revision: Int32
     public let startedAt: String
     public let taskId: UUID?
@@ -2697,6 +2764,7 @@ public enum PublicSchema {
       case profileId = "profile_id"
       case projectId = "project_id"
       case recordedBy = "recorded_by"
+      case retainUntil = "retain_until"
       case revision = "revision"
       case startedAt = "started_at"
       case taskId = "task_id"
@@ -2718,6 +2786,7 @@ public enum PublicSchema {
     public let profileId: UUID
     public let projectId: UUID
     public let recordedBy: UUID?
+    public let retainUntil: String?
     public let revision: Int32?
     public let startedAt: String
     public let taskId: UUID?
@@ -2737,6 +2806,7 @@ public enum PublicSchema {
       case profileId = "profile_id"
       case projectId = "project_id"
       case recordedBy = "recorded_by"
+      case retainUntil = "retain_until"
       case revision = "revision"
       case startedAt = "started_at"
       case taskId = "task_id"
@@ -2758,6 +2828,7 @@ public enum PublicSchema {
     public let profileId: UUID?
     public let projectId: UUID?
     public let recordedBy: UUID?
+    public let retainUntil: String?
     public let revision: Int32?
     public let startedAt: String?
     public let taskId: UUID?
@@ -2777,6 +2848,7 @@ public enum PublicSchema {
       case profileId = "profile_id"
       case projectId = "project_id"
       case recordedBy = "recorded_by"
+      case retainUntil = "retain_until"
       case revision = "revision"
       case startedAt = "started_at"
       case taskId = "task_id"

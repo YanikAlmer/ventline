@@ -2170,4 +2170,166 @@ begin
 end;
 $$;
 
+-- ===================== retention: five years on the labour record only
+-- ArGV 1 Art. 73 Abs. 2 sets five years for the working-time record. A time
+-- entry frozen onto a signed Rapport is ALSO an accounting record, with a
+-- longer floor -- so the labour record goes and the signed document stays.
+do $$
+declare
+  frank uuid := '00000000-0000-4000-8000-000000000003';
+  wanda uuid := '00000000-0000-4000-8000-000000000004';
+  maple uuid := '00000000-0000-4000-9000-000000000001';
+  te_old uuid; te_new uuid; r uuid;
+  v public.reports; v_minutes int; v_name text; v_deleted int;
+begin
+  perform tests.impersonate(frank);
+
+  insert into public.time_entries (project_id, profile_id, started_at, ended_at, break_minutes)
+  values (maple, wanda, '2019-06-03 07:30+02', '2019-06-03 12:00+02', 30)
+  returning id into te_old;
+  insert into public.time_entries (project_id, profile_id, started_at, ended_at, break_minutes)
+  values (maple, wanda, now() - interval '4 hours', now() - interval '1 hour', 15)
+  returning id into te_new;
+
+  assert (select retain_until from public.time_entries where id = te_old) = date '2024-12-31',
+    'retain_until is the end of the work year plus five';
+
+  insert into public.reports (project_id, title) values (maple, 'Alt-Rapport') returning id into r;
+  perform public.attach_time_to_report(r, array[te_old]);
+  v := public.sign_report(r, 'H. Henderson');
+  select minutes, performed_by_name into v_minutes, v_name
+    from public.report_time_lines where report_id = r;
+
+  perform tests.reset();
+  v_deleted := public.purge_expired_time_entries();
+
+  assert not exists (select 1 from public.time_entries where id = te_old),
+    'the expired labour record is deleted';
+  assert not exists (select 1 from public.time_entry_revisions where time_entry_id = te_old),
+    'its revision log goes with it';
+  assert exists (select 1 from public.time_entries where id = te_new),
+    'a current entry is untouched';
+
+  assert (select status from public.reports where id = r) = 'signed',
+    'the signed Rapport survives the purge';
+  assert (select minutes from public.report_time_lines where report_id = r) = v_minutes,
+    'the frozen minutes are unchanged';
+  assert (select performed_by_name from public.report_time_lines where report_id = r) = v_name,
+    'the frozen name is unchanged';
+  assert (select time_entry_id from public.report_time_lines where report_id = r) is null,
+    'only the pointer to the deleted record was cleared';
+
+  perform tests.impersonate(frank);
+  -- The claim that makes the narrow freeze exemption safe: clearing provenance
+  -- cannot alter the content, so the signature still checks out.
+  assert public.verify_report_hash(r),
+    'the signed Rapport still verifies against its own hash after the purge';
+
+  -- And the exemption really is narrow: nothing else about a signed line moves.
+  declare denied boolean := false;
+  begin
+    begin
+      update public.report_time_lines set minutes = 1 where report_id = r;
+    exception when others then denied := true;
+    end;
+    assert denied, 'the purge exemption does not open the frozen line to edits';
+  end;
+
+  -- Back out of the foreman session first: retention_runs is office-only, and
+  -- reading it as a foreman returns no rows rather than an error.
+  perform tests.reset();
+  assert (select entries_deleted from public.retention_runs order by id desc limit 1) = v_deleted,
+    'the purge run is recorded';
+end;
+$$;
+
+-- ============================ offline capture: sync, replay, and tampering
+do $$
+declare
+  frank uuid := '00000000-0000-4000-8000-000000000003';
+  wanda uuid := '00000000-0000-4000-8000-000000000004';
+  maple uuid := '00000000-0000-4000-9000-000000000001';
+  te uuid := gen_random_uuid();
+  r  uuid := gen_random_uuid();
+  ml uuid := gen_random_uuid();
+  v public.reports; v2 public.reports; t public.time_entries;
+  device_hash text; signed_moment timestamptz; denied boolean;
+begin
+  perform tests.impersonate(frank);
+
+  -- Everything here is what a phone with no signal queued up, replayed on sync.
+  t := public.sync_time_entry(te, maple, wanda,
+        now() - interval '6 hours', now() - interval '2 hours', 30, 'Kondensatpumpe montiert');
+  assert t.id = te, 'the device-generated id becomes the row id';
+  assert t.worked_minutes = 210, 'the entry arrives with its recorded minutes';
+
+  t := public.sync_time_entry(te, maple, wanda,
+        now() - interval '6 hours', now() - interval '2 hours', 30, 'Kondensatpumpe montiert');
+  assert (select count(*) from public.time_entries where id = te) = 1,
+    'a replayed sync creates no duplicate';
+
+  v  := public.sync_report_draft(r, maple, 'Service Kellergeschoss', null);
+  v2 := public.sync_report_draft(r, maple, 'anderer Titel', null);
+  assert v2.title = 'Service Kellergeschoss',
+    'a replay does not overwrite what is already stored';
+
+  perform public.attach_time_to_report(r, array[te]);
+  perform public.sync_material_line(ml, maple, 'Kondensatpumpe', 1000, 'Stk', 12500);
+
+  -- The phone hashes exactly what it showed the customer.
+  device_hash := encode(extensions.digest(public.report_canonical_text(r), 'sha256'), 'hex');
+  signed_moment := now() - interval '90 minutes';
+
+  v := public.sign_report(r, 'H. Henderson', null, signed_moment, device_hash);
+  assert v.status = 'signed', 'the offline Rapport signs on sync';
+  assert v.signed_offline, 'and is marked as having been signed offline';
+  assert v.number_text is not null, 'the number is assigned at sync, not on the device';
+  assert v.signed_at = signed_moment,
+    'signed_at is when the customer signed, not when the queue drained';
+  assert v.signed_at_device = signed_moment, 'the raw device claim is preserved';
+
+  v2 := public.sign_report(r, 'H. Henderson', null, signed_moment, device_hash);
+  assert v2.number_text = v.number_text,
+    'a replayed sign returns the same document and burns no second number';
+
+  perform tests.reset();
+end;
+$$;
+
+-- The assertion the whole offline design rests on.
+do $$
+declare
+  frank uuid := '00000000-0000-4000-8000-000000000003';
+  wanda uuid := '00000000-0000-4000-8000-000000000004';
+  maple uuid := '00000000-0000-4000-9000-000000000001';
+  te uuid := gen_random_uuid(); r uuid := gen_random_uuid();
+  device_hash text; denied boolean := false;
+begin
+  perform tests.impersonate(frank);
+  perform public.sync_time_entry(te, maple, wanda,
+    now() - interval '5 hours', now() - interval '3 hours', 0, 'Erste Fassung');
+  perform public.sync_report_draft(r, maple, 'Manipuliert', null);
+  perform public.attach_time_to_report(r, array[te]);
+
+  -- The customer signs this content.
+  device_hash := encode(extensions.digest(public.report_canonical_text(r), 'sha256'), 'hex');
+
+  -- Someone adds a line before the queue drains.
+  insert into public.report_material_lines (report_id, description, quantity_milli, unit_price_rappen)
+  values (r, 'nachtraeglich eingefuegt', 5000, 90000);
+
+  begin
+    perform public.sign_report(r, 'H. Henderson', null, now() - interval '1 hour', device_hash);
+  exception when others then denied := true;
+  end;
+  assert denied,
+    'a Rapport whose content changed after signing must not sync -- otherwise the '
+    'change is laundered into a document carrying the customer''s signature';
+  assert (select status from public.reports where id = r) = 'draft',
+    'and it stays a draft rather than half-signing';
+
+  perform tests.reset();
+end;
+$$;
+
 select 'RLS TESTS PASSED' as result;

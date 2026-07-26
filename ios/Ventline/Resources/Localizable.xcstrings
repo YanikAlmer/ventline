@@ -130,6 +130,23 @@
         }
       }
     },
+    "%lld waiting to sync": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld warten auf Übertragung"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld waiting to sync"
+          }
+        }
+      }
+    },
     "%lld/%lld steps": {
       "extractionState": "manual",
       "localizations": {
@@ -1201,6 +1218,23 @@
         }
       }
     },
+    "Everything is saved on this phone and will sync by itself.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alles ist auf diesem Gerät gespeichert und wird automatisch übertragen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Everything is saved on this phone and will sync by itself."
+          }
+        }
+      }
+    },
     "Expires %@": {
       "extractionState": "manual",
       "localizations": {
@@ -1928,6 +1962,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "No Rapporte yet"
+          }
+        }
+      }
+    },
+    "No connection": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Verbindung"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No connection"
           }
         }
       }
@@ -3054,6 +3105,23 @@
         }
       }
     },
+    "Signed — waiting to sync": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unterschrieben — wartet auf Übertragung"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Signed — waiting to sync"
+          }
+        }
+      }
+    },
     "Signing assigns the Rapport number and locks the content.": {
       "extractionState": "manual",
       "localizations": {
@@ -3343,6 +3411,23 @@
         }
       }
     },
+    "The Rapport number is assigned as soon as this reaches the office.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Rapportnummer wird vergeben, sobald der Rapport im Büro ankommt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Rapport number is assigned as soon as this reaches the office."
+          }
+        }
+      }
+    },
     "The break is longer than the time worked.": {
       "extractionState": "manual",
       "localizations": {
@@ -3458,6 +3543,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "They enter it when signing up in the Ventline app. The code expires in 14 days."
+          }
+        }
+      }
+    },
+    "This Rapport has to be opened once with a connection before it can be signed.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieser Rapport muss einmal mit Verbindung geöffnet werden, bevor er unterschrieben werden kann."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This Rapport has to be opened once with a connection before it can be signed."
           }
         }
       }

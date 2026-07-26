@@ -162,10 +162,17 @@ struct AddMaterialSheet: View {
         Task {
             defer { isWorking = false }
             do {
-                _ = try await MaterialRepo.add(
-                    projectId: projectId, taskId: taskId,
-                    description: description.trimmingCharacters(in: .whitespaces),
-                    quantityMilli: milli, unit: unit, unitPriceRappen: priceRappen)
+                OfflineQueue.shared.enqueue(try PendingOperation(
+                    kind: .materialLine,
+                    payload: MaterialPayload(
+                        projectId: projectId,
+                        taskId: taskId,
+                        description: description.trimmingCharacters(in: .whitespaces),
+                        quantityMilli: milli,
+                        unit: unit,
+                        unitPriceRappen: priceRappen
+                    )
+                ))
                 await onSaved()
                 dismiss()
             } catch {
