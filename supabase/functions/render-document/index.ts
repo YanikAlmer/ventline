@@ -11,9 +11,10 @@
 // documents bucket. Never called directly by a client.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { PDFDocument, StandardFonts, rgb } from "npm:pdf-lib@1.17.1";
+import { PDFDocument, rgb } from "npm:pdf-lib@1.17.1";
 import fontkit from "npm:@pdf-lib/fontkit@1.1.1";
 import { encodeQR } from "jsr:@paulmillr/qr@0.6.0";
+import { liberationSansBold, liberationSansRegular } from "./fonts.ts";
 import {
   drawQrBill,
   formatAmount,
@@ -46,14 +47,13 @@ async function loadFonts(doc: PDFDocument) {
   // Liberation Sans, not a Standard-14 face. Helvetica in pdf-lib is
   // WinAnsi-encoded and throws on Latin Extended A — which SIX explicitly
   // permits in names — so a Polish or Czech customer would break the render.
-  // Bundled as a static file; see config.toml.
-  const [reg, bold] = await Promise.all([
-    Deno.readFile(new URL("./fonts/LiberationSans-Regular.ttf", import.meta.url)),
-    Deno.readFile(new URL("./fonts/LiberationSans-Bold.ttf", import.meta.url)),
-  ]);
+  //
+  // Inlined as base64 rather than read from disk: the management API accepts
+  // text files only, and bundling the binaries would tie every deploy to the
+  // CLI. See scripts/build-fonts.py.
   return {
-    regular: await doc.embedFont(reg, { subset: true }),
-    bold: await doc.embedFont(bold, { subset: true }),
+    regular: await doc.embedFont(liberationSansRegular(), { subset: true }),
+    bold: await doc.embedFont(liberationSansBold(), { subset: true }),
   };
 }
 

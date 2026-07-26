@@ -10,6 +10,7 @@ import { PDFDocument } from "npm:pdf-lib@1.17.1";
 import fontkit from "npm:@pdf-lib/fontkit@1.1.1";
 import { encodeQR } from "jsr:@paulmillr/qr@0.6.0";
 import decodeQR from "jsr:@paulmillr/qr@0.6.0/decode.js";
+import { liberationSansBold, liberationSansRegular } from "./fonts.ts";
 import {
   drawQrBill,
   formatAmount,
@@ -115,15 +116,8 @@ Deno.test("the module size stays above the printable minimum", () => {
 Deno.test("a full payment part renders, and Liberation Sans covers the permitted charset", async () => {
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
-  const here = new URL(".", import.meta.url);
-  const regular = await doc.embedFont(
-    await Deno.readFile(new URL("fonts/LiberationSans-Regular.ttf", here)),
-    { subset: true },
-  );
-  const bold = await doc.embedFont(
-    await Deno.readFile(new URL("fonts/LiberationSans-Bold.ttf", here)),
-    { subset: true },
-  );
+  const regular = await doc.embedFont(liberationSansRegular(), { subset: true });
+  const bold = await doc.embedFont(liberationSansBold(), { subset: true });
 
   // SIX permits Latin Extended A in names. pdf-lib's Standard-14 Helvetica is
   // WinAnsi-encoded and throws on these, which is why a font is embedded at
@@ -160,11 +154,8 @@ Deno.test("a full payment part renders, and Liberation Sans covers the permitted
 Deno.test("an amount-less bill still renders (blank box with corner marks)", async () => {
   const doc = await PDFDocument.create();
   doc.registerFontkit(fontkit);
-  const here = new URL(".", import.meta.url);
-  const regular = await doc.embedFont(
-    await Deno.readFile(new URL("fonts/LiberationSans-Regular.ttf", here)), { subset: true });
-  const bold = await doc.embedFont(
-    await Deno.readFile(new URL("fonts/LiberationSans-Bold.ttf", here)), { subset: true });
+  const regular = await doc.embedFont(liberationSansRegular(), { subset: true });
+  const bold = await doc.embedFont(liberationSansBold(), { subset: true });
 
   const page = doc.addPage([mm(210), mm(297)]);
   drawQrBill(page, { regular, bold }, {
