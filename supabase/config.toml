@@ -412,3 +412,18 @@ enabled = true
 # declarative_schema_path = "./database"
 # JSON string passed through to pg-delta SQL formatting.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":80,\"commaStyle\":\"trailing\"}"
+
+# The QR-bill renderer bundles Liberation Sans, because pdf-lib's Standard-14
+# Helvetica is WinAnsi-encoded and throws on the Latin Extended A characters
+# SIX permits in names — the render would work until a customer was called
+# Wiśniewski. Requires CLI >= 2.7.0.
+#
+# NOTE: this function must be deployed with the CLI
+#   supabase functions deploy render-document
+# rather than through the management API, because the API accepts text files
+# only and these are binary.
+[functions.render-document]
+static_files = [
+  "./functions/render-document/fonts/LiberationSans-Regular.ttf",
+  "./functions/render-document/fonts/LiberationSans-Bold.ttf",
+]

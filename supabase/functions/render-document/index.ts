@@ -462,7 +462,12 @@ Deno.serve(async (req: Request) => {
       .upload(path, pdf, { contentType: "application/pdf", upsert: true });
     if (upErr) throw upErr;
 
-    const digest = await crypto.subtle.digest("SHA-256", pdf);
+    // pdf-lib returns Uint8Array<ArrayBufferLike>, which may in principle be
+    // backed by a SharedArrayBuffer; crypto.subtle wants a plain one.
+    const digest = await crypto.subtle.digest(
+      "SHA-256",
+      pdf.slice() as unknown as ArrayBuffer,
+    );
     const sha = [...new Uint8Array(digest)]
       .map((b) => b.toString(16).padStart(2, "0")).join("");
 

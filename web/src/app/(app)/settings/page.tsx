@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { BillingForm } from "@/components/settings/billing-form";
 import { SettingsForms } from "@/components/settings/settings-forms";
 import { getTranslator } from "@/i18n/server";
 import { getCurrentUser } from "@/lib/queries";
@@ -17,6 +18,18 @@ export default async function SettingsPage() {
 
   const t = await getTranslator();
 
+  // Billing identity is office-only, and the RLS policy already enforces that —
+  // a worker's query simply returns nothing, so the section is hidden rather
+  // than rendered empty.
+  const { data: billing } = await supabase
+    .from("company_billing_settings")
+    .select("*")
+    .eq("company_id", current.company.id)
+    .maybeSingle();
+
+  const isOfficeRole =
+    current.profile.role === "owner" || current.profile.role === "manager";
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6">
       <h1 className="mb-6 text-2xl font-black tracking-tight text-slate-900">
@@ -27,6 +40,12 @@ export default async function SettingsPage() {
         company={current.company}
         email={current.email}
       />
+
+      {isOfficeRole && (
+        <div className="mt-6">
+          <BillingForm companyId={current.company.id} initial={billing} />
+        </div>
+      )}
     </div>
   );
 }

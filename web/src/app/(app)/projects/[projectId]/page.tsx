@@ -83,6 +83,12 @@ export default async function ProjectPage(props: {
             editable={canManageProject}
           />
           <Link
+            href={`/projects/${project.id}/rapporte`}
+            className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            📄 {t("rapport.list.title")}
+          </Link>
+          <Link
             href={`/projects/${project.id}/chat`}
             className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
           >
