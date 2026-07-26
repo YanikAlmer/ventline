@@ -381,11 +381,6 @@ export async function renderInvoice(
 }
 
 Deno.serve(async (req: Request) => {
-  const secret = Deno.env.get("RENDER_SECRET");
-  if (secret && req.headers.get("x-ventline-secret") !== secret) {
-    return new Response("forbidden", { status: 403 });
-  }
-
   let body: { kind?: string; id?: string };
   try {
     body = await req.json();
@@ -401,6 +396,27 @@ Deno.serve(async (req: Request) => {
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
+
+  // The shared secret is the ONLY gate: this function runs with verify_jwt
+  // off, because its caller is Postgres — a trigger firing through pg_net —
+  // and not a signed-in client.
+  //
+  // The secret is not held here. It is generated in the database, stored once
+  // in the vault, and never returned; this asks whether the header it received
+  // is the right one. Keeping no local copy means there is no second place for
+  // it to leak from, and rotation is a single UPDATE with nothing to redeploy.
+  // A database that cannot answer is treated as a refusal.
+  const { data: authorised, error: authError } = await supabase
+    .rpc("verify_render_secret", {
+      p_secret: req.headers.get("x-ventline-secret") ?? "",
+    });
+  if (authError) {
+    console.error("secret check failed:", JSON.stringify(authError));
+    return new Response("unavailable", { status: 503 });
+  }
+  if (authorised !== true) {
+    return new Response("forbidden", { status: 403 });
+  }
 
   try {
     let pdf: Uint8Array;

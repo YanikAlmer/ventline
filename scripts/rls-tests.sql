@@ -2332,4 +2332,174 @@ begin
 end;
 $$;
 
+-- ============================== render pipeline (20260731090000/091000)
+-- The renderer worked from the day it shipped and was never once called: no
+-- code path anywhere invoked it, so pdf_path stayed null and every customer
+-- link resolved to a page with no document behind it. These assert the
+-- plumbing that closes that gap, not the drawing, which qrbill_test.ts covers.
+do $$
+declare
+  olivia uuid := '00000000-0000-4000-8000-000000000001';
+  maple  uuid := '00000000-0000-4000-9000-000000000001';
+  cust uuid; inv uuid; payload text;
+begin
+  perform tests.impersonate(olivia);
+
+  insert into public.customers (company_id, name, street, building_no, post_code, town, country)
+  values ((select company_id from public.profiles where id = olivia),
+          'Familie Muster', 'Ahornweg', '4', '8003', 'Zuerich', 'CH')
+  returning id into cust;
+
+  insert into public.invoices (project_id, customer_id) values (maple, cust)
+  returning id into inv;
+  insert into public.invoice_lines (invoice_id, description, net_rappen, mwst_rate_bp)
+  values (inv, 'Servicearbeit', 41750, 810);
+
+  perform public.issue_invoice(inv);
+  select qr_payload into payload from public.invoices where id = inv;
+
+  -- The column and its two CHECK constraints existed from the first invoice
+  -- migration and nothing had ever written to them, so the constraints had
+  -- never been evaluated on a single row.
+  assert payload is not null,
+    'issue_invoice must persist the QR payload -- a bill you cannot reproduce '
+    'is a bill you cannot argue about when a payment goes astray';
+  assert array_length(string_to_array(payload, E'\r\n'), 1) = 31,
+    'the payload is exactly 31 CRLF-separated lines';
+  assert payload !~ E'[\r\n]$',
+    'and carries no trailing newline -- the classic bank rejection';
+  assert octet_length(payload) <= 997, 'and fits the QR capacity';
+
+  perform tests.reset();
+end;
+$$;
+
+-- The gate. verify_render_secret is the renderer's only authentication now
+-- that verify_jwt is off, so "refuses everything that is not the secret"
+-- is the whole security boundary.
+do $$
+declare denied boolean := false;
+begin
+  assert not public.verify_render_secret('definitely-not-it'),
+    'a wrong secret is refused';
+  assert not public.verify_render_secret(''), 'an empty secret is refused';
+  assert not public.verify_render_secret(null), 'a null secret is refused';
+  assert public.verify_render_secret(
+    (select decrypted_secret from vault.decrypted_secrets
+      where name = 'render_document_secret')),
+    'and the real one is accepted';
+
+  -- It verifies; it must never reveal. Only the renderer may even ask.
+  perform tests.impersonate('00000000-0000-4000-8000-000000000001'::uuid);
+  begin
+    perform public.verify_render_secret('x');
+  exception when others then denied := true;
+  end;
+  assert denied,
+    'an ordinary signed-in user cannot use the checker as an oracle';
+  perform tests.reset();
+end;
+$$;
+
+-- Without the endpoint configured, nothing is attempted. A fresh environment
+-- must degrade to "no PDFs yet", never to an error on the signature itself.
+do $$
+declare
+  olivia uuid := '00000000-0000-4000-8000-000000000001';
+  maple  uuid := '00000000-0000-4000-9000-000000000001';
+  cust uuid; inv uuid; before_sent bigint;
+begin
+  delete from vault.secrets where name = 'render_document_url';
+  select count(*) into before_sent from net.sent;
+
+  perform tests.impersonate(olivia);
+  insert into public.customers (company_id, name, post_code, town, country)
+  values ((select company_id from public.profiles where id = olivia), 'Unkonfiguriert AG', '8004', 'Zuerich', 'CH')
+  returning id into cust;
+  insert into public.invoices (project_id, customer_id) values (maple, cust)
+  returning id into inv;
+  insert into public.invoice_lines (invoice_id, description, net_rappen, mwst_rate_bp)
+  values (inv, 'Position', 1000, 810);
+  perform public.issue_invoice(inv);
+  perform tests.reset();
+
+  assert (select count(*) from net.sent) = before_sent,
+    'with no render_document_url the nudge is skipped silently -- issuing an '
+    'invoice must never fail because the renderer is not wired up yet';
+end;
+$$;
+
+-- The sweeper is the actual delivery guarantee: the nudge is fire-and-forget,
+-- so anything that did not land has to be found again by looking.
+do $$
+declare
+  olivia uuid := '00000000-0000-4000-8000-000000000001';
+  maple  uuid := '00000000-0000-4000-9000-000000000001';
+  cust uuid; inv uuid; before_count integer; swept integer; sent jsonb;
+begin
+  perform vault.create_secret('https://example.test/render', 'render_document_url');
+
+  perform tests.impersonate(olivia);
+  insert into public.customers (company_id, name, post_code, town, country)
+  values ((select company_id from public.profiles where id = olivia), 'Nachzuegler AG', '8004', 'Zuerich', 'CH')
+  returning id into cust;
+  insert into public.invoices (project_id, customer_id) values (maple, cust)
+  returning id into inv;
+  insert into public.invoice_lines (invoice_id, description, net_rappen, mwst_rate_bp)
+  values (inv, 'Position', 1000, 810);
+  perform public.issue_invoice(inv);
+  perform tests.reset();
+
+  -- Issuing alone must have nudged: this is the trigger, not the sweeper.
+  select body into sent from net.sent order by id desc limit 1;
+  assert sent = jsonb_build_object('kind', 'invoice', 'id', inv::text),
+    format('issuing must nudge the renderer for this invoice, got %s', sent);
+  assert (select headers ? 'x-ventline-secret' from net.sent order by id desc limit 1),
+    'and must carry the shared secret, which is the renderer''s only gate';
+
+  -- Now the sweeper, standing in for a nudge that never arrived. Backdated
+  -- past the two-minute grace period it leaves for the trigger to land --
+  -- which means suspending set_updated_at, since it exists precisely to stop
+  -- anyone writing that column by hand.
+  alter table public.invoices disable trigger set_updated_at;
+  update public.invoices set updated_at = now() - interval '10 minutes' where id = inv;
+
+  select count(*) into before_count from public.render_runs;
+  select public.render_pending_documents(50) into swept;
+
+  assert swept >= 1,
+    'an issued invoice with no PDF must be picked up again -- a dropped nudge '
+    'must cost latency, never a document';
+  assert (select count(*) from public.render_runs) = before_count + 1,
+    'and every sweep is recorded, so "nothing was rendered for a week" is '
+    'visible rather than silent';
+
+  -- Past the horizon it stops being retried and starts being counted.
+  update public.invoices set updated_at = now() - interval '30 days' where id = inv;
+  alter table public.invoices enable trigger set_updated_at;
+  select public.render_pending_documents(50) into swept;
+  assert swept = 0, 'a document past the horizon is no longer retried';
+  assert (select stuck from public.render_runs order by id desc limit 1) >= 1,
+    'but it is reported as stuck, so it can be chased rather than lost';
+
+  delete from vault.secrets where name = 'render_document_url';
+end;
+$$;
+
+-- An ordinary user must not be able to drive the sweeper: it is an
+-- unauthenticated fan-out of HTTP requests wearing the database's identity.
+do $$
+declare denied boolean := false;
+begin
+  perform tests.impersonate('00000000-0000-4000-8000-000000000001'::uuid);
+  begin
+    perform public.render_pending_documents(1);
+  exception when others then denied := true;
+  end;
+  assert denied, 'render_pending_documents is not callable by authenticated';
+  perform tests.reset();
+end;
+$$;
+
+
 select 'RLS TESTS PASSED' as result;

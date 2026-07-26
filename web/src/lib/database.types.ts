@@ -1593,6 +1593,27 @@ export type Database = {
           },
         ]
       }
+      render_runs: {
+        Row: {
+          id: number
+          nudged: number
+          ran_at: string
+          stuck: number
+        }
+        Insert: {
+          id?: never
+          nudged: number
+          ran_at?: string
+          stuck: number
+        }
+        Update: {
+          id?: never
+          nudged?: number
+          ran_at?: string
+          stuck?: number
+        }
+        Relationships: []
+      }
       report_material_lines: {
         Row: {
           description: string
@@ -2642,6 +2663,7 @@ export type Database = {
           unread_mention_count: number
         }[]
       }
+      invoice_render_payload: { Args: { p_invoice_id: string }; Returns: Json }
       issue_invoice: {
         Args: { p_invoice_id: string }
         Returns: {
@@ -2761,6 +2783,10 @@ export type Database = {
       purge_expired_messages: { Args: never; Returns: number }
       purge_expired_time_entries: { Args: never; Returns: number }
       qr_bill_payload: { Args: { p_invoice_id: string }; Returns: string }
+      record_rendered_pdf: {
+        Args: { p_id: string; p_kind: string; p_path: string; p_sha256: string }
+        Returns: undefined
+      }
       redeem_invite: {
         Args: { p_code: string; p_full_name?: string }
         Returns: boolean
@@ -2776,7 +2802,9 @@ export type Database = {
         }
         Returns: string
       }
+      render_pending_documents: { Args: { p_limit?: number }; Returns: number }
       report_canonical_text: { Args: { p_report_id: string }; Returns: string }
+      report_render_payload: { Args: { p_report_id: string }; Returns: Json }
       resolve_document_link: {
         Args: { p_token: string; p_user_agent_family?: string }
         Returns: Json
@@ -2993,6 +3021,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      verify_render_secret: { Args: { p_secret: string }; Returns: boolean }
       verify_report_hash: { Args: { p_report_id: string }; Returns: boolean }
     }
     Enums: {

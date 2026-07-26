@@ -2037,6 +2037,42 @@ public enum PublicSchema {
       case updatedAt = "updated_at"
     }
   }
+  public struct RenderRunsSelect: Codable, Hashable, Sendable, Identifiable {
+    public let id: Int64
+    public let nudged: Int32
+    public let ranAt: String
+    public let stuck: Int32
+    public enum CodingKeys: String, CodingKey {
+      case id = "id"
+      case nudged = "nudged"
+      case ranAt = "ran_at"
+      case stuck = "stuck"
+    }
+  }
+  public struct RenderRunsInsert: Codable, Hashable, Sendable, Identifiable {
+    public let id: Int64?
+    public let nudged: Int32
+    public let ranAt: String?
+    public let stuck: Int32
+    public enum CodingKeys: String, CodingKey {
+      case id = "id"
+      case nudged = "nudged"
+      case ranAt = "ran_at"
+      case stuck = "stuck"
+    }
+  }
+  public struct RenderRunsUpdate: Codable, Hashable, Sendable, Identifiable {
+    public let id: Int64?
+    public let nudged: Int32?
+    public let ranAt: String?
+    public let stuck: Int32?
+    public enum CodingKeys: String, CodingKey {
+      case id = "id"
+      case nudged = "nudged"
+      case ranAt = "ran_at"
+      case stuck = "stuck"
+    }
+  }
   public struct ReportMaterialLinesSelect: Codable, Hashable, Sendable {
     public let description: String
     public let id: UUID

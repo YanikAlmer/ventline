@@ -145,7 +145,32 @@ $$;
 
 create schema vault;
 
--- Empty on purpose: app.nudge_notifier() must take its "not configured"
--- branch locally rather than attempting a real HTTP call.
+-- A real table now, because migrations create secrets and the tests need to
+-- read them back. "Decrypted" is a no-op locally: what is being reproduced is
+-- the shape of the API, not the cryptography.
+--
+-- It starts empty, which is still the point — app.nudge_notifier() and
+-- app.nudge_renderer() must take their "not configured" branch unless a test
+-- deliberately configures them, rather than attempting a real HTTP call.
+create table vault.secrets (
+  id uuid primary key default gen_random_uuid(),
+  name text unique,
+  secret text,
+  created_at timestamptz not null default now()
+);
+
+-- Argument order matches the real thing: value first, then name.
+create function vault.create_secret(
+  new_secret text,
+  new_name text default null,
+  new_description text default ''
+) returns uuid
+language sql
+as $$
+  insert into vault.secrets (name, secret) values (new_name, new_secret)
+  on conflict (name) do update set secret = excluded.secret
+  returning id;
+$$;
+
 create view vault.decrypted_secrets as
-  select null::text as name, null::text as decrypted_secret where false;
+  select id, name, secret as decrypted_secret, created_at from vault.secrets;
