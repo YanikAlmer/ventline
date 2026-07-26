@@ -45,6 +45,14 @@ targets:
         NSCameraUsageDescription: Take photos of job-site work to share with your team.
         NSMicrophoneUsageDescription: Record voice messages for your team.
         NSPhotoLibraryUsageDescription: Attach photos from your library to job updates.
+        # Driven by the build settings below, so a TestFlight build cannot ship
+        # reporting version 1.0 because someone forgot to edit two places.
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # The app uses HTTPS and nothing else, which is exempt. Without this key
+        # every single upload stops and asks the same question in App Store
+        # Connect before it will go out to testers.
+        ITSAppUsesNonExemptEncryption: false
         # Filled from Config/Secrets.xcconfig at build time:
         SupabaseURL: $(SUPABASE_URL)
         SupabaseAnonKey: $(SUPABASE_ANON_KEY)
@@ -52,6 +60,24 @@ targets:
         VentlineSiteURL: $(VENTLINE_SITE_URL)
     entitlements:
       path: Ventline/Ventline.entitlements
+      # Declared here, not in the .entitlements file: with `path` set, XcodeGen
+      # *generates* that file on every `xcodegen generate` and silently
+      # overwrites anything hand-edited into it. Found the hard way — the first
+      # version of this entitlement lasted exactly one regenerate.
+      properties:
+        # Substituted from APS_ENVIRONMENT, set per configuration below.
+        #
+        # A sandbox token sent to the production APNs host is rejected, a
+        # production token sent to the sandbox host is rejected, and in both
+        # directions the phone sees nothing at all — notifications simply never
+        # arrive. Hardcoding either value guarantees that exactly one of "on my
+        # device from Xcode" and "on TestFlight" is broken, with nothing in any
+        # log to say which.
+        #
+        # This block was missing entirely until now, which is why the app had
+        # no push capability: the whole notification backend existed and the
+        # binary was never entitled to receive anything.
+        aps-environment: $(APS_ENVIRONMENT)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.ventline.app
@@ -60,3 +86,17 @@ targets:
         # Language mode 5 keeps concurrency checking pragmatic for now;
         # the toolchain itself must be Swift 6.1+ (supabase-swift requirement).
         SWIFT_VERSION: "5.0"
+        # Comes from Config/Secrets.xcconfig, which is gitignored: a Team ID is
+        # account-specific, not a property of the project, and hardcoding one
+        # makes the repo un-buildable by anyone else. Undefined it expands to
+        # empty, which is exactly the unsigned simulator build we have today.
+        DEVELOPMENT_TEAM: $(VENTLINE_DEVELOPMENT_TEAM)
+      configs:
+        # A sandbox APNs token sent to the production host fails *silently*.
+        # Tying the entitlement to the configuration is what stops a TestFlight
+        # build going out still asking for sandbox tokens — the failure mode
+        # would be "notifications just never arrive", with nothing in any log.
+        Debug:
+          APS_ENVIRONMENT: development
+        Release:
+          APS_ENVIRONMENT: production
