@@ -74,6 +74,7 @@ export async function renderRapport(
   materials: Json[],
   company: Json,
   photos: Uint8Array[],
+  signature?: Uint8Array | null,
 ): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   const fonts = await loadFonts(doc);
@@ -195,9 +196,27 @@ export async function renderRapport(
     }
   }
 
-  // Signature block.
+  // Signature block. The drawn signature is the point of the document, so it
+  // goes on the page — a name under a rule proves nothing the database did not
+  // already know.
   y -= 20;
-  newPageIfNeeded(80);
+  newPageIfNeeded(120);
+  if (signature) {
+    try {
+      const img = await doc.embedPng(signature);
+      const scale = Math.min(mm(60) / img.width, mm(22) / img.height);
+      page.drawImage(img, {
+        x: MARGIN,
+        y: y - img.height * scale + 4,
+        width: img.width * scale,
+        height: img.height * scale,
+      });
+      y -= img.height * scale + 2;
+    } catch {
+      // A signature that will not decode must not sink the document; the name
+      // and timestamp below still stand on their own.
+    }
+  }
   page.drawLine({
     start: { x: MARGIN, y },
     end: { x: MARGIN + mm(70), y },
@@ -214,6 +233,8 @@ export async function renderRapport(
   // carries the fingerprint of what they signed, so neither side can later
   // substitute a different document and claim it is the same one.
   if (report.content_hash_hex) {
+    // Printed on the customer's own copy: a free external anchor, so neither
+    // side can later substitute a different document and call it the same one.
     text(`SHA-256: ${report.content_hash_hex}`, 6, false, 0, rgb(0.5, 0.5, 0.5));
   }
 
@@ -383,78 +404,53 @@ Deno.serve(async (req: Request) => {
 
   try {
     let pdf: Uint8Array;
-    let companyId: string;
     let path: string;
 
+    // Every read goes through a SECURITY DEFINER RPC. service_role has no
+    // table grants in this schema by design, so this function can fetch one
+    // document's render inputs and nothing else — the same shape open-document
+    // already uses for magic links.
     if (kind === "report") {
-      const { data: report } = await supabase
-        .from("reports").select("*").eq("id", id).single();
-      if (!report || report.status === "draft") {
-        return new Response("not renderable", { status: 409 });
+      const { data, error } = await supabase
+        .rpc("report_render_payload", { p_report_id: id });
+      if (error) throw error;
+      if (!data) {
+        return Response.json({ ok: false, reason: "not_renderable" }, { status: 409 });
       }
-      const [{ data: lines }, { data: materials }, { data: company }] =
-        await Promise.all([
-          supabase.from("report_time_lines").select("*")
-            .eq("report_id", id).order("performed_on"),
-          supabase.from("report_material_lines").select("*")
-            .eq("report_id", id).order("sort_order"),
-          supabase.from("companies").select("*")
-            .eq("id", report.company_id).single(),
-        ]);
-
-      const { data: photoRows } = await supabase
-        .from("report_photos")
-        .select("attachment_id, attachments(storage_bucket, storage_path)")
-        .eq("report_id", id)
-        .limit(MAX_PHOTOS);
 
       const photos: Uint8Array[] = [];
-      for (const row of photoRows ?? []) {
-        const att = (row as Json).attachments as Json | null;
-        if (!att) continue;
+      for (const ref of (data.photos ?? []).slice(0, MAX_PHOTOS)) {
         const { data: blob } = await supabase.storage
-          .from(String(att.storage_bucket))
-          .download(String(att.storage_path));
+          .from(String(ref.bucket)).download(String(ref.path));
         if (blob) photos.push(new Uint8Array(await blob.arrayBuffer()));
       }
 
-      pdf = await renderRapport(
-        {
-          ...report,
-          content_hash_hex: report.content_hash
-            ? String(report.content_hash).replace(/^\\x/, "")
-            : null,
-        },
-        lines ?? [], materials ?? [], company ?? {}, photos,
-      );
-      companyId = report.company_id;
-      path = `${companyId}/rapport-${report.number_text}.pdf`;
-    } else {
-      const { data: invoice } = await supabase
-        .from("invoices").select("*").eq("id", id).single();
-      if (!invoice || invoice.status === "draft") {
-        return new Response("not renderable", { status: 409 });
+      // The signature lives in its own private bucket, separate from jobsite
+      // media, so it is fetched by path rather than arriving with the photos.
+      let signature: Uint8Array | null = null;
+      if (data.report?.signature_path) {
+        const { data: sigBlob } = await supabase.storage
+          .from("signatures").download(String(data.report.signature_path));
+        if (sigBlob) signature = new Uint8Array(await sigBlob.arrayBuffer());
       }
-      // The payload is built by the database, never here — this function must
-      // not be able to produce a bill that differs from the issued record.
-      const { data: payload } = await supabase
-        .rpc("qr_bill_payload", { p_invoice_id: id });
 
-      const [{ data: lines }, { data: groups }, { data: company }] =
-        await Promise.all([
-          supabase.from("invoice_lines").select("*")
-            .eq("invoice_id", id).order("sort_order"),
-          supabase.from("invoice_tax_groups").select("*").eq("invoice_id", id),
-          supabase.from("companies").select("*")
-            .eq("id", invoice.company_id).single(),
-        ]);
+      pdf = await renderRapport(
+        data.report, data.time_lines ?? [], data.material_lines ?? [],
+        data.company ?? {}, photos, signature,
+      );
+      path = `${data.report.company_id}/rapport-${data.report.number_text}.pdf`;
+    } else {
+      const { data, error } = await supabase
+        .rpc("invoice_render_payload", { p_invoice_id: id });
+      if (error) throw error;
+      if (!data) {
+        return Response.json({ ok: false, reason: "not_renderable" }, { status: 409 });
+      }
 
       pdf = await renderInvoice(
-        { ...invoice, qr_payload: payload },
-        lines ?? [], groups ?? [], company ?? {},
+        data.invoice, data.lines ?? [], data.tax_groups ?? [], data.company ?? {},
       );
-      companyId = invoice.company_id;
-      path = `${companyId}/rechnung-${invoice.number_text}.pdf`;
+      path = `${data.invoice.company_id}/rechnung-${data.invoice.number_text}.pdf`;
     }
 
     const { error: upErr } = await supabase.storage
@@ -462,8 +458,6 @@ Deno.serve(async (req: Request) => {
       .upload(path, pdf, { contentType: "application/pdf", upsert: true });
     if (upErr) throw upErr;
 
-    // pdf-lib returns Uint8Array<ArrayBufferLike>, which may in principle be
-    // backed by a SharedArrayBuffer; crypto.subtle wants a plain one.
     const digest = await crypto.subtle.digest(
       "SHA-256",
       pdf.slice() as unknown as ArrayBuffer,
@@ -471,15 +465,22 @@ Deno.serve(async (req: Request) => {
     const sha = [...new Uint8Array(digest)]
       .map((b) => b.toString(16).padStart(2, "0")).join("");
 
-    await supabase.from(kind === "report" ? "reports" : "invoices")
-      .update({ pdf_path: path, pdf_generated_at: new Date().toISOString() })
-      .eq("id", id);
+    const { error: recErr } = await supabase
+      .rpc("record_rendered_pdf", {
+        p_kind: kind, p_id: id, p_path: path, p_sha256: sha,
+      });
+    if (recErr) throw recErr;
 
     return Response.json({ ok: true, path, bytes: pdf.length, sha256: sha });
   } catch (error) {
-    return Response.json(
-      { ok: false, error: error instanceof Error ? error.message : String(error) },
-      { status: 500 },
-    );
+    // Supabase errors are plain objects, not Errors: String(error) yields
+    // "[object Object]", which is the least useful thing possible at exactly
+    // the moment something is wrong.
+    const detail = error instanceof Error
+      ? error.message
+      : typeof error === "object" && error !== null
+      ? JSON.stringify(error)
+      : String(error);
+    return Response.json({ ok: false, error: detail }, { status: 500 });
   }
 });
