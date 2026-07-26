@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Avatar } from "@/components/avatar";
+import { BrandMark } from "@/components/brand-mark";
 import { RoleBadge } from "@/components/status-pill";
 import { useTranslator } from "@/i18n/client";
 import type { AppRole } from "@/lib/status";
@@ -92,9 +93,7 @@ export function Sidebar({
       {/* Mobile top bar */}
       <header className="sticky top-0 z-40 flex items-center justify-between gap-3 bg-slate-900 px-4 py-3 md:hidden">
         <Link href="/" className="flex items-center gap-2">
-          <span className="flex size-8 items-center justify-center rounded-lg bg-white text-sm font-black text-slate-900">
-            V
-          </span>
+          <BrandMark className="size-8 shrink-0 text-white" />
           <span className="truncate text-sm font-bold text-white">
             {companyName}
           </span>
@@ -119,9 +118,7 @@ export function Sidebar({
       {/* Desktop sidebar */}
       <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col bg-slate-900 p-4 md:flex">
         <Link href="/" className="mb-6 flex items-center gap-3 px-1">
-          <span className="flex size-9 items-center justify-center rounded-lg bg-white text-base font-black text-slate-900">
-            V
-          </span>
+          <BrandMark className="size-9 shrink-0 text-white" />
           <span className="min-w-0">
             <span className="block text-sm font-black text-white">
               Ventline
