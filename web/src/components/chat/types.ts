@@ -14,13 +14,25 @@ export type ChatAttachment = Tables<"attachments"> & {
   photo_annotations: ChatAnnotation[];
 };
 
+export type ChatMention = Pick<
+  Tables<"message_mentions">,
+  "mentioned_profile_id" | "start_offset" | "length"
+>;
+
+export type ChatRef = Pick<
+  Tables<"message_refs">,
+  "kind" | "task_id" | "start_offset" | "length"
+>;
+
 export type ChatMessage = Tables<"messages"> & {
   sender: ChatSender | null;
   attachments: ChatAttachment[];
+  message_mentions: ChatMention[];
+  message_refs: ChatRef[];
 };
 
 export const MESSAGE_SELECT =
-  "*, sender:profiles!messages_sender_id_fkey(id, full_name, role), attachments(*, photo_annotations(id, rendered_path, created_at))";
+  "*, sender:profiles!messages_sender_id_fkey(id, full_name, role), attachments(*, photo_annotations(id, rendered_path, created_at)), message_mentions(mentioned_profile_id, start_offset, length), message_refs(kind, task_id, start_offset, length)";
 
 export const PAGE_SIZE = 50;
 

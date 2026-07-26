@@ -2658,4 +2658,94 @@ begin
 end;
 $$;
 
+-- ======================= mention and ref candidates (20260801090000)
+-- send_message has accepted p_mentions since the chat-overview migration and
+-- no client ever sent any, so message_mentions was populated only by this
+-- file. These pin what the picker is allowed to offer -- the picker and
+-- app.can_mention have to agree, or the composer suggests someone whose
+-- insert the server then refuses.
+do $$
+declare
+  olivia uuid := '00000000-0000-4000-8000-000000000001';
+  wanda  uuid := '00000000-0000-4000-8000-000000000004';
+  miguel uuid := '00000000-0000-4000-8000-000000000005';
+  carla  uuid := '00000000-0000-4000-8000-000000000006';
+  boris  uuid := '00000000-0000-4000-8000-000000000007';
+  maple  uuid := '00000000-0000-4000-9000-000000000001';
+  ids uuid[];
+begin
+  perform tests.impersonate(wanda);
+  select array_agg(profile_id) into ids
+    from public.mention_candidates(maple);
+
+  assert wanda = any(ids), 'a member of the project is offered';
+  assert olivia = any(ids),
+    'and so is the owner -- office roles may be mentioned on any project '
+    'without being members of it, which is exactly what a client-side filter '
+    'on project_members would get wrong';
+  assert not (carla = any(ids)),
+    'a customer is never offered: a mention would push an internal thread at them';
+  assert not (miguel = any(ids)),
+    'nor is a worker who is not on this project';
+  assert not (boris = any(ids)), 'nor anyone from another company';
+
+  -- The picker and the enforcement must not be able to disagree.
+  assert (select bool_and(app.can_mention(maple, c.profile_id))
+          from public.mention_candidates(maple) c),
+    'every candidate offered passes app.can_mention';
+
+  perform tests.reset();
+end;
+$$;
+
+-- German names, typed the way people actually type them in a hurry.
+do $$
+declare
+  wanda uuid := '00000000-0000-4000-8000-000000000004';
+  maple uuid := '00000000-0000-4000-9000-000000000001';
+  target uuid;
+begin
+  -- Renamed outside impersonation on purpose: wanda may not edit another
+  -- profile, and an RLS-refused update returns zero rows rather than raising,
+  -- which would leave this asserting against the seed name.
+  perform tests.reset();
+  target := wanda;
+  update public.profiles set full_name = 'Jürg Grünenfelder' where id = target;
+
+  perform tests.impersonate(wanda);
+  assert exists (select 1 from public.mention_candidates(maple, 'Grünen')),
+    'the name as spelled finds it';
+  assert exists (select 1 from public.mention_candidates(maple, 'grunen')),
+    'and so does the unaccented spelling -- unaccent folds ü to u';
+  assert exists (select 1 from public.mention_candidates(maple, 'Gruenen')),
+    'and so does the ue spelling, which is what most people type';
+  assert not exists (select 1 from public.mention_candidates(maple, 'Zimmermann')),
+    'and a name nobody has finds nothing';
+  perform tests.reset();
+end;
+$$;
+
+-- References follow task visibility, which for a customer is the whole point:
+-- a hidden step must not be referencable into a thread they can read.
+do $$
+declare
+  frank uuid := '00000000-0000-4000-8000-000000000003';
+  maple uuid := '00000000-0000-4000-9000-000000000001';
+  filter_task uuid := '00000000-0000-4000-a000-000000000001';
+  rows_out integer;
+begin
+  perform tests.impersonate(frank);
+  select count(*) into rows_out from public.task_ref_candidates(maple);
+  assert rows_out >= 2, format('the project''s tasks are offered, got %s', rows_out);
+
+  assert (select bool_and(app.can_read_task(c.task_id))
+          from public.task_ref_candidates(maple) c),
+    'every task offered is one the caller may actually read';
+
+  assert exists (select 1 from public.task_ref_candidates(maple, 'filter')),
+    'the query matches on the title';
+  perform tests.reset();
+end;
+$$;
+
 select 'RLS TESTS PASSED' as result;

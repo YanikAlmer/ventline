@@ -250,6 +250,7 @@ export function ChatThread({
                   <MessageBubble
                     message={message}
                     own={message.sender_id === currentUserId}
+                    currentProfileId={currentUserId}
                     canDelete={
                       message.kind !== "system" &&
                       (message.sender_id === currentUserId || isOffice(role))

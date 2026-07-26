@@ -6,6 +6,7 @@ import { useI18n } from "@/i18n/client";
 import { clockTime } from "@/lib/format";
 import { localizeSystemBody } from "@/lib/system-messages";
 
+import { MessageBody } from "./message-body";
 import { displayPhoto, waveformBars, type ChatMessage } from "./types";
 import { VoicePlayer } from "./voice-player";
 
@@ -14,6 +15,7 @@ export function MessageBubble({
   own,
   canDelete,
   urls,
+  currentProfileId,
   onOpenPhoto,
   onDelete,
 }: {
@@ -21,6 +23,7 @@ export function MessageBubble({
   own: boolean;
   canDelete: boolean;
   urls: Map<string, string>;
+  currentProfileId: string;
   onOpenPhoto: (url: string, caption: string | null) => void;
   onDelete: (messageId: string) => void;
 }) {
@@ -136,14 +139,17 @@ export function MessageBubble({
             );
           })}
 
-          {message.body && message.kind !== "text" ? (
-            <p className="whitespace-pre-wrap break-words text-sm opacity-90">
-              {message.body}
-            </p>
-          ) : message.body ? (
-            <p className="whitespace-pre-wrap break-words text-sm">
-              {message.body}
-            </p>
+          {message.body ? (
+            <MessageBody
+              body={message.body}
+              mentions={message.message_mentions ?? []}
+              refs={message.message_refs ?? []}
+              projectId={message.project_id}
+              currentProfileId={currentProfileId}
+              own={own}
+              // A caption under a photo is secondary to the photo.
+              dim={message.kind !== "text"}
+            />
           ) : null}
         </div>
 

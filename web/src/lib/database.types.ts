@@ -2754,6 +2754,15 @@ export type Database = {
         Args: { p_thread_id: string; p_up_to?: string }
         Returns: undefined
       }
+      mention_candidates: {
+        Args: { p_limit?: number; p_project_id: string; p_query?: string }
+        Returns: {
+          full_name: string
+          is_member: boolean
+          profile_id: string
+          role: Database["public"]["Enums"]["app_role"]
+        }[]
+      }
       messages_around: {
         Args: { p_message_id: string; p_radius?: number }
         Returns: {
@@ -3046,6 +3055,16 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      task_ref_candidates: {
+        Args: { p_limit?: number; p_project_id: string; p_query?: string }
+        Returns: {
+          is_package: boolean
+          parent_title: string
+          status: Database["public"]["Enums"]["task_status"]
+          task_id: string
+          title: string
+        }[]
       }
       verify_render_secret: { Args: { p_secret: string }; Returns: boolean }
       verify_report_hash: { Args: { p_report_id: string }; Returns: boolean }
