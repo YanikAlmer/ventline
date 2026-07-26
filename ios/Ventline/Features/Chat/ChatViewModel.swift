@@ -30,6 +30,8 @@ final class ChatViewModel {
         var sharedWithCustomer: Bool
         var attachments: [Attachment] = []
         var annotationsByAttachment: [UUID: PhotoAnnotation] = [:]
+        /// Mentions and task references, as ranges into `body`.
+        var textAnnotations: [Annotations.Stored] = []
         /// Local preview for optimistic photo sends.
         var localImage: UIImage?
     }
@@ -109,14 +111,30 @@ final class ChatViewModel {
     }
 
     private func hydrate(_ messages: [Message]) async throws -> [Item] {
-        let attachments = try await MessageRepo.attachments(messageIds: messages.map(\.id))
+        let ids = messages.map(\.id)
+        let attachments = try await MessageRepo.attachments(messageIds: ids)
         let annotations = try await MessageRepo.annotations(attachmentIds: attachments.map(\.id))
+        // One request each for the whole page, not one per bubble.
+        let mentions = try await MessageRepo.mentions(messageIds: ids)
+        let refs = try await MessageRepo.refs(messageIds: ids)
         var newestAnnotation: [UUID: PhotoAnnotation] = [:]
         for annotation in annotations.reversed() {
             newestAnnotation[annotation.attachmentId] = annotation
         }
         return messages.map { message in
             let mine = attachments.filter { $0.messageId == message.id }
+            let text: [Annotations.Stored] =
+                mentions.filter { $0.messageId == message.id }.map {
+                    Annotations.Stored(
+                        kind: .mention, id: $0.mentionedProfileId,
+                        start: $0.startOffset.map(Int.init), length: $0.length.map(Int.init))
+                }
+                + refs.filter { $0.messageId == message.id }.compactMap { ref in
+                    guard let taskId = ref.taskId else { return nil }
+                    return Annotations.Stored(
+                        kind: .task, id: taskId,
+                        start: ref.startOffset.map(Int.init), length: ref.length.map(Int.init))
+                }
             return Item(
                 state: .sent(message),
                 body: message.body,
@@ -127,7 +145,8 @@ final class ChatViewModel {
                 attachments: mine,
                 annotationsByAttachment: newestAnnotation.filter { key, _ in
                     mine.contains { $0.id == key }
-                }
+                },
+                textAnnotations: text
             )
         }
     }
@@ -206,18 +225,33 @@ final class ChatViewModel {
 
     // MARK: - Sending
 
-    func sendText(_ text: String, sharedWithCustomer: Bool) {
+    func sendText(
+        _ text: String,
+        sharedWithCustomer: Bool,
+        pending: [Annotations.Pending] = []
+    ) {
         let body = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !body.isEmpty else { return }
+        // Resolved against the text actually being sent, so a name edited away
+        // between picking and sending simply does not notify.
+        let resolved = Annotations.resolve(body: body, pending: pending)
         sendOptimistic(kind: .text, body: body, image: nil, sharedWithCustomer: sharedWithCustomer) {
             try await MessageRepo.send(
                 projectId: self.projectId, taskId: self.taskId,
-                kind: .text, body: body, sharedWithCustomer: sharedWithCustomer
+                kind: .text, body: body, sharedWithCustomer: sharedWithCustomer,
+                mentions: Annotations.mentionsPayload(resolved),
+                refs: Annotations.refsPayload(resolved)
             )
         }
     }
 
-    func sendPhoto(_ image: UIImage, caption: String?, sharedWithCustomer: Bool) {
+    func sendPhoto(
+        _ image: UIImage,
+        caption: String?,
+        sharedWithCustomer: Bool,
+        pending: [Annotations.Pending] = []
+    ) {
+        let resolved = Annotations.resolve(body: caption ?? "", pending: pending)
         sendOptimistic(kind: .photo, body: caption, image: image, sharedWithCustomer: sharedWithCustomer) {
             let uploaded = try await MediaUploader.uploadPhoto(
                 image, companyId: self.profile.companyId, projectId: self.projectId
@@ -226,7 +260,9 @@ final class ChatViewModel {
                 projectId: self.projectId, taskId: self.taskId,
                 kind: .photo, body: caption,
                 attachments: [uploaded.attachmentPayload],
-                sharedWithCustomer: sharedWithCustomer
+                sharedWithCustomer: sharedWithCustomer,
+                mentions: Annotations.mentionsPayload(resolved),
+                refs: Annotations.refsPayload(resolved)
             )
         }
     }

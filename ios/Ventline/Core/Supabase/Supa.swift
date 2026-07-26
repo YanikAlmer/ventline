@@ -48,6 +48,8 @@ typealias TaskAssignment = PublicSchema.TaskAssignmentsSelect
 typealias Message = PublicSchema.MessagesSelect
 typealias Attachment = PublicSchema.AttachmentsSelect
 typealias PhotoAnnotation = PublicSchema.PhotoAnnotationsSelect
+typealias MessageMention = PublicSchema.MessageMentionsSelect
+typealias MessageRef = PublicSchema.MessageRefsSelect
 
 // Rapport loop.
 typealias TimeEntry = PublicSchema.TimeEntriesSelect

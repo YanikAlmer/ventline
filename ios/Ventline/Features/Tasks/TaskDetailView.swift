@@ -260,6 +260,10 @@ struct TaskDetailView: View {
 struct ChatViewBody: View {
     let model: ChatViewModel
 
+    /// Task references render as `ventline://task/<id>` links so SwiftUI does
+    /// the hit-testing; opening one is a push, not a trip through Safari.
+    @State private var openTaskId: UUID?
+
     var body: some View {
         VStack(spacing: 0) {
             ScrollViewReader { proxy in
@@ -289,6 +293,16 @@ struct ChatViewBody: View {
                 }
             }
             ComposerBar(model: model)
+        }
+        .environment(\.openURL, OpenURLAction { url in
+            guard url.scheme == "ventline", url.host == "task",
+                  let id = UUID(uuidString: url.lastPathComponent)
+            else { return .systemAction }
+            openTaskId = id
+            return .handled
+        })
+        .navigationDestination(item: $openTaskId) { id in
+            TaskDetailView(taskId: id, profile: model.profile)
         }
         .onDisappear {
             model.stopRealtime()

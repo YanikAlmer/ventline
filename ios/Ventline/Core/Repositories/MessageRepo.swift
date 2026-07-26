@@ -68,7 +68,9 @@ enum MessageRepo {
         kind: MessageKind,
         body: String?,
         attachments: [[String: AnyJSON]] = [],
-        sharedWithCustomer: Bool = false
+        sharedWithCustomer: Bool = false,
+        mentions: [[String: AnyEncodableJSON]] = [],
+        refs: [[String: AnyEncodableJSON]] = []
     ) async throws -> UUID {
         struct Params: Encodable {
             let pProjectId: UUID
@@ -77,6 +79,8 @@ enum MessageRepo {
             let pBody: String?
             let pAttachments: [[String: AnyJSON]]
             let pSharedWithCustomer: Bool
+            let pMentions: [[String: AnyEncodableJSON]]
+            let pRefs: [[String: AnyEncodableJSON]]
 
             enum CodingKeys: String, CodingKey {
                 case pProjectId = "p_project_id"
@@ -85,6 +89,8 @@ enum MessageRepo {
                 case pBody = "p_body"
                 case pAttachments = "p_attachments"
                 case pSharedWithCustomer = "p_shared_with_customer"
+                case pMentions = "p_mentions"
+                case pRefs = "p_refs"
             }
         }
         return try await Supa.client
@@ -94,8 +100,99 @@ enum MessageRepo {
                 pKind: kind.rawValue,
                 pBody: body,
                 pAttachments: attachments,
-                pSharedWithCustomer: sharedWithCustomer
+                pSharedWithCustomer: sharedWithCustomer,
+                pMentions: mentions,
+                pRefs: refs
             ))
+            .execute()
+            .value
+    }
+
+    // MARK: - Mentions and references
+
+    /// Rows for a page of messages, so a thread renders its highlights without
+    /// one request per bubble.
+    static func mentions(messageIds: [UUID]) async throws -> [MessageMention] {
+        if messageIds.isEmpty { return [] }
+        return try await Supa.client
+            .from("message_mentions")
+            .select()
+            .in("message_id", values: messageIds.map { $0 as any PostgrestFilterValue })
+            .execute()
+            .value
+    }
+
+    static func refs(messageIds: [UUID]) async throws -> [MessageRef] {
+        if messageIds.isEmpty { return [] }
+        return try await Supa.client
+            .from("message_refs")
+            .select()
+            .in("message_id", values: messageIds.map { $0 as any PostgrestFilterValue })
+            .execute()
+            .value
+    }
+
+    struct MentionCandidate: Decodable, Identifiable, Hashable {
+        let profileId: UUID
+        let fullName: String
+        let isMember: Bool
+
+        var id: UUID { profileId }
+
+        enum CodingKeys: String, CodingKey {
+            case profileId = "profile_id"
+            case fullName = "full_name"
+            case isMember = "is_member"
+        }
+    }
+
+    struct TaskRefCandidate: Decodable, Identifiable, Hashable {
+        let taskId: UUID
+        let title: String
+        let parentTitle: String?
+
+        var id: UUID { taskId }
+
+        enum CodingKeys: String, CodingKey {
+            case taskId = "task_id"
+            case title
+            case parentTitle = "parent_title"
+        }
+    }
+
+    /// Mirrors app.can_mention server-side, so the picker offers exactly what
+    /// the insert will accept — including office roles, who may be mentioned on
+    /// any project without being members of it.
+    static func mentionCandidates(
+        projectId: UUID, query: String
+    ) async throws -> [MentionCandidate] {
+        struct Params: Encodable {
+            let pProjectId: UUID
+            let pQuery: String
+            enum CodingKeys: String, CodingKey {
+                case pProjectId = "p_project_id"
+                case pQuery = "p_query"
+            }
+        }
+        return try await Supa.client
+            .rpc("mention_candidates", params: Params(pProjectId: projectId, pQuery: query))
+            .execute()
+            .value
+    }
+
+    static func taskRefCandidates(
+        projectId: UUID, query: String
+    ) async throws -> [TaskRefCandidate] {
+        struct Params: Encodable {
+            let pProjectId: UUID
+            let pQuery: String
+            enum CodingKeys: String, CodingKey {
+                case pProjectId = "p_project_id"
+                case pQuery = "p_query"
+            }
+        }
+        return try await Supa.client
+            .rpc("task_ref_candidates", params: Params(pProjectId: projectId, pQuery: query))
             .execute()
             .value
     }

@@ -54,7 +54,7 @@ struct MessageBubbleView: View {
                     }
 
                     if let body = item.body, !body.isEmpty {
-                        Text(body)
+                        Text(annotatedBody(body))
                     }
                 }
                 .padding(.horizontal, 12)
@@ -84,6 +84,35 @@ struct MessageBubbleView: View {
 
             if !isMine { Spacer(minLength: 48) }
         }
+    }
+
+    /// The body with its mentions and references picked out.
+    ///
+    /// Built as an AttributedString rather than a stack of Text views so the
+    /// paragraph still wraps as one block — a message is a sentence, not a row
+    /// of chips. A reference carries a `ventline://task/<id>` link the chat
+    /// screen intercepts; SwiftUI renders and hit-tests it for free.
+    private func annotatedBody(_ body: String) -> AttributedString {
+        var out = AttributedString()
+        for segment in Annotations.segments(body: body, annotations: item.textAnnotations) {
+            switch segment {
+            case .text(let run):
+                out.append(AttributedString(run))
+            case .mention(let run, let profileId):
+                var piece = AttributedString(run)
+                piece.font = .body.weight(.semibold)
+                // Being mentioned yourself has to read differently from
+                // watching someone else be mentioned.
+                piece.foregroundColor = profileId == model.profile.id ? .orange : .accentColor
+                out.append(piece)
+            case .task(let run, let taskId):
+                var piece = AttributedString(run)
+                piece.font = .body.weight(.semibold)
+                piece.link = URL(string: "ventline://task/\(taskId.uuidString.lowercased())")
+                out.append(piece)
+            }
+        }
+        return out
     }
 
     @ViewBuilder
