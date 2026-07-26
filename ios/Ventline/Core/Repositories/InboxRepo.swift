@@ -109,7 +109,16 @@ enum InboxRepo {
 
     /// Clears the unread badge and acknowledges any mentions in the thread.
     static func markRead(threadId: UUID) async throws {
-        struct Params: Encodable { let pThreadId: UUID }
+        // CodingKeys are not optional decoration. supabase-swift's default
+        // encoder sets only a date strategy — it does NOT convert to
+        // snake_case — so a bare `pThreadId` reaches PostgREST as "pThreadId",
+        // matches no overload of the function, and the call fails. Three RPCs
+        // in this file were doing exactly that, silently, because their
+        // callers used `try?`.
+        struct Params: Encodable {
+            let pThreadId: UUID
+            enum CodingKeys: String, CodingKey { case pThreadId = "p_thread_id" }
+        }
         try await Supa.client
             .rpc("mark_thread_read", params: Params(pThreadId: threadId))
             .execute()
@@ -122,6 +131,10 @@ enum InboxRepo {
         struct Params: Encodable {
             let pProfileId: UUID
             let pProjectId: UUID?
+            enum CodingKeys: String, CodingKey {
+                case pProfileId = "p_profile_id"
+                case pProjectId = "p_project_id"
+            }
         }
         return try await Supa.client
             .rpc("person_messages", params: Params(pProfileId: profileId, pProjectId: projectId))
@@ -130,7 +143,10 @@ enum InboxRepo {
     }
 
     static func search(query: String) async throws -> [SearchHit] {
-        struct Params: Encodable { let pQuery: String }
+        struct Params: Encodable {
+            let pQuery: String
+            enum CodingKeys: String, CodingKey { case pQuery = "p_query" }
+        }
         return try await Supa.client
             .rpc("search_messages", params: Params(pQuery: query))
             .execute()

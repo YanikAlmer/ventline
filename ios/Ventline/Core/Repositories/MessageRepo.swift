@@ -108,6 +108,31 @@ enum MessageRepo {
             .value
     }
 
+    /// The window around one message, for opening a search hit.
+    ///
+    /// A hit that drops you at the bottom of a four-hundred-message thread has
+    /// not really found anything — what makes it useful is the conversation
+    /// either side of it.
+    static func around(messageId: UUID, radius: Int = 25) async throws -> [Message] {
+        struct Params: Encodable {
+            let pMessageId: UUID
+            let pRadius: Int
+            enum CodingKeys: String, CodingKey {
+                case pMessageId = "p_message_id"
+                case pRadius = "p_radius"
+            }
+        }
+        let window: [Message] = try await Supa.client
+            .rpc("messages_around", params: Params(pMessageId: messageId, pRadius: radius))
+            .execute()
+            .value
+        // Sorted here, because the RPC unions a "before" and an "after" leg and
+        // makes no promise about the order they come back in — it arrived with
+        // the anchor first, which rendered the thread out of sequence. ISO-8601
+        // timestamps compare correctly as strings.
+        return window.sorted { $0.createdAt < $1.createdAt }
+    }
+
     // MARK: - Mentions and references
 
     /// Rows for a page of messages, so a thread renders its highlights without

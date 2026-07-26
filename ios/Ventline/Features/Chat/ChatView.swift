@@ -4,16 +4,24 @@ import SwiftUI
 /// embed ChatViewBody directly inside TaskDetailView.
 struct ChatView: View {
     @State private var model: ChatViewModel
+    /// Set when the thread was opened from a search hit or the person lens.
+    private let focusMessageId: UUID?
 
-    init(projectId: UUID, taskId: UUID?, profile: Profile) {
+    init(projectId: UUID, taskId: UUID?, profile: Profile, focusMessageId: UUID? = nil) {
         _model = State(initialValue: ChatViewModel(projectId: projectId, taskId: taskId, profile: profile))
+        self.focusMessageId = focusMessageId
     }
 
     var body: some View {
         ChatViewBody(model: model)
             .task {
-                await model.loadInitial()
+                if let focusMessageId {
+                    await model.loadAround(messageId: focusMessageId)
+                } else {
+                    await model.loadInitial()
+                }
                 model.startRealtime()
+                await model.markRead()
             }
             .alert("Something went wrong", isPresented: .init(
                 get: { model.errorMessage != nil },

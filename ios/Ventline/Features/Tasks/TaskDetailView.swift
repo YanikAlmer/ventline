@@ -248,6 +248,7 @@ struct TaskDetailView: View {
                 chatModel = model
                 await model.loadInitial()
                 model.startRealtime()
+                await model.markRead()
             }
         } catch {
             // Navigation back out is the recovery path.
@@ -279,13 +280,27 @@ struct ChatViewBody: View {
                         ForEach(model.items) { item in
                             MessageBubbleView(item: item, model: model)
                                 .id(item.id)
+                                // Mark the hit itself, or you arrive in the
+                                // middle of a conversation with no idea which
+                                // line you were looking for.
+                                .padding(item.id == model.focusMessageId ? 6 : 0)
+                                .background(
+                                    item.id == model.focusMessageId
+                                        ? Color.yellow.opacity(0.18) : Color.clear
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                 }
                 .onChange(of: model.items.count) {
-                    if let last = model.items.last {
+                    // Scroll to the hit when there is one, otherwise to the
+                    // newest message. Jumping to the bottom of a window opened
+                    // around a search result would undo the whole point of it.
+                    if let focus = model.focusMessageId {
+                        proxy.scrollTo(focus, anchor: .center)
+                    } else if let last = model.items.last {
                         withAnimation {
                             proxy.scrollTo(last.id, anchor: .bottom)
                         }
@@ -306,6 +321,8 @@ struct ChatViewBody: View {
         }
         .onDisappear {
             model.stopRealtime()
+            // Anything that arrived while the thread was open counts as read.
+            Task { await model.markRead() }
         }
     }
 }

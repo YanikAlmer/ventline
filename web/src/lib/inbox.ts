@@ -135,11 +135,21 @@ export function groupByProject(threads: InboxThread[]): ProjectGroup[] {
 }
 
 /** Where a thread lives, so a row can link straight to the conversation. */
-export function threadHref(t: {
-  project_id: string;
-  task_id: string | null;
-}): string {
-  return t.task_id
+/**
+ * Link to a thread, optionally anchored at one message.
+ *
+ * A search hit that dumps you at the bottom of a 400-message thread has not
+ * really found anything — the point of a hit is the conversation around it. The
+ * `m` parameter is read by the thread, which loads a window around that message
+ * instead of the newest page.
+ */
+export function threadHref(
+  t: { project_id: string; task_id: string | null; id?: string },
+  focusMessageId?: string
+): string {
+  const base = t.task_id
     ? `/projects/${t.project_id}/tasks/${t.task_id}`
     : `/projects/${t.project_id}/chat`;
+  const focus = focusMessageId ?? t.id;
+  return focus ? `${base}?m=${focus}` : base;
 }

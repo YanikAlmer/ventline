@@ -5,13 +5,166 @@ import SwiftUI
 struct InboxView: View {
     let profile: Profile
 
+    /// The three ways people ask "where was that": by site, by who said it, by
+    /// what it said. Same three lenses as the web client.
+    private enum Lens: String, CaseIterable {
+        case project, person
+        var label: String {
+            switch self {
+            case .project: String(localized: "By project")
+            case .person: String(localized: "By person")
+            }
+        }
+    }
+
     @State private var groups: [ProjectThreadGroup] = []
     @State private var attention: [AttentionItem] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
 
+    @State private var lens: Lens = .project
+    @State private var query = ""
+    @State private var hits: [SearchHit] = []
+    @State private var people: [Profile] = []
+    @State private var selectedPerson: Profile?
+    @State private var personMessages: [PersonMessage] = []
+
     var body: some View {
+        content
+            .navigationTitle("Communication")
+            .searchable(text: $query, prompt: Text("Search all messages"))
+            .task(id: query) {
+                let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard trimmed.count >= 2 else {
+                    hits = []
+                    return
+                }
+                try? await Task.sleep(for: .milliseconds(250))
+                guard !Task.isCancelled else { return }
+                hits = (try? await InboxRepo.search(query: trimmed)) ?? []
+            }
+            .task { await reload() }
+            .refreshable { await reload() }
+            .alert("Something went wrong", isPresented: .constant(errorMessage != nil)) {
+                Button("OK") { errorMessage = nil }
+            } message: {
+                Text(errorMessage ?? "")
+            }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        // Search wins over the lens while there is a query: someone typing in
+        // the search field is not still browsing.
+        if !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            searchResults
+        } else {
+            switch lens {
+            case .project: projectLens
+            case .person: personLens
+            }
+        }
+    }
+
+    private var lensPicker: some View {
+        Picker("Lens", selection: $lens) {
+            ForEach(Lens.allCases, id: \.self) { Text($0.label).tag($0) }
+        }
+        .pickerStyle(.segmented)
+        .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 8, trailing: 12))
+        .listRowSeparator(.hidden)
+    }
+
+    private var searchResults: some View {
         List {
+            if hits.isEmpty {
+                ContentUnavailableView.search(text: query)
+            } else {
+                ForEach(hits) { hit in
+                    NavigationLink {
+                        destination(projectId: hit.projectId, taskId: hit.taskId, focus: hit.id)
+                    } label: {
+                        MessageHitRow(
+                            text: hit.body, kind: hit.kind,
+                            createdAt: hit.createdAt, trailing: nil)
+                    }
+                }
+            }
+        }
+    }
+
+    private var personLens: some View {
+        List {
+            lensPicker
+            if let selectedPerson {
+                Section {
+                    Button {
+                        self.selectedPerson = nil
+                        personMessages = []
+                    } label: {
+                        Label(selectedPerson.fullName, systemImage: "chevron.left")
+                            .font(.subheadline.weight(.semibold))
+                    }
+                }
+                if personMessages.isEmpty {
+                    ContentUnavailableView(
+                        "Nothing shared yet",
+                        systemImage: "bubble.left",
+                        description: Text("No messages with this person in the last while.")
+                    )
+                } else {
+                    ForEach(personMessages) { message in
+                        NavigationLink {
+                            destination(
+                                projectId: message.projectId,
+                                taskId: message.taskId,
+                                focus: message.id)
+                        } label: {
+                            MessageHitRow(
+                                text: message.body, kind: message.kind,
+                                createdAt: message.createdAt,
+                                trailing: message.isFrom
+                                    ? String(localized: "from")
+                                    : String(localized: "to"))
+                        }
+                    }
+                }
+            } else {
+                Section("People") {
+                    ForEach(people, id: \.id) { person in
+                        Button {
+                            selectedPerson = person
+                            Task {
+                                personMessages =
+                                    (try? await InboxRepo.personMessages(profileId: person.id)) ?? []
+                            }
+                        } label: {
+                            HStack {
+                                Text(person.fullName)
+                                Spacer()
+                                Text(person.role.rawValue)
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+        .task {
+            if people.isEmpty {
+                // Everyone in the company, minus yourself: the lens answers
+                // "what have I exchanged with them", which is empty for you.
+                people = ((try? await PeopleRepo.companyMembers()) ?? [])
+                    .filter { $0.id != profile.id }
+            }
+        }
+    }
+
+    private var projectLens: some View {
+        List {
+            lensPicker
             if !attention.isEmpty {
                 Section("Needs your attention") {
                     ForEach(attention) { item in
@@ -71,22 +224,16 @@ struct InboxView: View {
                 }
             }
         }
-        .navigationTitle("Communication")
-        .task { await reload() }
-        .refreshable { await reload() }
-        .alert("Something went wrong", isPresented: .constant(errorMessage != nil)) {
-            Button("OK") { errorMessage = nil }
-        } message: {
-            Text(errorMessage ?? "")
-        }
     }
 
     @ViewBuilder
-    private func destination(projectId: UUID, taskId: UUID?) -> some View {
+    private func destination(
+        projectId: UUID, taskId: UUID?, focus: UUID? = nil
+    ) -> some View {
         if let taskId {
             TaskDetailView(taskId: taskId, profile: profile)
         } else {
-            ChatView(projectId: projectId, taskId: nil, profile: profile)
+            ChatView(projectId: projectId, taskId: nil, profile: profile, focusMessageId: focus)
         }
     }
 
@@ -196,6 +343,44 @@ private struct AttentionRow: View {
             Text(Timestamps.relative(item.createdAt))
                 .font(.caption2)
                 .foregroundStyle(.secondary)
+        }
+    }
+}
+
+/// One message, as it appears in a search result or the person lens.
+private struct MessageHitRow: View {
+    let text: String?
+    let kind: MessageKind?
+    let createdAt: String
+    /// "from" / "to" in the person lens; nothing in search.
+    let trailing: String?
+
+    /// Media carries no body, so the row needs a stand-in rather than a blank.
+    private var preview: String {
+        if let text, !text.isEmpty {
+            return kind == .system ? localizedSystemBody(text) : text
+        }
+        switch kind {
+        case .photo: return String(localized: "Photo")
+        case .voice: return String(localized: "Voice message")
+        case .video: return String(localized: "Video")
+        default: return String(localized: "No text")
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(preview).font(.subheadline).lineLimit(2)
+            HStack(spacing: 6) {
+                if let trailing {
+                    Text(trailing)
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(.secondary)
+                }
+                Text(Timestamps.relative(createdAt))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 }

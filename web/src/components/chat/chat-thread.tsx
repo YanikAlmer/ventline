@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RealtimePostgresInsertPayload } from "@supabase/supabase-js";
 
@@ -46,6 +47,14 @@ export function ChatThread({
   const bottomRef = useRef<HTMLDivElement>(null);
   const signedPathsRef = useRef<Set<string>>(new Set());
 
+  /**
+   * A search hit links here with ?m=<id>. Landing at the bottom of a
+   * 400-message thread is not "finding" anything — what makes a hit useful is
+   * the conversation around it, so the thread opens on a window centred there
+   * instead of on the newest page.
+   */
+  const focusMessageId = useSearchParams().get("m");
+
   const threadQuery = useCallback(() => {
     let query = supabase
       .from("messages")
@@ -78,10 +87,40 @@ export function ChatThread({
     [supabase]
   );
 
-  // Initial page.
+  // Initial page — or a window around the message a search hit pointed at.
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      if (focusMessageId) {
+        const { data: around } = await supabase.rpc("messages_around", {
+          p_message_id: focusMessageId,
+        });
+        const ids = (around ?? []).map((m) => m.id);
+        if (ids.length > 0) {
+          // Re-queried with MESSAGE_SELECT: messages_around returns bare rows,
+          // and a bubble needs its sender, attachments and annotations too.
+          const { data } = await supabase
+            .from("messages")
+            .select(MESSAGE_SELECT)
+            .in("id", ids)
+            .order("created_at", { ascending: true });
+          if (cancelled) return;
+          setMessages((data as unknown as ChatMessage[] | null) ?? []);
+          // Older messages certainly exist above a window; the button is
+          // cheap and the alternative is a thread that looks truncated.
+          setHasMore(true);
+          setLoading(false);
+          requestAnimationFrame(() => {
+            document
+              .querySelector(`[data-message-id="${focusMessageId}"]`)
+              ?.scrollIntoView({ block: "center" });
+          });
+          return;
+        }
+        // The message was deleted, expired, or is not visible to this reader.
+        // Falling through to the newest page beats an empty thread.
+      }
+
       const { data } = await threadQuery();
       if (cancelled) return;
       const page = ((data as unknown as ChatMessage[] | null) ?? []).reverse();
@@ -95,7 +134,24 @@ export function ChatThread({
     return () => {
       cancelled = true;
     };
-  }, [threadQuery]);
+  }, [threadQuery, focusMessageId, supabase]);
+
+  /**
+   * Clear the unread badge, and acknowledge any mentions in the thread.
+   *
+   * On open and again on leave: opening covers what was already there, leaving
+   * covers whatever arrived while it was on screen. markThreadRead has existed
+   * since the read-model migration and nothing called it on either client, so
+   * an unread count — and an unacknowledged mention, which is what feeds the
+   * attention list — could never clear.
+   */
+  useEffect(() => {
+    const threadId = taskId ?? projectId;
+    void supabase.rpc("mark_thread_read", { p_thread_id: threadId });
+    return () => {
+      void supabase.rpc("mark_thread_read", { p_thread_id: threadId });
+    };
+  }, [supabase, projectId, taskId]);
 
   // Realtime inserts.
   useEffect(() => {
@@ -241,7 +297,17 @@ export function ChatThread({
             )}
             <div className="space-y-2.5">
               {withHeadings.map(({ heading, message }) => (
-                <div key={message.id}>
+                <div
+                  key={message.id}
+                  data-message-id={message.id}
+                  // The hit itself is marked, or you arrive in the middle of a
+                  // conversation with no idea which line you were looking for.
+                  className={
+                    message.id === focusMessageId
+                      ? "rounded-xl bg-amber-50 ring-2 ring-amber-300"
+                      : undefined
+                  }
+                >
                   {heading && (
                     <div className="my-4 text-center text-xs font-bold uppercase tracking-wide text-slate-400">
                       {heading}

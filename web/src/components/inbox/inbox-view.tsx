@@ -54,7 +54,7 @@ export function InboxView({
             {attention.map((item) => (
               <li key={`${item.reason}-${item.message_id}`}>
                 <Link
-                  href={threadHref(item)}
+                  href={threadHref({ project_id: item.project_id, task_id: item.task_id })}
                   className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm hover:bg-amber-100/60"
                 >
                   <span className="shrink-0 rounded-full bg-amber-200 px-2 py-0.5 text-[11px] font-bold text-amber-900">

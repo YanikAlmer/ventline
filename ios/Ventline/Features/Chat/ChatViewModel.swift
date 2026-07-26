@@ -41,6 +41,24 @@ final class ChatViewModel {
     let profile: Profile
 
     private(set) var items: [Item] = []
+    /// Set when the thread was opened from a search hit, so the view can scroll
+    /// to that message and mark it.
+    private(set) var focusMessageId: UUID?
+
+    /// thread_state keys on `coalesce(task_id, project_id)`, so this is the
+    /// same identity the inbox counts unread against.
+    var threadId: UUID { taskId ?? projectId }
+
+    /// Clears the unread badge and acknowledges any mentions in the thread.
+    ///
+    /// Called on open and again on leaving: opening covers what was already
+    /// there, leaving covers whatever arrived while it was on screen. Until
+    /// now nothing called this at all on iOS, so an unread badge — and an
+    /// unacknowledged mention, which is what drives the attention list — could
+    /// never clear from the phone.
+    func markRead() async {
+        try? await InboxRepo.markRead(threadId: threadId)
+    }
     private(set) var isLoading = false
     private(set) var isLoadingOlder = false
     private(set) var canLoadOlder = false
@@ -80,6 +98,30 @@ final class ChatViewModel {
             let messages = try await MessageRepo.page(projectId: projectId, taskId: taskId)
             canLoadOlder = messages.count >= MessageRepo.pageSize
             items = try await hydrate(messages)
+            await loadSenders()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Opens on a window around one message instead of the newest page.
+    func loadAround(messageId: UUID) async {
+        guard !isLoading else { return }
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            let window = try await MessageRepo.around(messageId: messageId)
+            guard !window.isEmpty else {
+                // Deleted, expired, or not visible to this reader. The newest
+                // page beats an empty thread.
+                await loadInitial()
+                return
+            }
+            items = try await hydrate(window)
+            // There is always more above a window, and the button costs
+            // nothing; the alternative is a thread that looks truncated.
+            canLoadOlder = true
+            focusMessageId = messageId
             await loadSenders()
         } catch {
             errorMessage = error.localizedDescription
