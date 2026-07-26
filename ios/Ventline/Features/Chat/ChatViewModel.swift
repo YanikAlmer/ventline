@@ -165,18 +165,8 @@ final class ChatViewModel {
         }
         return messages.map { message in
             let mine = attachments.filter { $0.messageId == message.id }
-            let text: [Annotations.Stored] =
-                mentions.filter { $0.messageId == message.id }.map {
-                    Annotations.Stored(
-                        kind: .mention, id: $0.mentionedProfileId,
-                        start: $0.startOffset.map(Int.init), length: $0.length.map(Int.init))
-                }
-                + refs.filter { $0.messageId == message.id }.compactMap { ref in
-                    guard let taskId = ref.taskId else { return nil }
-                    return Annotations.Stored(
-                        kind: .task, id: taskId,
-                        start: ref.startOffset.map(Int.init), length: ref.length.map(Int.init))
-                }
+            let text = Self.storedAnnotations(
+                for: message.id, mentions: mentions, refs: refs)
             return Item(
                 state: .sent(message),
                 body: message.body,
@@ -191,6 +181,55 @@ final class ChatViewModel {
                 textAnnotations: text
             )
         }
+    }
+
+    /// Mentions and task references for one message, as ranges into its body.
+    ///
+    /// Written as plain loops on purpose. The first version was one expression —
+    /// a `.filter{}.map{}` array joined by `+` to a `.filter{}.compactMap{}`
+    /// whose closure used `guard let … else { return nil }` — and it made the
+    /// constraint solver give up: `+` is overloaded across every numeric type,
+    /// `String` and `Array`, and the element type of both sides had to be
+    /// inferred *through* that overload set and back out of a multi-statement
+    /// closure.
+    ///
+    /// When the solver times out, Swift abandons the whole file and reports
+    /// every unresolved name in it as "cannot find type in scope" — so a
+    /// single slow expression here produced twenty errors pointing at
+    /// perfectly good code elsewhere, including types from other files. It
+    /// compiled on a fast machine and failed on a busy one, which is the worst
+    /// property a build can have.
+    ///
+    /// `Int($0)` rather than `Int.init`, for the same reason: the bare
+    /// initialiser is overloaded across every numeric type and adds work the
+    /// solver does not need to do.
+    private static func storedAnnotations(
+        for messageId: UUID,
+        mentions: [MessageMention],
+        refs: [MessageRef]
+    ) -> [Annotations.Stored] {
+        var stored: [Annotations.Stored] = []
+
+        for mention in mentions where mention.messageId == messageId {
+            stored.append(Annotations.Stored(
+                kind: .mention,
+                id: mention.mentionedProfileId,
+                start: mention.startOffset.map { Int($0) },
+                length: mention.length.map { Int($0) }
+            ))
+        }
+
+        for ref in refs where ref.messageId == messageId {
+            guard let taskId = ref.taskId else { continue }
+            stored.append(Annotations.Stored(
+                kind: .task,
+                id: taskId,
+                start: ref.startOffset.map { Int($0) },
+                length: ref.length.map { Int($0) }
+            ))
+        }
+
+        return stored
     }
 
     private func loadSenders() async {
