@@ -36,7 +36,7 @@ Decisions already made and locked in:
 
 ---
 
-## Slice 1 — Chat overview (foundation DONE, rest TODO)
+## Slice 1 — Chat overview — **DONE**
 
 Goal: stop chat being a set of isolated threads you can only read one at a time.
 
@@ -198,7 +198,7 @@ to pay for the product.
 
 ---
 
-## Slice 5 — Magic links and QR-Rechnung
+## Slice 5 — Magic links and QR-Rechnung — **DONE**
 
 **Magic links** — customer opens a Rapport or invoice with no account.
 
@@ -223,16 +223,28 @@ to pay for the product.
   MWST number. MWST rates 8.1 / 2.6 / 3.8.
 - `invoices` + `invoice_lines` derived from an accepted Rapport.
 
-**Open decision**: full invoicing, or Rapport + QR-bill PDF with a **bexio**
-handoff? Recommended: the latter. bexio has ~100k Swiss customers; "the field app
-that fills your bexio" is a far easier sell than "replace your bexio".
+**Decided**: Rapport + QR-bill with a **bexio** handoff. Ventline is the issuer
+of record — it assigns the number, mints the reference and renders the bill the
+customer pays against — because a draft created in bexio would give the customer
+two payable documents with two references for one debt. The handoff ships as the
+Treuhänder CSV export; the bexio API itself is still unbuilt, with
+`bexio_invoice_id` / `customers.bexio_contact_id` as the seam.
+
+Rate limiting: twenty failed resolutions in fifteen minutes per client, counted
+against a **salted hash of the address, never the address**. The limit applies
+before the token lookup, so a prober is refused even if their next guess would
+have been right.
 
 ---
 
 ## Blockers and open decisions
 
-1. **Apple Developer account** — APNs p8 key, Team ID, Key ID. Blocks slice 2.
-2. **Invoicing depth** — full invoicing vs Rapport + QR-bill + bexio handoff.
+1. **Apple Developer account** — APNs p8 key, Team ID, Key ID. Blocks slice 2,
+   which is now the only slice not shipped. Also needs `DEVELOPMENT_TEAM` in
+   `ios/project.yml`: the app is unsigned today, which is why the simulator
+   never produced a push token.
+2. ~~**Invoicing depth**~~ — settled: Rapport + QR-bill, Ventline as issuer of
+   record, bexio receives a handoff. See slice 5.
 3. **Web push** — recommend skipping for MVP.
 4. **Email provider** for magic links (Resend / Postmark) and where it sends
    from, given revDSG data-residency expectations.

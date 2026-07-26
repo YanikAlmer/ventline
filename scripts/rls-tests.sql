@@ -2748,4 +2748,66 @@ begin
 end;
 $$;
 
+-- ================== magic-link rate limiting (20260801091000)
+-- The tokens are 256 bits and hashed at rest, so this is not what stops a
+-- guess. It stops someone pointing a script at /r/ and making the database
+-- answer as fast as it can, and it puts the ceiling in place before any
+-- future weakening of the token format needs it.
+do $$
+declare
+  olivia uuid := '00000000-0000-4000-8000-000000000001';
+  maple  uuid := '00000000-0000-4000-9000-000000000001';
+  r uuid := gen_random_uuid();
+  link record; noisy text := '203.0.113.77'; quiet text := '198.51.100.4';
+  result jsonb;
+begin
+  perform tests.impersonate(olivia);
+  perform public.sync_report_draft(r, maple, 'Fuer den Link', null);
+  insert into public.report_material_lines (report_id, description, quantity_milli, unit_price_rappen)
+  values (r, 'Position', 1000, 1000);
+  perform public.sign_report(r, 'H. Henderson');
+  select * into link from public.create_document_link('report', r, 30) t;
+  perform tests.reset();
+
+  for i in 1..20 loop
+    perform public.resolve_document_link('bogus-' || i, 'Safari', noisy);
+  end loop;
+
+  result := public.resolve_document_link('bogus-21', 'Safari', noisy);
+  assert result ->> 'reason' = 'invalid_or_expired',
+    'a limited caller gets the same reason string as a bad token -- a distinct '
+    '"rate_limited" would confirm the previous twenty were being counted';
+  assert result ? 'retry_after_seconds',
+    'but it carries a retry hint, so an honest client can back off';
+
+  -- The point of the ceiling: it applies before the lookup, so a prober does
+  -- not get to keep trying even if the next token happens to be real.
+  assert (public.resolve_document_link(link.token, 'Safari', noisy) ->> 'ok')::boolean is false,
+    'a limited caller is refused even with a valid token';
+
+  -- And it is per-client, or one prober takes every customer down with them.
+  assert (public.resolve_document_link(link.token, 'Safari', quiet) ->> 'ok')::boolean,
+    'a different client is unaffected and its valid token resolves';
+  assert (select count(distinct client_hash) from public.document_link_attempts) = 2,
+    'the two clients are counted separately';
+end;
+$$;
+
+-- The ledger identifies a client; it must never record who they are.
+do $$
+begin
+  assert not exists (
+    select 1 from information_schema.columns
+     where table_schema = 'public' and table_name = 'document_link_attempts'
+       and (data_type = 'inet' or column_name ilike '%ip%')),
+    'the rate-limit ledger stores a salted hash, never an address -- an IP is '
+    'personal data under revDSG and equality is the only operation needed';
+
+  assert app.client_hash('203.0.113.77') <> app.client_hash('198.51.100.4'),
+    'different clients hash differently';
+  assert app.client_hash('203.0.113.77') = app.client_hash('203.0.113.77'),
+    'and the same client hashes stably, or the limit never accumulates';
+end;
+$$;
+
 select 'RLS TESTS PASSED' as result;

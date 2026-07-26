@@ -310,6 +310,27 @@ export type Database = {
           },
         ]
       }
+      document_link_attempts: {
+        Row: {
+          attempted_at: string
+          client_hash: string
+          id: number
+          succeeded: boolean
+        }
+        Insert: {
+          attempted_at?: string
+          client_hash: string
+          id?: never
+          succeeded: boolean
+        }
+        Update: {
+          attempted_at?: string
+          client_hash?: string
+          id?: never
+          succeeded?: boolean
+        }
+        Relationships: []
+      }
       document_link_views: {
         Row: {
           id: number
@@ -2841,7 +2862,11 @@ export type Database = {
       report_canonical_text: { Args: { p_report_id: string }; Returns: string }
       report_render_payload: { Args: { p_report_id: string }; Returns: Json }
       resolve_document_link: {
-        Args: { p_token: string; p_user_agent_family?: string }
+        Args: {
+          p_client_ip?: string
+          p_token: string
+          p_user_agent_family?: string
+        }
         Returns: Json
       }
       revoke_document_link: { Args: { p_link_id: string }; Returns: undefined }

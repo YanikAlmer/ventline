@@ -41,6 +41,20 @@ function userAgentFamily(ua: string | null): string | null {
   return "Other";
 }
 
+/**
+ * The client address, for rate limiting only — it is hashed with a salt the
+ * moment it reaches Postgres and no column anywhere holds an inet.
+ *
+ * x-forwarded-for is a list; the *first* entry is the original client and the
+ * rest are proxies. Taking the last would rate-limit Supabase's own edge
+ * network as a single client, which is one shared bucket for every visitor.
+ */
+function clientIp(req: Request): string | null {
+  const forwarded = req.headers.get("x-forwarded-for");
+  if (forwarded) return forwarded.split(",")[0].trim() || null;
+  return req.headers.get("cf-connecting-ip");
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
 
@@ -68,15 +82,22 @@ Deno.serve(async (req: Request) => {
   const { data, error } = await supabase.rpc("resolve_document_link", {
     p_token: token,
     p_user_agent_family: userAgentFamily(req.headers.get("user-agent")),
+    p_client_ip: clientIp(req),
   });
 
   // One indistinguishable answer for unknown, revoked, expired and broken —
   // the database already collapses the first three, and an internal error must
   // not become an oracle either.
   if (error || !data || data.ok !== true) {
+    // 429 when the database says to back off, so an honest client can. The
+    // body is identical either way: the status tells a well-behaved caller to
+    // slow down, and tells a prober nothing about any token.
+    const limited = typeof data?.retry_after_seconds === "number";
     return Response.json({ ok: false, reason: "invalid_or_expired" }, {
-      status: 404,
-      headers: CORS,
+      status: limited ? 429 : 404,
+      headers: limited
+        ? { ...CORS, "retry-after": String(data.retry_after_seconds) }
+        : CORS,
     });
   }
 

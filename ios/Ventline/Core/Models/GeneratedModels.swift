@@ -537,6 +537,42 @@ public enum PublicSchema {
       case updatedAt = "updated_at"
     }
   }
+  public struct DocumentLinkAttemptsSelect: Codable, Hashable, Sendable, Identifiable {
+    public let attemptedAt: String
+    public let clientHash: String
+    public let id: Int64
+    public let succeeded: Bool
+    public enum CodingKeys: String, CodingKey {
+      case attemptedAt = "attempted_at"
+      case clientHash = "client_hash"
+      case id = "id"
+      case succeeded = "succeeded"
+    }
+  }
+  public struct DocumentLinkAttemptsInsert: Codable, Hashable, Sendable, Identifiable {
+    public let attemptedAt: String?
+    public let clientHash: String
+    public let id: Int64?
+    public let succeeded: Bool
+    public enum CodingKeys: String, CodingKey {
+      case attemptedAt = "attempted_at"
+      case clientHash = "client_hash"
+      case id = "id"
+      case succeeded = "succeeded"
+    }
+  }
+  public struct DocumentLinkAttemptsUpdate: Codable, Hashable, Sendable, Identifiable {
+    public let attemptedAt: String?
+    public let clientHash: String?
+    public let id: Int64?
+    public let succeeded: Bool?
+    public enum CodingKeys: String, CodingKey {
+      case attemptedAt = "attempted_at"
+      case clientHash = "client_hash"
+      case id = "id"
+      case succeeded = "succeeded"
+    }
+  }
   public struct DocumentLinkViewsSelect: Codable, Hashable, Sendable {
     public let id: Int64
     public let linkId: UUID
