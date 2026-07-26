@@ -272,3 +272,113 @@ What replaces it, and is arguably better for the encoder:
 - The Swiss cross artwork is licensed by conformance, not by a grant — using it
   is permitted only while output conforms to the IG. Worth a short counsel
   review before commercial launch.
+
+---
+
+## Closing the loop (2026-07-26)
+
+Three things that were built but never connected, and what connecting them
+turned up.
+
+### The renderer had never once been called
+
+The PDF function shipped, worked, and was invoked only by hand. Nothing in
+`web/`, `ios/` or the database ever called it, so `pdf_path` stayed null and
+every customer magic link resolved to a page with no document behind it. Both
+sides failed silently: the customer saw a page without a PDF, and nothing
+recorded that one had been expected.
+
+A row leaving `draft` now nudges the renderer over pg_net, and a five-minute
+sweeper picks up anything still missing a PDF. **The nudge is the latency
+optimisation; the sweeper is the guarantee** — pg_net is fire-and-forget by
+design, so a dropped request must cost a few minutes, never a document. Bounded
+by `p_limit` and a 7-day horizon, with `render_runs.stuck` counting whatever
+falls past it so "nothing has rendered all week" is visible rather than silent.
+
+**Why the secret lives only in the vault.** The obvious design keeps the shared
+secret in two places — the vault so Postgres can send it, an env var so the
+function can check it. Two copies means carrying the value between them, and
+every carrier (shell history, CI log, chat transcript) is somewhere it can be
+left behind. Instead it is generated inside Postgres by `gen_random_bytes`,
+stored once, and never returned; the function presents the header it received
+and asks `verify_render_secret` whether it is right. Costs one round trip
+against a render measured in seconds. `verify_jwt` is off because the caller is
+a trigger, not a client, so that check is the entire boundary — which is also
+why it now fails closed.
+
+`render_document_url` is deliberately *not* created by the migration: it is
+per-deployment and a migration must not hardcode one project's ref. Absent, the
+nudge returns silently, so a fresh environment degrades to "no PDFs yet" rather
+than to errors on signing.
+
+### `qr_payload` was never written
+
+The column and its two CHECK constraints had existed since the first invoice
+migration with nothing ever writing to them — so neither constraint had been
+evaluated on a single row, including the 997-byte capacity guard. `issue_invoice`
+now persists it in a second UPDATE (it must run after the number, reference and
+totals land, since `app.qr_bill_payload` reads the row). The immutability guard
+permits this: it seals number, reference, totals and IBAN, and `qr_payload` is
+none of those.
+
+**Verified end to end against the deployed function, not a fixture.** Invoice
+2026-0001 renders from real billing data, and the QR decodes *out of the
+rasterised PDF* to 31 CRLF-separated lines with no trailing newline and a valid
+QRR reference. Measured off the same raster, the Swiss cross is a 6.5 mm black
+square inside a 0.25 mm white border with 3.9 mm arms — 7 mm overall, as SIX
+specifies.
+
+### The Treuhänder export
+
+**One row per invoice per rate group**, not one per invoice. Art. 26 requires
+tax stated per rate, an invoice can carry more than one, and totalling each rate
+separately is the accountant's actual job.
+
+The rule the column set is built around: **every numeric column is summable**.
+`netto`/`mwst`/`brutto` describe that rate group alone, never the invoice they
+belong to. Repeating an invoice total on each of its rows would read better and
+would silently double-count.
+
+Cancelled invoices are included on purpose — the numbering is gapless, so an
+accountant who sees 2026-0003 missing will ask why.
+
+CSV conventions, each a failure someone has already had: **semicolon** because
+de-CH Excel splits on the locale list separator; a **UTF-8 BOM** because without
+it Windows Excel renders Zürich as ZÃ¼rich; **CRLF** per RFC 4180; and a **dot**
+for decimals, because Switzerland writes 1'234.50 and not 1.234,50.
+
+### Photos on a Rapport, and two bugs only a UI could surface
+
+`report_photos` existed, `app.report_canonical_text` already hashed the photo
+paths, and the renderer already printed them. Nothing wrote a row.
+
+Because the paths are in the canonical text, **the signature already covers the
+photos** — no hash versioning was needed. It also settles the offline question:
+photos are the one thing on a Rapport that require a connection, since a photo
+waiting in the outbox would change the canonical text after the customer had
+signed the version without it, and the sync would then reject the signature.
+Failing at that moment, for that reason, is worse than saying so up front.
+
+Two defects found by writing the tests:
+
+- **`attachments_delete` never covered report attachments.** It still read
+  `task_id is not null and ...` from before attachments could belong to a
+  report. RLS refuses by deleting nothing rather than by raising, so the call
+  succeeded, returned no error, and left the row in place. Nobody noticed
+  because nothing had ever attached a report photo. The policy now covers them,
+  with `not app.report_is_frozen(report_id)` folded in — otherwise the freeze
+  would hold on the link row and not on the file beneath it.
+- **Delete order.** `report_photos.attachment_id` is ON DELETE RESTRICT — on
+  purpose, so a photo cannot vanish from under a Rapport that cites it — so
+  deleting the attachment first fails on the foreign key even on a draft. Both
+  clients unlink, then delete, then drop the storage object.
+
+### Still open
+
+- **Storage objects orphaned by an interrupted upload.** The clients delete the
+  object on an explicit removal, but an upload that fails after the object lands
+  and before the attachment row is inserted leaves a file nothing references.
+  There is no GC sweep for storage.
+- **bexio's own API** remains unbuilt; `bexio_invoice_id` / `bexio_synced_at` /
+  `customers.bexio_contact_id` are the seam, and the CSV carries the contact id
+  so a later push can match without re-deriving it from a name.
