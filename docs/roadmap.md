@@ -18,10 +18,19 @@ Status legend: **DONE** · **PARTIAL** · **TODO**
 | de/en localization, German default, Swiss conventions | DONE |
 | Chat overview **schema** (threads, read cursor, mentions, refs, search) | DONE (`20260726090000`) |
 | Chat overview **read model + UI** | DONE (`20260726100000`) |
-| Push notifications | DONE — needs an Apple p8 key to actually deliver |
+| Push notifications | **PARTIAL** — built end to end, delivers nothing:
+  `notify-push` is not deployed and there is no APNs key |
 | Task hierarchy, task attachments | DONE (`20260728090000`) |
-| Time capture, materials, Rapport, signature, PDF | TODO |
-| Magic links, QR-Rechnung | TODO |
+| Time capture, materials, Rapport, signature, PDF | DONE (`20260729*`, `20260730*`) |
+| Magic links, QR-Rechnung | DONE (`20260729094000`, `20260731*`) |
+| Retention (5 years), offline capture and replay | DONE (`20260730090000/091000`) |
+| Treuhänder CSV export | DONE (`20260731092000`) |
+| App icon, brand mark | DONE |
+| TestFlight build config (signing, entitlement, privacy manifest) | DONE — needs an Apple Team ID |
+
+**Nothing in the roadmap is unbuilt.** What is left is not implementation: an
+Apple Developer account, a run on real hardware, and the deliberate omissions
+listed at the bottom of this file.
 
 Decisions already made and locked in:
 
