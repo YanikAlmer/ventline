@@ -44,7 +44,26 @@ export const GEO = {
     title: { x: 5, y: 5, w: 52, h: 7 },
     info: { x: 5, y: 12, w: 52, h: 56 },
     amount: { x: 5, y: 68, w: 52, h: 14 },
-    acceptance: { x: 5, y: 82, w: 52, h: 18 },
+    /**
+     * 20 mm, not the 18 the Style Guide's dimension drawing shows.
+     *
+     * The two documents disagree and both can be satisfied at once. The Style
+     * Guide's receipt stack is mandatory and adds up exactly — 7 title + 56
+     * info + 14 amount + 18 acceptance = 95, plus 5 mm margins = 105 — while
+     * IG p24 says "the acceptance point section should have a height of at
+     * least 2 cm". That is a *should*, and the same page makes room for it:
+     * the blank areas "may, however, be reduced in size in favour of the
+     * acceptance point section".
+     *
+     * So the sections above keep their mandatory heights and this one grows
+     * downward into the bottom margin, ending at 102 and leaving 3 mm. Every
+     * mandatory dimension is untouched and the recommendation is met.
+     *
+     * The alternative — shrinking the amount section to 12 mm — would break a
+     * mandatory height to satisfy a recommendation, and would not fit the
+     * 30 x 10 mm blank amount box that goes there when no amount is given.
+     */
+    acceptance: { x: 5, y: 82, w: 52, h: 20 },
   },
 
   /** Corner-mark boxes for fields left blank, from SIX's own asset filenames. */
@@ -340,6 +359,45 @@ function drawQrMatrix(
 }
 
 /**
+ * A pair of scissors, drawn rather than typed.
+ *
+ * U+2702 is not in Liberation Sans, and reaching for a font that has it would
+ * mean shipping a second face for one glyph — and subsetting would be one
+ * misconfiguration away from a blank box where the specification requires a
+ * mark. Four strokes and two rings is smaller than the alternative and cannot
+ * fail to render.
+ *
+ * Blades cross at (x, y) with the tips pointing up the cut line and the finger
+ * rings below, which is the orientation SIX's own samples use on the vertical
+ * separation.
+ */
+function drawScissors(page: PDFPage, xMm: number, yMm: number) {
+  const reach = 2.0;
+  const spread = 0.85;
+  const ring = 0.5;
+  const stroke = 0.5;
+  const ink = rgb(0, 0, 0);
+
+  for (const side of [-1, 1]) {
+    // Blade: from the ring on one side, through the pivot, to the tip on the
+    // other — one straight stroke, which is what makes it read as scissors.
+    page.drawLine({
+      start: { x: mm(xMm + side * spread), y: pageY(yMm + reach) },
+      end: { x: mm(xMm - side * spread), y: pageY(yMm - reach) },
+      thickness: stroke,
+      color: ink,
+    });
+    page.drawCircle({
+      x: mm(xMm + side * spread),
+      y: pageY(yMm - reach - ring * 0.6),
+      size: mm(ring),
+      borderColor: ink,
+      borderWidth: stroke,
+    });
+  }
+}
+
+/**
  * Draws the receipt and payment part across the bottom 105 mm of the page,
  * plus the two separation lines the specification requires for a PDF (paper
  * QR-bills use perforation instead).
@@ -371,6 +429,18 @@ export function drawQrBill(
     color: rgb(0, 0, 0),
     dashArray: [mm(2), mm(2)],
   });
+  // IG p27: "Each of these lines must bear the scissors symbol or
+  // alternatively the instruction 'Separate before paying in' above the line
+  // (outside the payment part)."
+  //
+  // *Each* line. The horizontal one carries the instruction; the vertical one
+  // carried nothing at all until now, which was a straightforward compliance
+  // miss — easy to overlook because the bill looks finished without it.
+  //
+  // The instruction is the permitted alternative to the glyph, so the
+  // horizontal line stays as it is. The vertical line gets the scissors: the
+  // same sentence rotated through 90° would be technically compliant and
+  // unreadable.
   page.drawText(t.separate, {
     x: mm(GEO.margin),
     y: pageY(bandTop - 1.5),
@@ -378,6 +448,9 @@ export function drawQrBill(
     font: fonts.regular,
     color: rgb(0, 0, 0),
   });
+  // Sits just left of the line, so it is outside the payment part as the
+  // sentence requires, and near the top where a pair of scissors would start.
+  drawScissors(page, ppX - 2.6, bandTop + 7);
 
   // ------------------------------------------------------------- receipt ---
   const rc = GEO.rc;

@@ -237,6 +237,60 @@ public enum PublicSchema {
       case name = "name"
     }
   }
+  public struct CompanyBexioSettingsSelect: Codable, Hashable, Sendable {
+    public let companyId: UUID
+    public let createdAt: String
+    public let defaultContactId: Int64?
+    public let draftStatusId: Int64?
+    public let taxIds: AnyJSON
+    public let updatedAt: String
+    public let verifiedAt: String?
+    public enum CodingKeys: String, CodingKey {
+      case companyId = "company_id"
+      case createdAt = "created_at"
+      case defaultContactId = "default_contact_id"
+      case draftStatusId = "draft_status_id"
+      case taxIds = "tax_ids"
+      case updatedAt = "updated_at"
+      case verifiedAt = "verified_at"
+    }
+  }
+  public struct CompanyBexioSettingsInsert: Codable, Hashable, Sendable {
+    public let companyId: UUID
+    public let createdAt: String?
+    public let defaultContactId: Int64?
+    public let draftStatusId: Int64?
+    public let taxIds: AnyJSON?
+    public let updatedAt: String?
+    public let verifiedAt: String?
+    public enum CodingKeys: String, CodingKey {
+      case companyId = "company_id"
+      case createdAt = "created_at"
+      case defaultContactId = "default_contact_id"
+      case draftStatusId = "draft_status_id"
+      case taxIds = "tax_ids"
+      case updatedAt = "updated_at"
+      case verifiedAt = "verified_at"
+    }
+  }
+  public struct CompanyBexioSettingsUpdate: Codable, Hashable, Sendable {
+    public let companyId: UUID?
+    public let createdAt: String?
+    public let defaultContactId: Int64?
+    public let draftStatusId: Int64?
+    public let taxIds: AnyJSON?
+    public let updatedAt: String?
+    public let verifiedAt: String?
+    public enum CodingKeys: String, CodingKey {
+      case companyId = "company_id"
+      case createdAt = "created_at"
+      case defaultContactId = "default_contact_id"
+      case draftStatusId = "draft_status_id"
+      case taxIds = "tax_ids"
+      case updatedAt = "updated_at"
+      case verifiedAt = "verified_at"
+    }
+  }
   public struct CompanyBillingSettingsSelect: Codable, Hashable, Sendable {
     public let companyId: UUID
     public let createdAt: String

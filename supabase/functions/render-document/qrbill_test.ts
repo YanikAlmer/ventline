@@ -64,7 +64,31 @@ Deno.test("the Style Guide dimension chains close", () => {
     105,
     "payment part vertical chain",
   );
-  assertEquals(GEO.margin + 7 + 56 + 14 + 18 + GEO.margin, 105, "receipt vertical chain");
+  // The receipt chain, asserted against GEO rather than against copies of the
+  // numbers. The previous version spelled out "7 + 56 + 14 + 18" as literals,
+  // so it went on passing while the geometry changed underneath it — a test of
+  // arithmetic rather than of the layout it is named after.
+  const rc = GEO.rc;
+  assertEquals(rc.info.y, GEO.margin + rc.title.h, "info starts below the title");
+  assertEquals(rc.amount.y, rc.info.y + rc.info.h, "amount follows the info block");
+  assertEquals(rc.acceptance.y, rc.amount.y + rc.amount.h, "acceptance follows the amount");
+
+  // Style Guide p6 gives these three as mandatory.
+  assertEquals(
+    [rc.title.h, rc.info.h, rc.amount.h],
+    [7, 56, 14],
+    "mandatory Style Guide section heights",
+  );
+
+  // IG p24: the acceptance point section "should have a height of at least
+  // 2 cm", and the blank areas "may, however, be reduced in size in favour of
+  // the acceptance point section" — which is the licence to run past the 95 mm
+  // the Style Guide drawing shows and eat into the bottom margin.
+  assert(rc.acceptance.h >= 20, "acceptance point section is at least 20 mm");
+  assert(
+    rc.acceptance.y + rc.acceptance.h <= GEO.band.h,
+    "and still finishes inside the receipt",
+  );
   assertEquals(GEO.margin + pp.qr.size + GEO.margin + pp.info.w + GEO.margin, 148,
     "payment part horizontal chain");
   // The one most often got wrong: 46 mm excludes the quiet zone.

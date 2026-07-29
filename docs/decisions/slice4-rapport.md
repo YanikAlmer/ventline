@@ -258,17 +258,46 @@ What replaces it, and is arguably better for the encoder:
   correction cannot recover them the bill is unscannable, and that failure is
   completely invisible in a visual review.
 
+### Resolved by reading the specification (2026-07-29)
+
+Three of the four open layout questions had answers; I had been guessing rather
+than looking. The IG and Style Guide PDFs were fetched and read directly.
+
+- **Acceptance point section: now 20 mm, was 18.** IG p24 says it "should have
+  a height of at least 2 cm" — and, two sentences later, that the blank areas
+  "may, however, be reduced in size in favour of the acceptance point section".
+  That is the licence to break the Style Guide's 95 mm chain. The mandatory
+  section heights above it (7 / 56 / 14) are untouched and the acceptance
+  section grows *downward* into the bottom margin, ending at 102 mm. Shrinking
+  the amount section instead would have broken a mandatory height to satisfy a
+  recommendation, and would not have fitted the 30 × 10 mm blank amount box.
+
+- **The vertical separation line had no scissors, and that was a defect.** IG
+  p27: "Each of these lines must bear the scissors symbol or alternatively the
+  instruction 'Separate before paying in' above the line (outside the payment
+  part)." *Each.* The horizontal line carried the instruction; the vertical one
+  carried nothing. It now bears a drawn pair of scissors — drawn rather than
+  typeset because U+2702 is not in Liberation Sans, and a subsetting mistake
+  would put a blank box where the specification requires a mark.
+
+- **The text instruction was never a deviation.** The previous note called it
+  "convention, not spec". It is spec: the sentence above offers the instruction
+  as the explicit alternative to the glyph.
+
+- **The dimension test was not testing the dimensions.** It spelled the receipt
+  chain out as literals — `7 + 56 + 14 + 18` — so it passed unchanged while the
+  geometry moved under it. It now reads `GEO` and asserts the rule (mandatory
+  heights exact, acceptance ≥ 20 mm, nothing past the band) rather than the
+  arithmetic.
+
 ### Still unverified
 
 - No pixel-exact golden image exists. SIX's only rendered samples are JPEGs
-  from 2021 that predate Style Guide v1.1, so layout regression has no ground
-  truth beyond our own baseline.
-- The separation line's weight, dash pattern and scissors placement are **not
-  specified anywhere**. Current choice (0.5 pt, 2 mm dashes, text instruction
-  instead of a glyph) is convention, not spec.
-- IG **3.6 says the acceptance point section should be ≥ 20 mm; the Style Guide
-  drawing shows 18 mm.** We use 18. If a bank validator checks for 20, this is
-  the first place to look.
+  from 2021 that predate Style Guide v1.1, so layout regression still has no
+  ground truth beyond our own baseline.
+- The separation line's **weight and dash pattern** remain unspecified; 0.5 pt
+  with 2 mm dashes is convention. Only the scissors/instruction requirement is
+  written down.
 - The Swiss cross artwork is licensed by conformance, not by a grant — using it
   is permitted only while output conforms to the IG. Worth a short counsel
   review before commercial launch.

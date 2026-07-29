@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { LoginForm } from "@/components/auth/login-form";
@@ -34,6 +35,17 @@ export default async function LoginPage() {
           <p className="mt-1 text-sm text-slate-500">{t("app.tagline")}</p>
         </div>
         <LoginForm />
+        {/* Reachable before signing in, which is the point: someone deciding
+            whether to create an account is exactly who needs to read it. */}
+        <p className="mt-6 text-center text-xs text-slate-500">
+          <Link href="/datenschutz" className="underline hover:text-slate-700">
+            Datenschutz
+          </Link>
+          {" · "}
+          <Link href="/privacy" className="underline hover:text-slate-700">
+            Privacy
+          </Link>
+        </p>
       </div>
     </main>
   );

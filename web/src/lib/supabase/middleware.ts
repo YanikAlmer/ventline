@@ -3,7 +3,23 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import type { Database } from "@/lib/database.types";
 
-const PUBLIC_PATHS = ["/login", "/auth"];
+/**
+ * Paths reachable without a session.
+ *
+ * `/r` is the customer magic link, and its absence here made the entire
+ * feature unreachable by the only people it was built for: a customer with no
+ * account followed their link and was bounced to a sign-in page they cannot
+ * pass. Everything behind it was right — the hashed token, the definer
+ * resolver, the rate limit, the signed URL — and the door was locked.
+ *
+ * It survived every test because the tests were run while signed in, which is
+ * the one state in which the bug is invisible.
+ *
+ * The legal pages are public because App Store Connect fetches the privacy
+ * policy URL unauthenticated, and because a policy you must log in to read is
+ * not a published policy.
+ */
+const PUBLIC_PATHS = ["/login", "/auth", "/r", "/datenschutz", "/privacy"];
 
 function isPublicPath(pathname: string) {
   return PUBLIC_PATHS.some(

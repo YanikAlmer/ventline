@@ -120,6 +120,44 @@ export type Database = {
         }
         Relationships: []
       }
+      company_bexio_settings: {
+        Row: {
+          company_id: string
+          created_at: string
+          default_contact_id: number | null
+          draft_status_id: number | null
+          tax_ids: Json
+          updated_at: string
+          verified_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          default_contact_id?: number | null
+          draft_status_id?: number | null
+          tax_ids?: Json
+          updated_at?: string
+          verified_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          default_contact_id?: number | null
+          draft_status_id?: number | null
+          tax_ids?: Json
+          updated_at?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_bexio_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_billing_settings: {
         Row: {
           company_id: string
@@ -2617,6 +2655,7 @@ export type Database = {
         Args: { p_report_id: string; p_time_entry_ids: string[] }
         Returns: number
       }
+      bexio_invoice_payload: { Args: { p_invoice_id: string }; Returns: Json }
       claim_notification_batch: { Args: { p_limit?: number }; Returns: Json }
       create_company: {
         Args: { p_full_name: string; p_name: string }
@@ -2713,6 +2752,66 @@ export type Database = {
       invoice_render_payload: { Args: { p_invoice_id: string }; Returns: Json }
       issue_invoice: {
         Args: { p_invoice_id: string }
+        Returns: {
+          bexio_invoice_id: number | null
+          bexio_sync_error: string | null
+          bexio_synced_at: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          creditor_building_no: string | null
+          creditor_country: string | null
+          creditor_iban: string | null
+          creditor_mwst_status:
+            Database["public"]["Enums"]["mwst_status"] | null
+          creditor_name: string | null
+          creditor_post_code: string | null
+          creditor_street: string | null
+          creditor_town: string | null
+          creditor_uid_digits: string | null
+          currency: string
+          customer_id: string
+          debtor_building_no: string | null
+          debtor_country: string | null
+          debtor_name: string | null
+          debtor_post_code: string | null
+          debtor_street: string | null
+          debtor_town: string | null
+          due_date: string | null
+          id: string
+          invoice_date: string | null
+          number: number | null
+          number_text: string | null
+          paid_at: string | null
+          pdf_generated_at: string | null
+          pdf_path: string | null
+          pdf_sha256: string | null
+          period_key: string | null
+          project_id: string
+          qr_payload: string | null
+          qr_spec_version: string
+          reference: string | null
+          reference_type:
+            Database["public"]["Enums"]["qr_reference_type"] | null
+          report_id: string | null
+          sent_at: string | null
+          service_date_from: string | null
+          service_date_to: string | null
+          status: Database["public"]["Enums"]["invoice_status"]
+          total_gross_rappen: number
+          total_net_rappen: number
+          total_tax_rappen: number
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "invoices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      mark_bexio_synced: {
+        Args: { p_bexio_invoice_id: number; p_invoice_id: string }
         Returns: {
           bexio_invoice_id: number | null
           bexio_sync_error: string | null
