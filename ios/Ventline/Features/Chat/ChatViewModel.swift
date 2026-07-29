@@ -348,6 +348,39 @@ final class ChatViewModel {
         }
     }
 
+    /// Sends a picked video.
+    ///
+    /// The temp file is deleted only once the message row exists, not once the
+    /// upload finishes: a failure between the two leaves the send retryable,
+    /// and a retry re-runs the upload — against a file that would no longer be
+    /// there. Optimistic rows carry no thumbnail, so the placeholder is the
+    /// caption and the sending spinner until the real row arrives.
+    func sendVideo(
+        fileURL: URL,
+        caption: String?,
+        sharedWithCustomer: Bool,
+        pending: [Annotations.Pending] = []
+    ) {
+        let resolved = Annotations.resolve(body: caption ?? "", pending: pending)
+        sendOptimistic(kind: .video, body: caption, image: nil,
+                       sharedWithCustomer: sharedWithCustomer) {
+            let uploaded = try await MediaUploader.uploadVideo(
+                fileURL: fileURL,
+                companyId: self.profile.companyId, projectId: self.projectId
+            )
+            let messageId = try await MessageRepo.send(
+                projectId: self.projectId, taskId: self.taskId,
+                kind: .video, body: caption,
+                attachments: [uploaded.attachmentPayload],
+                sharedWithCustomer: sharedWithCustomer,
+                mentions: Annotations.mentionsPayload(resolved),
+                refs: Annotations.refsPayload(resolved)
+            )
+            try? FileManager.default.removeItem(at: fileURL)
+            return messageId
+        }
+    }
+
     func sendVoice(fileURL: URL, duration: Double) {
         sendOptimistic(kind: .voice, body: nil, image: nil, sharedWithCustomer: false) {
             let uploaded = try await MediaUploader.uploadVoice(

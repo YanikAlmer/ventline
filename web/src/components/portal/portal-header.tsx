@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BrandMark } from "@/components/brand-mark";
 import { useRouter } from "next/navigation";
 
 import { useTranslator } from "@/i18n/client";
@@ -27,8 +28,8 @@ export function PortalHeader({
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white">
       <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <Link href="/portal" className="flex min-w-0 items-center gap-2.5">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-sm font-black text-white">
-            V
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-slate-900 p-1.5">
+            <BrandMark className="size-full text-white" />
           </span>
           <span className="min-w-0">
             <span className="block truncate text-sm font-bold text-slate-900">

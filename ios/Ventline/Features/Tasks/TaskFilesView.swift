@@ -161,22 +161,6 @@ struct TaskFilesView: View {
 
 /// PhotosPicker hands videos over as a file. Copying it out of the temporary
 /// location it arrives in is required: the system reclaims that URL.
-private struct PickedMovie: Transferable {
-    let url: URL
-
-    static var transferRepresentation: some TransferRepresentation {
-        FileRepresentation(contentType: .movie) { movie in
-            SentTransferredFile(movie.url)
-        } importing: { received in
-            let copy = FileManager.default.temporaryDirectory
-                .appendingPathComponent(UUID().uuidString)
-                .appendingPathExtension(received.file.pathExtension.isEmpty
-                    ? "mov" : received.file.pathExtension)
-            try FileManager.default.copyItem(at: received.file, to: copy)
-            return PickedMovie(url: copy)
-        }
-    }
-}
 
 private struct AttachmentThumb: View {
     let attachment: Attachment

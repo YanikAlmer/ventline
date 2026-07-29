@@ -1,4 +1,5 @@
 import AVFoundation
+import CoreTransferable
 import Foundation
 import Supabase
 import UIKit
@@ -166,5 +167,28 @@ enum MediaUploader {
 
     private static func makePath(companyId: UUID, projectId: UUID, ext: String) -> String {
         "\(companyId.uuidString.lowercased())/\(projectId.uuidString.lowercased())/\(UUID().uuidString.lowercased())/\(UUID().uuidString.lowercased()).\(ext)"
+    }
+}
+
+/// A movie picked from the library, imported to a temp file.
+///
+/// Loaded as a *file* and never as Data: a 200 MB clip held in memory is how a
+/// jobsite phone gets its app killed mid-upload. Shared rather than duplicated
+/// because both the chat composer and task files pick videos, and two copies
+/// of a Transferable is two places for the temp-file handling to drift.
+struct PickedMovie: Transferable {
+    let url: URL
+
+    static var transferRepresentation: some TransferRepresentation {
+        FileRepresentation(contentType: .movie) { movie in
+            SentTransferredFile(movie.url)
+        } importing: { received in
+            let copy = FileManager.default.temporaryDirectory
+                .appendingPathComponent(UUID().uuidString)
+                .appendingPathExtension(received.file.pathExtension.isEmpty
+                    ? "mov" : received.file.pathExtension)
+            try FileManager.default.copyItem(at: received.file, to: copy)
+            return PickedMovie(url: copy)
+        }
     }
 }

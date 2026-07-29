@@ -2859,6 +2859,10 @@ export type Database = {
         Returns: string
       }
       render_pending_documents: { Args: { p_limit?: number }; Returns: number }
+      reorder_task_steps: {
+        Args: { p_ordered_ids: string[]; p_parent_id: string }
+        Returns: number
+      }
       report_canonical_text: { Args: { p_report_id: string }; Returns: string }
       report_render_payload: { Args: { p_report_id: string }; Returns: Json }
       resolve_document_link: {

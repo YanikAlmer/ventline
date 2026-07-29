@@ -139,6 +139,31 @@ enum TaskRepo {
             .value
     }
 
+    /// Rewrites the order of a package's steps in one call.
+    ///
+    /// The whole new order goes over together rather than one position at a
+    /// time: sent as separate updates, a dropped connection halfway leaves two
+    /// steps claiming the same position and the list quietly reorders itself on
+    /// the next load. The server also refuses an order that no longer describes
+    /// exactly this package's steps, so a stale list fails loudly instead of
+    /// half-applying.
+    @discardableResult
+    static func reorderSteps(parentId: UUID, orderedIds: [UUID]) async throws -> Int {
+        struct Params: Encodable {
+            let pParentId: UUID
+            let pOrderedIds: [UUID]
+            enum CodingKeys: String, CodingKey {
+                case pParentId = "p_parent_id"
+                case pOrderedIds = "p_ordered_ids"
+            }
+        }
+        return try await Supa.client
+            .rpc("reorder_task_steps",
+                 params: Params(pParentId: parentId, pOrderedIds: orderedIds))
+            .execute()
+            .value
+    }
+
     /// Creates an Arbeitspaket, or an Arbeitsschritt when `parentId` is set.
     static func create(
         projectId: UUID, companyId: UUID, title: String, description: String?,

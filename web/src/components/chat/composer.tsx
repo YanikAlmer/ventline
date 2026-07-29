@@ -11,6 +11,7 @@ import {
   resolveAnnotations,
 } from "@/lib/annotations";
 import { downscaleImage, jpegFilename } from "@/lib/image";
+import { isVideoFile, videoRejectionKey } from "@/lib/media";
 import { buildUploadPath } from "@/lib/storage";
 import { createClient } from "@/lib/supabase/client";
 import type { Json } from "@/lib/database.types";
@@ -148,7 +149,21 @@ export function Composer({
 
   function handlePickFiles(list: FileList | null) {
     if (!list) return;
-    setFiles((prev) => [...prev, ...Array.from(list)].slice(0, 10));
+    const picked = Array.from(list);
+
+    // Checked here rather than on send: the bucket would reject it anyway, but
+    // only after the person has watched an upload bar crawl across the screen.
+    const rejected = picked
+      .map((file) => (isVideoFile(file) ? videoRejectionKey(file) : null))
+      .find(Boolean);
+    if (rejected) {
+      setError(t(rejected));
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    setError(null);
+    setFiles((prev) => [...prev, ...picked].slice(0, 10));
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
@@ -163,7 +178,34 @@ export function Composer({
 
     try {
       const attachments: Json[] = [];
+      // Tracked alongside rather than read back out of the Json blobs: the
+      // message row needs one kind, and digging it out of an opaque payload
+      // would mean casting away the very type that keeps it honest.
+      const kinds: ("photo" | "video")[] = [];
       for (const file of files) {
+        if (isVideoFile(file)) {
+          // Uploaded as-is. Re-encoding in the browser would take longer than
+          // the upload and lose quality the crew may be relying on.
+          const path = buildUploadPath(companyId, projectId, file.name);
+          const { error: uploadError } = await supabase.storage
+            .from("video")
+            .upload(path, file, { contentType: file.type });
+          if (uploadError) {
+            throw new Error(
+              t("chat.photoUploadFailed", { message: uploadError.message })
+            );
+          }
+          kinds.push("video");
+          attachments.push({
+            kind: "video",
+            storage_bucket: "video",
+            storage_path: path,
+            mime_type: file.type,
+            byte_size: file.size,
+          });
+          continue;
+        }
+
         const { blob, width, height } = await downscaleImage(file, t);
         const path = buildUploadPath(
           companyId,
@@ -178,6 +220,7 @@ export function Composer({
             t("chat.photoUploadFailed", { message: uploadError.message })
           );
         }
+        kinds.push("photo");
         attachments.push({
           kind: "photo",
           storage_bucket: "photos",
@@ -198,7 +241,11 @@ export function Composer({
         {
           p_project_id: projectId,
           p_task_id: taskId ?? undefined,
-          p_kind: attachments.length > 0 ? "photo" : "text",
+          // messages.kind is one value for the row, so a batch takes the kind
+          // of what it leads with. The attachments carry their own kinds and
+          // the bubble renders each accordingly, so a mixed send is not lost —
+          // it only affects which icon the inbox preview shows.
+          p_kind: kinds[0] ?? "text",
           p_body: text || undefined,
           p_attachments: attachments,
           p_shared_with_customer: shareWithCustomer,
@@ -234,7 +281,7 @@ export function Composer({
               key={`${file.name}-${i}`}
               className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700"
             >
-              📷 {file.name}
+              {isVideoFile(file) ? "🎬" : "📷"} {file.name}
               <button
                 type="button"
                 aria-label={t("chat.removeAttachment", { name: file.name })}
@@ -302,7 +349,7 @@ export function Composer({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept="image/*,video/mp4,video/quicktime"
           multiple
           className="hidden"
           onChange={(e) => handlePickFiles(e.target.files)}

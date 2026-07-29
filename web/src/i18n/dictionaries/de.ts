@@ -411,6 +411,8 @@ export const de: Record<TranslationKey, string> = {
   "tasks.steps.add": "Schritt hinzufügen",
   "tasks.steps.collapse": "Schritte ausblenden",
   "tasks.steps.expand": "Schritte anzeigen",
+  "tasks.steps.moveDown": "„{title}“ nach unten",
+  "tasks.steps.moveUp": "„{title}“ nach oben",
   "tasks.steps.none": "Noch keine Schritte.",
   "tasks.steps.progress": "{done}/{total} Schritte",
   "tasks.visibility.label": "Im Kundenportal sichtbar",

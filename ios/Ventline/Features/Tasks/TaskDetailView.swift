@@ -7,6 +7,7 @@ struct TaskDetailView: View {
     @State private var task: JobTask?
     @State private var parent: JobTask?
     @State private var steps: [JobTask] = []
+    @State private var showReorder = false
     @State private var assignments: [TaskAssignment] = []
     @State private var profilesById: [UUID: Profile] = [:]
     @State private var chatModel: ChatViewModel?
@@ -32,6 +33,9 @@ struct TaskDetailView: View {
         }
         .navigationTitle(task?.title ?? String(localized: "Task"))
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showReorder) {
+            StepReorderSheet(parentId: taskId, steps: steps) { await reload() }
+        }
         .task { await reload() }
     }
 
@@ -118,9 +122,20 @@ struct TaskDetailView: View {
             VStack(alignment: .leading, spacing: 12) {
                 if !steps.isEmpty {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Steps")
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(.secondary)
+                        HStack {
+                            Text("Steps")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            // Reordering is planning, not status, so it follows
+                            // the same line the database draws: everyone except
+                            // a worker. Offering it to a worker would only
+                            // produce a refusal from the server.
+                            if profile.role != .worker, steps.count > 1 {
+                                Button("Reorder") { showReorder = true }
+                                    .font(.caption)
+                            }
+                        }
                         ForEach(steps, id: \.id) { step in
                             NavigationLink {
                                 TaskDetailView(taskId: step.id, profile: profile)

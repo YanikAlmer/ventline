@@ -2810,4 +2810,81 @@ begin
 end;
 $$;
 
+-- ============================ step reordering (20260801090000)
+-- sort_order existed from the first tasks migration and nothing ever wrote it,
+-- so every step sat at 0 and the order was whatever created_at happened to be.
+do $$
+declare
+  frank uuid := '00000000-0000-4000-8000-000000000003';
+  wanda uuid := '00000000-0000-4000-8000-000000000004';
+  maple uuid := '00000000-0000-4000-9000-000000000001';
+  pkg uuid := '00000000-0000-4000-a000-000000000001';
+  a uuid; b uuid; c uuid; other_pkg uuid; foreign_step uuid;
+  denied boolean;
+begin
+  perform tests.impersonate(frank);
+  insert into public.tasks (project_id, parent_id, title, status)
+  values (maple, pkg, 'Kanal reinigen', 'todo') returning id into a;
+  insert into public.tasks (project_id, parent_id, title, status)
+  values (maple, pkg, 'Filter tauschen', 'todo') returning id into b;
+  insert into public.tasks (project_id, parent_id, title, status)
+  values (maple, pkg, 'Messprotokoll', 'todo') returning id into c;
+
+  -- The backfill numbered the existing steps, so a fresh package's steps are
+  -- already distinct rather than all sitting on 0.
+  perform public.reorder_task_steps(pkg, array[c, a, b]);
+  assert (select sort_order from public.tasks where id = c) <
+         (select sort_order from public.tasks where id = a),
+    'the requested order is the stored order';
+  assert (select sort_order from public.tasks where id = a) <
+         (select sort_order from public.tasks where id = b),
+    'and it holds across the whole list';
+
+  -- A short list would leave the omitted step on its old position, colliding
+  -- with whatever now occupies it.
+  denied := false;
+  begin
+    perform public.reorder_task_steps(pkg, array[c, a]);
+  exception when others then denied := true;
+  end;
+  assert denied, 'a partial order is refused rather than half-applied';
+
+  -- A repeated id is arithmetically plausible and leaves a step behind.
+  denied := false;
+  begin
+    perform public.reorder_task_steps(pkg, array[c, a, a]);
+  exception when others then denied := true;
+  end;
+  assert denied, 'a duplicated id is refused';
+
+  -- A foreign id would be renumbered through the function's definer rights.
+  insert into public.tasks (project_id, title, status)
+  values (maple, 'Anderes Paket', 'todo') returning id into other_pkg;
+  insert into public.tasks (project_id, parent_id, title, status)
+  values (maple, other_pkg, 'Fremder Schritt', 'todo') returning id into foreign_step;
+  denied := false;
+  begin
+    perform public.reorder_task_steps(pkg, array[c, a, foreign_step]);
+  exception when others then denied := true;
+  end;
+  assert denied, 'a step belonging to another package cannot be renumbered';
+  assert (select parent_id from public.tasks where id = foreign_step) = other_pkg,
+    'and it is left entirely alone';
+
+  perform tests.reset();
+
+  -- Reordering is planning, not status. SECURITY DEFINER runs past RLS, so the
+  -- rule a worker meets on a direct UPDATE has to be restated inside the
+  -- function or the function becomes the way around it.
+  perform tests.impersonate(wanda);
+  denied := false;
+  begin
+    perform public.reorder_task_steps(pkg, array[a, b, c]);
+  exception when others then denied := true;
+  end;
+  assert denied, 'a worker cannot reorder steps';
+  perform tests.reset();
+end;
+$$;
+
 select 'RLS TESTS PASSED' as result;

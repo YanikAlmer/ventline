@@ -1,3 +1,4 @@
+import AVKit
 import SwiftUI
 
 struct MessageBubbleView: View {
@@ -153,9 +154,7 @@ struct AttachmentView: View {
         case .voice:
             AudioPlayerView(attachment: attachment)
         case .video:
-            // Milestone 2.
-            Label("Video message", systemImage: "video")
-                .foregroundStyle(.secondary)
+            VideoBubble(attachment: attachment)
         }
     }
 
@@ -216,5 +215,99 @@ struct StorageImage: View {
             .fill(Color(.tertiarySystemFill))
             .frame(width: 200, height: 150)
             .overlay(Image(systemName: icon).foregroundStyle(.secondary))
+    }
+}
+
+/// A video in a thread: poster frame, duration, tap to play.
+///
+/// The poster is pulled from the signed URL rather than stored, because
+/// AVAssetImageGenerator range-requests just enough of the file to decode one
+/// frame — cheaper than uploading and keeping a second object per clip, and it
+/// cannot fall out of sync with the video. Best effort: a clip whose first
+/// frame will not decode still plays, it just shows the plain card.
+private struct VideoBubble: View {
+    let attachment: Attachment
+
+    @State private var url: URL?
+    @State private var poster: UIImage?
+    @State private var isPlaying = false
+
+    var body: some View {
+        Button {
+            isPlaying = true
+        } label: {
+            ZStack {
+                if let poster {
+                    Image(uiImage: poster)
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    Rectangle().fill(Color.black.opacity(0.85))
+                }
+
+                Image(systemName: "play.circle.fill")
+                    .font(.system(size: 44))
+                    .foregroundStyle(.white)
+                    .shadow(radius: 4)
+
+                if let seconds = attachment.durationSeconds {
+                    Text(Self.clock(seconds))
+                        .font(.caption2.weight(.semibold).monospacedDigit())
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(.black.opacity(0.55), in: Capsule())
+                        .padding(6)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity,
+                               alignment: .bottomTrailing)
+                }
+            }
+            .frame(width: 240, height: 150)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+        .buttonStyle(.plain)
+        .disabled(url == nil)
+        .fullScreenCover(isPresented: $isPlaying) {
+            if let url {
+                VideoPlayerSheet(url: url)
+            }
+        }
+        .task {
+            url = try? await SignedURLCache.shared.url(
+                bucket: attachment.storageBucket, path: attachment.storagePath)
+            guard let url else { return }
+            poster = await Self.poster(for: url)
+        }
+    }
+
+    private static func clock(_ seconds: Double) -> String {
+        let total = Int(seconds.rounded())
+        return String(format: "%d:%02d", total / 60, total % 60)
+    }
+
+    private static func poster(for url: URL) async -> UIImage? {
+        let generator = AVAssetImageGenerator(asset: AVURLAsset(url: url))
+        generator.appliesPreferredTrackTransform = true
+        generator.maximumSize = CGSize(width: 480, height: 480)
+        guard let cg = try? await generator.image(at: .zero).image else { return nil }
+        return UIImage(cgImage: cg)
+    }
+}
+
+private struct VideoPlayerSheet: View {
+    let url: URL
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            VideoPlayer(player: AVPlayer(url: url))
+                .ignoresSafeArea(edges: .bottom)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done") { dismiss() }
+                    }
+                }
+        }
     }
 }

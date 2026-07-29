@@ -166,12 +166,17 @@ same way — a flat list would read as twice as much outstanding work. On iOS,
 "My Tasks" labels each step with its package, so someone on five sites cannot
 mix them up.
 
-**Still open from this slice**
+**Closed since** (`20260801090000`)
 
-- Video in the **chat** composer. The bucket, enum and policies are used now,
-  but only from the task-files path; the chat composer is still photo-only.
-- The `+ Schritt` / `Add step` flow does not let you reorder steps; they are
-  ordered by `sort_order` then `created_at` and nothing writes `sort_order`.
+- Video in the **chat** composer, both clients. The bubble's video case was a
+  `// Milestone 2.` stub, so finishing the composer without finishing the
+  bubble would have let you send a clip nobody could watch; iOS now renders a
+  poster frame pulled from the signed URL, a duration badge and a player.
+- Step reordering. `sort_order` had existed since the first tasks migration
+  with nothing ever writing it, so every step sat at 0 and the real order was
+  the `created_at` tiebreak — the order steps happened to be typed in, and
+  unchangeable afterwards. `reorder_task_steps` rewrites the whole order in one
+  call and refuses one that no longer describes exactly that package's steps.
 
 ---
 

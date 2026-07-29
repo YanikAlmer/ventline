@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { BrandMark } from "@/components/brand-mark";
 import { redirect } from "next/navigation";
 
 import { OnboardingForm } from "@/components/auth/onboarding-form";
@@ -31,8 +32,8 @@ export default async function OnboardingPage() {
     <main className="flex min-h-dvh items-center justify-center bg-slate-100 px-4 py-10">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-xl bg-slate-900 text-xl font-black text-white">
-            V
+          <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-xl bg-slate-900 p-2">
+            <BrandMark className="size-full text-white" />
           </div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900">
             {t("auth.almostThere")}

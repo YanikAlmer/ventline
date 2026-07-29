@@ -411,6 +411,8 @@ export const en = {
   "tasks.steps.add": "Add step",
   "tasks.steps.collapse": "Hide steps",
   "tasks.steps.expand": "Show steps",
+  "tasks.steps.moveDown": "Move “{title}” down",
+  "tasks.steps.moveUp": "Move “{title}” up",
   "tasks.steps.none": "No steps yet.",
   "tasks.steps.progress": "{done}/{total} steps",
   "tasks.visibility.label": "Visible in customer portal",

@@ -7,12 +7,9 @@ import { useTranslator } from "@/i18n/client";
 import { downscaleImage, jpegFilename } from "@/lib/image";
 import type { TaskAttachment } from "@/lib/queries";
 import { buildUploadPath, signedUrlMap } from "@/lib/storage";
+import { MAX_VIDEO_BYTES, VIDEO_TYPES } from "@/lib/media";
 import { createClient } from "@/lib/supabase/client";
 
-/** Matches the video bucket's allowed_mime_types. */
-const VIDEO_TYPES = ["video/mp4", "video/quicktime"];
-/** Matches the video bucket's file_size_limit. */
-const MAX_VIDEO_BYTES = 200 * 1024 * 1024;
 
 /**
  * Photos and videos attached to the work itself rather than to a chat message
@@ -85,7 +82,7 @@ export function TaskFiles({
         };
 
         if (isVideo) {
-          if (!VIDEO_TYPES.includes(file.type)) {
+          if (!(VIDEO_TYPES as readonly string[]).includes(file.type)) {
             throw new Error(t("tasks.files.videoType"));
           }
           if (file.size > MAX_VIDEO_BYTES) {

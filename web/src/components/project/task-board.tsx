@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Avatar } from "@/components/avatar";
@@ -12,6 +13,7 @@ import type { Locale } from "@/i18n/config";
 import type { Profile, TaskWithAssignees, WorkPackage } from "@/lib/queries";
 import { stepProgress } from "@/lib/queries";
 import { TASK_STATUSES, TASK_STATUS_DOT } from "@/lib/status";
+import { createClient } from "@/lib/supabase/client";
 
 type Member = Pick<Profile, "id" | "full_name" | "role">;
 
@@ -210,13 +212,12 @@ function StepList({
           {t("tasks.steps.none")}
         </p>
       ) : (
-        <ul>
-          {pkg.steps.map((step) => (
-            <li key={step.id}>
-              <StepRow step={step} projectId={projectId} locale={locale} />
-            </li>
-          ))}
-        </ul>
+        <OrderableSteps
+          pkg={pkg}
+          projectId={projectId}
+          locale={locale}
+          canManage={canManage}
+        />
       )}
       {canManage && (
         <div className="px-2 pb-1 pt-2">
@@ -229,6 +230,114 @@ function StepList({
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * The step rows themselves, reorderable.
+ *
+ * Move buttons rather than drag-and-drop. HTML5 drag does not fire on touch at
+ * all, and this board is used on a phone in a van as often as at a desk; a
+ * pointer-events implementation that works on both is a dependency and a week
+ * of edge cases for a list that is rarely longer than six items. Buttons also
+ * come with keyboard and screen-reader support for free.
+ *
+ * The new order is applied locally first and reverted if the server refuses,
+ * because the whole point of reordering is seeing the list settle.
+ */
+function OrderableSteps({
+  pkg,
+  projectId,
+  locale,
+  canManage,
+}: {
+  pkg: WorkPackage;
+  projectId: string;
+  locale: Locale;
+  canManage: boolean;
+}) {
+  const t = useTranslator();
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // The server's order, as a key. Not just the set of ids but their sequence,
+  // so that when router.refresh() brings back the order we just saved, the key
+  // changes and the optimistic copy drops itself.
+  const serverKey = pkg.steps.map((step) => step.id).join(",");
+
+  // Optimistic order, tagged with the server state it was derived from, and
+  // compared during render rather than synced in an effect: an effect that
+  // calls setState re-renders the whole board a second time on every parent
+  // update, and shows the wrong list in the frame between.
+  const [optimistic, setOptimistic] =
+    useState<{ key: string; steps: TaskWithAssignees[] } | null>(null);
+  const order =
+    optimistic && optimistic.key === serverKey ? optimistic.steps : pkg.steps;
+
+  async function move(index: number, delta: number) {
+    const target = index + delta;
+    if (target < 0 || target >= order.length) return;
+
+    const next = [...order];
+    [next[index], next[target]] = [next[target], next[index]];
+    setOptimistic({ key: serverKey, steps: next });
+    setBusy(true);
+    setError(null);
+
+    const supabase = createClient();
+    const { error: rpcError } = await supabase.rpc("reorder_task_steps", {
+      p_parent_id: pkg.id,
+      p_ordered_ids: next.map((s) => s.id),
+    });
+    setBusy(false);
+
+    if (rpcError) {
+      // Most likely someone else added a step while this list was open, which
+      // the server refuses rather than half-applies. Putting the list back is
+      // the honest response — the order on screen was never real.
+      setOptimistic(null);
+      setError(rpcError.message);
+      return;
+    }
+    router.refresh();
+  }
+
+  return (
+    <>
+      <ul>
+        {order.map((step, index) => (
+          <li key={step.id} className="flex items-center gap-1">
+            {canManage && order.length > 1 && (
+              <div className="flex shrink-0 flex-col">
+                <button
+                  type="button"
+                  onClick={() => move(index, -1)}
+                  disabled={busy || index === 0}
+                  aria-label={t("tasks.steps.moveUp", { title: step.title })}
+                  className="px-1 text-[10px] leading-none text-slate-400 hover:text-slate-900 disabled:opacity-25"
+                >
+                  ▲
+                </button>
+                <button
+                  type="button"
+                  onClick={() => move(index, 1)}
+                  disabled={busy || index === order.length - 1}
+                  aria-label={t("tasks.steps.moveDown", { title: step.title })}
+                  className="px-1 text-[10px] leading-none text-slate-400 hover:text-slate-900 disabled:opacity-25"
+                >
+                  ▼
+                </button>
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <StepRow step={step} projectId={projectId} locale={locale} />
+            </div>
+          </li>
+        ))}
+      </ul>
+      {error && <p className="px-2 pt-1 text-xs text-red-700">{error}</p>}
+    </>
   );
 }
 

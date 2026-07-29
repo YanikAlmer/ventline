@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { LoginForm } from "@/components/auth/login-form";
+import { BrandMark } from "@/components/brand-mark";
 import { getTranslator } from "@/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 
@@ -22,8 +23,10 @@ export default async function LoginPage() {
     <main className="flex min-h-dvh items-center justify-center bg-slate-100 px-4 py-10">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-xl bg-slate-900 text-xl font-black text-white">
-            V
+          {/* The mark itself, on the slate tile it is designed for — the same
+              geometry as the app icon rather than a letter that resembles it. */}
+          <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-xl bg-slate-900 p-2">
+            <BrandMark className="size-full text-white" />
           </div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900">
             Ventline
